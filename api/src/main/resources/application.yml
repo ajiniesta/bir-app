@@ -6,7 +6,7 @@ micronaut:
 
 datasources:
   default:
-    url: jdbc:postgresql://localhost:5432/bir_app
+    url: jdbc:postgresql://localhost:5434/bir_app
     driverClassName: org.postgresql.Driver
     username: ${DB_USERNAME:bir_app}
     password: ${DB_PASSWORD:bir_app_secret}
