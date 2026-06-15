@@ -1,0 +1,11 @@
+micronaut:
+  application:
+    name: bir-app-web
+  server:
+    port: 8081
+  views:
+    thymeleaf:
+      enabled: true
+
+api:
+  base-url: http://localhost:8080
