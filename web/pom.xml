@@ -61,7 +61,9 @@
             <plugin>
                 <groupId>io.micronaut.maven</groupId>
                 <artifactId>micronaut-maven-plugin</artifactId>
-                <configuration>
+        <configuration>
+
+                  <testResourcesVersion>1</testResourcesVersion>
                     <testResourcesEnabled>false</testResourcesEnabled>
                 </configuration>
             </plugin>

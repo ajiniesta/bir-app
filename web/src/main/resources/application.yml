@@ -4,6 +4,9 @@ micronaut:
   server:
     port: 8081
   views:
+    # Micronaut busca las vistas en classpath:/views por defecto; este proyecto
+    # las tiene en templates/ (convención tipo Spring Boot).
+    folder: templates
     thymeleaf:
       enabled: true
 

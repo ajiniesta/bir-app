@@ -1,21 +1,23 @@
 package bir.app.web.controller;
 
 import bir.app.web.client.QuestionApiClient;
-import bir.app.web.dto.CreateQuestionRequest;
+import bir.app.web.dto.ExamTypeResponse;
+import bir.app.web.dto.QuestionForm;
+import bir.app.web.dto.QuestionFormSubmission;
 import bir.app.web.dto.QuestionResponse;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.scheduling.TaskExecutors;
+import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.views.ModelAndView;
-import jakarta.validation.Valid;
 
 import java.net.URI;
 import java.util.*;
 
 @Controller("/questions")
+@ExecuteOn(TaskExecutors.BLOCKING)
 public class QuestionWebController {
-
-    private static final List<String> EXAMS = List.of("MIR", "EIR", "BIR", "FIR", "PIR", "QIR", "RFIR");
-    private static final List<String> LETTERS = List.of("A", "B", "C", "D");
 
     private final QuestionApiClient client;
 
@@ -33,7 +35,7 @@ public class QuestionWebController {
         }
         Map<String, Object> model = new HashMap<>();
         model.put("questions", questions);
-        model.put("examTypes", EXAMS);
+        model.put("examTypes", examTypes());
         model.put("selectedExamType", examType.orElse(""));
         return new ModelAndView<>("question/list", model);
     }
@@ -51,23 +53,20 @@ public class QuestionWebController {
 
     @Get("/create")
     public ModelAndView<Map<String, Object>> createForm() {
-        Map<String, Object> model = new HashMap<>();
-        model.put("examTypes", EXAMS);
-        model.put("letters", LETTERS);
-        return new ModelAndView<>("question/create", model);
+        return new ModelAndView<>("question/create", formModel(QuestionForm.empty()));
     }
 
     @Post("/create")
-    public HttpResponse<?> create(@Body @Valid CreateQuestionRequest request) {
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public HttpResponse<?> create(@Body QuestionFormSubmission submission) {
         try {
-            client.createQuestion(request);
-            return HttpResponse.redirect(URI.create("/questions"));
+            client.createQuestion(submission.toApiRequest());
+            return HttpResponse.seeOther(URI.create("/questions"));
         } catch (Exception e) {
             Map<String, Object> model = new HashMap<>();
-            model.put("examTypes", EXAMS);
-            model.put("letters", LETTERS);
+            model.put("form", QuestionForm.of(submission, null, examTypes()));
             model.put("error", "Failed to create question: " + e.getMessage());
-            model.put("request", request);
+            model.put("examTypes", examTypes());
             return HttpResponse.ok(new ModelAndView<>("question/create", model));
         }
     }
@@ -75,28 +74,25 @@ public class QuestionWebController {
     @Get("/{id}/edit")
     public ModelAndView<Map<String, Object>> editForm(Long id) {
         Optional<QuestionResponse> question = client.getQuestion(id);
-        Map<String, Object> model = new HashMap<>();
         if (question.isPresent()) {
-            model.put("question", question.get());
-            model.put("examTypes", EXAMS);
-            model.put("letters", LETTERS);
-        } else {
-            model.put("error", "Question not found");
+            return new ModelAndView<>("question/create", formModel(QuestionForm.of(question.get())));
         }
+        Map<String, Object> model = formModel(QuestionForm.empty());
+        model.put("error", "Question not found");
         return new ModelAndView<>("question/create", model);
     }
 
     @Post("/{id}/edit")
-    public HttpResponse<?> edit(Long id, @Body @Valid CreateQuestionRequest request) {
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public HttpResponse<?> edit(Long id, @Body QuestionFormSubmission submission) {
         try {
-            client.updateQuestion(id, request);
-            return HttpResponse.redirect(URI.create("/questions"));
+            client.updateQuestion(id, submission.toApiRequest());
+            return HttpResponse.seeOther(URI.create("/questions"));
         } catch (Exception e) {
             Map<String, Object> model = new HashMap<>();
-            model.put("examTypes", EXAMS);
-            model.put("letters", LETTERS);
+            model.put("form", QuestionForm.of(submission, id, examTypes()));
             model.put("error", "Failed to update question: " + e.getMessage());
-            model.put("request", request);
+            model.put("examTypes", examTypes());
             return HttpResponse.ok(new ModelAndView<>("question/create", model));
         }
     }
@@ -106,6 +102,21 @@ public class QuestionWebController {
         try {
             client.deleteQuestion(id);
         } catch (Exception ignored) {}
-        return HttpResponse.redirect(URI.create("/questions"));
+        return HttpResponse.seeOther(URI.create("/questions"));
+    }
+
+    private Map<String, Object> formModel(QuestionForm form) {
+        Map<String, Object> model = new HashMap<>();
+        model.put("form", form);
+        model.put("examTypes", examTypes());
+        return model;
+    }
+
+    private List<ExamTypeResponse> examTypes() {
+        try {
+            return client.listExamTypes();
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

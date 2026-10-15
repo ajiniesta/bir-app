@@ -1,6 +1,8 @@
 package bir.app.web.client;
 
 import bir.app.web.dto.CreateQuestionRequest;
+import bir.app.web.dto.DashboardStatsResponse;
+import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.QuestionResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -29,4 +31,10 @@ public interface QuestionApiClient {
 
     @Get("/api/questions/filter{?examType}")
     List<QuestionResponse> filterQuestions(String examType);
+
+    @Get("/api/stats")
+    DashboardStatsResponse stats();
+
+    @Get("/api/exam-types")
+    List<ExamTypeResponse> listExamTypes();
 }

@@ -9,15 +9,18 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3">Preguntas</h1>
-        <a th:href="@{/questions/create}" class="btn btn-primary">+ Nueva Pregunta</a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/}" class="btn btn-outline-secondary">Inicio</a>
+            <a th:href="@{/questions/create}" class="btn btn-primary">+ Nueva Pregunta</a>
+        </div>
     </div>
 
     <form th:action="@{/questions}" method="get" class="row g-3 mb-4">
         <div class="col-auto">
             <select name="examType" class="form-select" th:value="${selectedExamType}">
                 <option value="">Todos los tipos</option>
-                <option th:each="et : ${examTypes}" th:value="${et}" th:text="${et}"
-                        th:selected="${selectedExamType == et}"></option>
+                <option th:each="et : ${examTypes}" th:value="${et.code()}" th:text="${et.code()}"
+                        th:selected="${selectedExamType == et.code()}"></option>
             </select>
         </div>
         <div class="col-auto">
@@ -27,7 +30,7 @@
 
     <div th:if="${#lists.isEmpty(questions)}" class="alert alert-info">No hay preguntas disponibles.</div>
 
-    <div th:each="q : questions" class="card mb-3">
+    <div th:each="q : ${questions}" class="card mb-3">
         <div class="card-body">
             <div class="d-flex justify-content-between">
                 <span class="badge bg-secondary mb-2" th:text="${q.examTypeCode()}">MIR</span>

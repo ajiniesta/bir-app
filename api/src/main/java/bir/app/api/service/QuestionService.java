@@ -1,6 +1,7 @@
 package bir.app.api.service;
 
 import bir.app.api.dto.CreateQuestionRequest;
+import bir.app.api.dto.DashboardStatsResponse;
 import bir.app.api.dto.QuestionResponse;
 import bir.app.api.entity.AnswerOption;
 import bir.app.api.entity.ExamType;
@@ -113,5 +114,14 @@ public class QuestionService {
         return questionRepository.findByExamTypeCode(examTypeCode)
                 .stream().map(QuestionResponse::from)
                 .toList();
+    }
+
+    @Transactional
+    public DashboardStatsResponse dashboardStats() {
+        List<DashboardStatsResponse.ExamTypeStats> byExamType = examTypeRepository.countQuestionsByExamType();
+        long total = byExamType.stream()
+                .mapToLong(DashboardStatsResponse.ExamTypeStats::total)
+                .sum();
+        return new DashboardStatsResponse(total, byExamType);
     }
 }

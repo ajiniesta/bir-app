@@ -58,6 +58,6 @@ Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`
 ## Running from IDE
 
 Each module has its own `Application.main()`. Run them as separate processes:
-1. Start `api` module (port 8080)
+1. Start `api` module (port 18080)
 2. Start `web` module (port 8081)
 3. Open http://localhost:8081/questions
