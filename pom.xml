@@ -21,6 +21,11 @@
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <micronaut.version>4.7.4</micronaut.version>
+        <micronaut.core.version>4.7.11</micronaut.core.version>
+        <micronaut.data.version>4.10.5</micronaut.data.version>
+        <micronaut.serde.version>2.12.1</micronaut.serde.version>
+        <micronaut.validation.version>4.8.0</micronaut.validation.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <micronaut-maven-plugin.version>4.11.6</micronaut-maven-plugin.version>
         <liquibase.version>4.31.1</liquibase.version>
         <postgresql.version>42.7.5</postgresql.version>
@@ -55,6 +60,11 @@
                     <groupId>org.liquibase</groupId>
                     <artifactId>liquibase-maven-plugin</artifactId>
                     <version>${liquibase.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

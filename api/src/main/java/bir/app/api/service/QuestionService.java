@@ -10,6 +10,7 @@ import bir.app.api.repository.QuestionRepository;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -24,12 +25,14 @@ public class QuestionService {
         this.examTypeRepository = examTypeRepository;
     }
 
+    @Transactional
     public List<QuestionResponse> findAll() {
         return questionRepository.findAll()
                 .stream().map(QuestionResponse::from)
                 .toList();
     }
 
+    @Transactional
     public QuestionResponse findById(Long id) {
         Question question = questionRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
@@ -59,7 +62,7 @@ public class QuestionService {
             return option;
         }).toList();
 
-        question.setAnswerOptions(options);
+        question.setAnswerOptions(new ArrayList<>(options));
         return QuestionResponse.from(questionRepository.save(question));
     }
 
@@ -83,6 +86,10 @@ public class QuestionService {
         question.setExamType(examType);
 
         question.getAnswerOptions().clear();
+        // Fuerza los DELETE del orphan removal antes de reinsertar opciones con las
+        // mismas letras; sin este flush Hibernate ejecutaría los INSERT primero y
+        // violaría la restricción UNIQUE(question_id, letter).
+        questionRepository.flush();
         List<AnswerOption> options = request.answerOptions().stream().map(opt -> {
             AnswerOption option = new AnswerOption(opt.letter(), opt.text(), opt.isCorrect());
             option.setQuestion(question);
@@ -101,6 +108,7 @@ public class QuestionService {
         questionRepository.deleteById(id);
     }
 
+    @Transactional
     public List<QuestionResponse> findByExamType(String examTypeCode) {
         return questionRepository.findByExamTypeCode(examTypeCode)
                 .stream().map(QuestionResponse::from)

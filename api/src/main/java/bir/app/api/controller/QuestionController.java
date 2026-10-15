@@ -3,6 +3,7 @@ package bir.app.api.controller;
 import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionResponse;
 import bir.app.api.service.QuestionService;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import jakarta.validation.Valid;
@@ -46,7 +47,7 @@ public class QuestionController {
     }
 
     @Get("/filter{?examType}")
-    public List<QuestionResponse> filter(String examType) {
+    public List<QuestionResponse> filter(@Nullable String examType) {
         if (examType != null && !examType.isBlank()) {
             return questionService.findByExamType(examType);
         }
