@@ -9,6 +9,21 @@ micronaut:
     folder: templates
     thymeleaf:
       enabled: true
+  security:
+    enabled: true
+    # Autenticación basada en sesión (cookie). El token JWT que emite la API se
+    # guarda como atributo de la autenticación y se reenvía en cada llamada.
+    authentication: session
+    redirect:
+      login-success: /
+      login-failure: /login?error
+      logout: /login?logout
+      unauthorized:
+        enabled: true
+        url: /login
+      forbidden:
+        enabled: true
+        url: /login
 
 api:
   base-url: http://localhost:18080

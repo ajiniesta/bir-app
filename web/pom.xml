@@ -40,6 +40,22 @@
             <artifactId>micronaut-validation</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.micronaut.security</groupId>
+            <artifactId>micronaut-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.security</groupId>
+            <artifactId>micronaut-security-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.security</groupId>
+            <artifactId>micronaut-security-session</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.session</groupId>
+            <artifactId>micronaut-session</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-inject</artifactId>
             <scope>compile</scope>

@@ -10,12 +10,16 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 
 import java.net.URI;
 import java.util.*;
 
 @Controller("/questions")
+@Secured(SecurityRule.IS_AUTHENTICATED)
+@Produces(MediaType.TEXT_HTML)
 @ExecuteOn(TaskExecutors.BLOCKING)
 public class QuestionWebController {
 

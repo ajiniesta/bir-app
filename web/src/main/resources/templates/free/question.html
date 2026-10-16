@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Modo libre - BirApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4" style="max-width: 720px">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Modo libre</h1>
+        <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+    </div>
+
+    <div th:with="shown=${feedback != null ? feedback : current}">
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-muted small"
+                  th:if="${shown != null}"
+                  th:text="'Pregunta ' + ${shown.position()} + ' de ' + ${session.totalQuestions()}">Pregunta</span>
+            <span class="text-muted small"
+                  th:text="'Acertadas: ' + ${session.correctCount()} + ' / ' + ${session.answeredCount()}">0</span>
+        </div>
+        <div class="progress mb-4" style="height: 6px">
+            <div class="progress-bar" role="progressbar"
+                 th:style="'width: ' + ${session.totalQuestions() > 0 ? (session.answeredCount() * 100 / session.totalQuestions()) : 0} + '%'"></div>
+        </div>
+
+        <div class="card mb-3" th:if="${shown != null}">
+            <div class="card-body">
+                <div class="mb-2">
+                    <span class="badge bg-secondary"
+                          th:text="${session.examTypeCode() != null ? session.examTypeCode() : 'TODOS'}">MIR</span>
+                    <span class="badge bg-info ms-1" th:if="${shown.category() != null}"
+                          th:text="${shown.category()}">Cat</span>
+                </div>
+                <p class="card-text fs-5 mb-0" th:text="${shown.questionText()}">Texto de la pregunta...</p>
+            </div>
+        </div>
+
+        <!-- Resultado de la pregunta recién respondida -->
+        <div th:if="${feedback != null}">
+            <div class="alert" th:classappend="${feedback.correct()} ? 'alert-success' : 'alert-danger'">
+                <span th:if="${feedback.correct()}">¡Correcto!</span>
+                <span th:unless="${feedback.correct()}">
+                    Incorrecto. La respuesta correcta era
+                    <strong th:text="${feedback.correctLetter()}">A</strong>.
+                </span>
+            </div>
+
+            <div class="list-group mb-3">
+                <div th:each="opt : ${feedback.options()}"
+                     th:with="isCorrect=${opt.letter() == feedback.correctLetter()}, isSelected=${opt.letter() == feedback.selectedLetter()}"
+                     class="list-group-item d-flex align-items-center justify-content-between"
+                     th:classappend="${isCorrect} ? 'list-group-item-success' : (${isSelected} ? 'list-group-item-danger' : '')">
+                    <span>
+                        <span class="badge bg-secondary me-2" th:text="${opt.letter()}">A</span>
+                        <span th:text="${opt.text()}">Texto</span>
+                    </span>
+                    <span th:if="${isCorrect}" class="badge bg-success">Correcta</span>
+                    <span th:if="${isSelected and !isCorrect}" class="badge bg-danger">Tu respuesta</span>
+                </div>
+            </div>
+
+            <a th:if="${current != null}" th:href="@{/free/{id}(id=${session.id()})}"
+               class="btn btn-primary">Siguiente pregunta</a>
+            <a th:unless="${current != null}" th:href="@{/free/{id}/result(id=${session.id()})}"
+               class="btn btn-primary">Ver resultado</a>
+        </div>
+
+        <!-- Pregunta pendiente -->
+        <div th:if="${feedback == null and current != null}">
+            <form th:action="@{/free/{id}/answer(id=${session.id()})}" method="post">
+                <input type="hidden" name="position" th:value="${current.position()}">
+                <div class="list-group mb-3">
+                    <label th:each="opt : ${current.options()}"
+                           class="list-group-item d-flex align-items-center" style="cursor: pointer">
+                        <input class="form-check-input me-3" type="radio" name="letter"
+                               th:value="${opt.letter()}" required>
+                        <span class="badge bg-secondary me-2" th:text="${opt.letter()}">A</span>
+                        <span th:text="${opt.text()}">Texto</span>
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">Responder</button>
+            </form>
+        </div>
+
+        <div th:if="${shown == null and feedback == null}" class="alert alert-info">
+            No hay más preguntas.
+            <a th:href="@{/free/{id}/result(id=${session.id()})}">Ver resultado</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

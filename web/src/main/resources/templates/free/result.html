@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Resultado - BirApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4" style="max-width: 720px">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h4 mb-0">Resultado de la partida</h1>
+        <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Preguntas</div>
+                    <div class="fs-2 fw-semibold" th:text="${session.totalQuestions()}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Acertadas</div>
+                    <div class="fs-2 fw-semibold text-success" th:text="${session.correctCount()}">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="card text-center h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase">Acierto</div>
+                    <div class="fs-2 fw-semibold"
+                         th:text="${(session.totalQuestions() > 0 ? (session.correctCount() * 100 / session.totalQuestions()) : 0)} + '%'">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-2 text-muted small">
+        <span th:if="${session.examTypeName() != null}">
+            Tipo: <strong th:text="${session.examTypeName()}">MIR</strong>
+        </span>
+        <span th:if="${session.category() != null}" class="ms-2">
+            Categoría: <strong th:text="${session.category()}">Cat</strong>
+        </span>
+    </div>
+
+    <div class="list-group mb-4">
+        <div th:each="item : ${session.items()}" class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <span th:text="'#' + ${item.position()} + '. ' + ${item.questionText()}">Pregunta</span>
+                <span class="badge flex-shrink-0"
+                      th:classappend="${item.correct()} ? 'bg-success' : 'bg-danger'"
+                      th:text="${item.correct()} ? 'Correcta' : 'Incorrecta'">?</span>
+            </div>
+            <div class="small text-muted mt-1" th:if="${item.answered()}">
+                Tu respuesta: <strong th:text="${item.selectedLetter()}">A</strong>
+                · Correcta: <strong th:text="${item.correctLetter()}">B</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a th:href="@{/free}" class="btn btn-primary">Nueva partida</a>
+        <a th:href="@{/}" class="btn btn-outline-secondary">Volver al panel</a>
+    </div>
+</div>
+</body>
+</html>

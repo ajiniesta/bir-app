@@ -117,6 +117,11 @@ public class QuestionService {
     }
 
     @Transactional
+    public List<String> listCategories() {
+        return questionRepository.findDistinctCategories();
+    }
+
+    @Transactional
     public DashboardStatsResponse dashboardStats() {
         List<DashboardStatsResponse.ExamTypeStats> byExamType = examTypeRepository.countQuestionsByExamType();
         long total = byExamType.stream()

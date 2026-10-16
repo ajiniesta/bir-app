@@ -6,11 +6,14 @@ import bir.app.api.service.QuestionService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 @Controller("/api/questions")
+@Secured(SecurityRule.IS_AUTHENTICATED)
 public class QuestionController {
 
     private final QuestionService questionService;
@@ -22,6 +25,11 @@ public class QuestionController {
     @Get
     public List<QuestionResponse> list() {
         return questionService.findAll();
+    }
+
+    @Get("/categories")
+    public List<String> categories() {
+        return questionService.listCategories();
     }
 
     @Get("/{id}")

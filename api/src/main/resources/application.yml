@@ -3,6 +3,18 @@ micronaut:
     name: bir-app-api
   server:
     port: 18080
+  security:
+    enabled: true
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: ${JWT_SECRET:bir-app-dev-secret-change-me-in-production-0123456789}
+      generator:
+        access-token:
+          expiration: 86400
 
 datasources:
   default:
