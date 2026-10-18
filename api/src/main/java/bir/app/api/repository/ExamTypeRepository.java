@@ -6,6 +6,7 @@ import io.micronaut.data.annotation.Query;
 import io.micronaut.data.annotation.Repository;
 import io.micronaut.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +14,8 @@ import java.util.Optional;
 public interface ExamTypeRepository extends JpaRepository<ExamType, Long> {
 
     Optional<ExamType> findByCode(String code);
+
+    List<ExamType> findByCodeIn(Collection<String> codes);
 
     @Query("SELECT e FROM ExamType e ORDER BY e.code")
     List<ExamType> findAllOrderedByCode();

@@ -13,7 +13,8 @@
         <div class="ms-auto d-flex align-items-center gap-2">
             <th:block th:if="${authenticated}">
                 <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
-                <a th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
+                <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
+                <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-sm btn-outline-secondary">Administración</a>
                 <span class="text-muted small d-none d-md-inline" th:text="${displayName}">Usuario</span>
                 <form th:action="@{/logout}" method="post" class="d-inline">
                     <button type="submit" class="btn btn-sm btn-outline-secondary">Salir</button>
@@ -36,8 +37,9 @@
         </p>
         <div class="d-flex flex-wrap gap-2" th:if="${authenticated}">
             <a th:href="@{/free}" class="btn btn-primary">Empezar modo libre</a>
-            <a th:href="@{/questions}" class="btn btn-outline-primary">Ver todas las preguntas</a>
-            <a th:href="@{/questions/create}" class="btn btn-outline-secondary">+ Nueva pregunta</a>
+            <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-outline-primary">Ver todas las preguntas</a>
+            <a th:if="${isAdmin or isCreator}" th:href="@{/questions/create}" class="btn btn-outline-secondary">+ Nueva pregunta</a>
+            <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-outline-secondary">Administración</a>
         </div>
         <div class="d-flex flex-wrap gap-2" th:unless="${authenticated}">
             <a th:href="@{/register}" class="btn btn-primary">Crear una cuenta</a>
@@ -147,7 +149,7 @@
                                  th:style="'width: ' + ${stats.totalQuestions() > 0 ? (et.total() * 100 / stats.totalQuestions()) : 0} + '%'"
                                  th:aria-valuenow="${et.total()}" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        <a th:href="@{/questions(examType=${et.code()})}" class="btn btn-sm btn-outline-primary">Ver preguntas</a>
+                        <a th:if="${isAdmin or isCreator}" th:href="@{/questions(examType=${et.code()})}" class="btn btn-sm btn-outline-primary">Ver preguntas</a>
                     </div>
                 </div>
             </div>

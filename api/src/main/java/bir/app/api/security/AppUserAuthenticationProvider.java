@@ -40,8 +40,9 @@ public class AppUserAuthenticationProvider implements HttpRequestAuthenticationP
             AppUser u = user.get();
             return AuthenticationResponse.success(
                     u.getUsername(),
-                    List.of("ROLE_USER"),
+                    List.of(u.getRole().authority()),
                     Map.of("uid", u.getId(),
+                           "role", u.getRole().name(),
                            "displayName", u.getDisplayName() == null ? u.getUsername() : u.getDisplayName()));
         }
         // Mismo motivo tanto si el usuario no existe como si la contraseña falla,

@@ -39,6 +39,8 @@ public class HomeWebController {
 
         boolean authenticated = securityService.isAuthenticated();
         model.put("authenticated", authenticated);
+        model.put("isAdmin", securityService.hasRole("ROLE_ADMIN"));
+        model.put("isCreator", securityService.hasRole("ROLE_CREATOR"));
         securityService.getAuthentication().ifPresent(authentication -> {
             model.put("username", authentication.getName());
             Object displayName = authentication.getAttributes().get("displayName");

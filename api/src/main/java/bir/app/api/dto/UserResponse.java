@@ -7,9 +7,10 @@ import io.micronaut.serde.annotation.Serdeable;
 public record UserResponse(
     Long id,
     String username,
-    String displayName
+    String displayName,
+    String role
 ) {
     public static UserResponse from(AppUser u) {
-        return new UserResponse(u.getId(), u.getUsername(), u.getDisplayName());
+        return new UserResponse(u.getId(), u.getUsername(), u.getDisplayName(), u.getRole().name());
     }
 }

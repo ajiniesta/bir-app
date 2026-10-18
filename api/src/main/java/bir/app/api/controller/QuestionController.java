@@ -7,13 +7,12 @@ import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
-import io.micronaut.security.rules.SecurityRule;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 @Controller("/api/questions")
-@Secured(SecurityRule.IS_AUTHENTICATED)
+@Secured({"ROLE_ADMIN", "ROLE_CREATOR"})
 public class QuestionController {
 
     private final QuestionService questionService;

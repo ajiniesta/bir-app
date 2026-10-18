@@ -5,6 +5,7 @@ import bir.app.api.dto.CreateFreeSessionRequest;
 import bir.app.api.dto.FreeSessionResponse;
 import bir.app.api.dto.QuizStatsResponse;
 import bir.app.api.entity.*;
+import bir.app.api.exception.ForbiddenException;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.QuestionRepository;
@@ -27,17 +28,20 @@ public class FreeSessionService {
     private final QuestionRepository questionRepository;
     private final ExamTypeRepository examTypeRepository;
     private final AppUserService appUserService;
+    private final AccessControlService accessControlService;
 
     public FreeSessionService(FreeSessionRepository freeSessionRepository,
                               SessionItemRepository sessionItemRepository,
                               QuestionRepository questionRepository,
                               ExamTypeRepository examTypeRepository,
-                              AppUserService appUserService) {
+                              AppUserService appUserService,
+                              AccessControlService accessControlService) {
         this.freeSessionRepository = freeSessionRepository;
         this.sessionItemRepository = sessionItemRepository;
         this.questionRepository = questionRepository;
         this.examTypeRepository = examTypeRepository;
         this.appUserService = appUserService;
+        this.accessControlService = accessControlService;
     }
 
     @Transactional
@@ -46,7 +50,7 @@ public class FreeSessionService {
         ExamType examType = resolveExamType(request.examTypeCode());
         String category = normalize(request.category());
 
-        List<Question> pool = new ArrayList<>(loadPool(examType, category));
+        List<Question> pool = new ArrayList<>(loadAllowedPool(username, examType, category));
         Collections.shuffle(pool);
         int count = Math.min(request.count(), pool.size());
         if (count == 0) {
@@ -147,10 +151,33 @@ public class FreeSessionService {
                 .orElseThrow(() -> new NoSuchElementException("Tipo de examen no encontrado: " + examTypeCode));
     }
 
+    private List<Question> loadAllowedPool(String username, ExamType examType, String category) {
+        if (accessControlService.hasGlobalBankAccess(username)) {
+            return loadPool(examType, category);
+        }
+
+        Set<String> allowed = accessControlService.allowedBankCodes(username);
+        if (allowed.isEmpty()) {
+            throw new ForbiddenException(
+                    "No tienes ningún banco de preguntas asignado. Contacta con un administrador.");
+        }
+        if (examType == null) {
+            return filterByCategory(questionRepository.findByExamTypeCodeIn(allowed), category);
+        }
+        if (!allowed.contains(examType.getCode())) {
+            throw new ForbiddenException("No tienes acceso al banco de preguntas: " + examType.getCode());
+        }
+        return loadPool(examType, category);
+    }
+
     private List<Question> loadPool(ExamType examType, String category) {
         List<Question> questions = examType == null
                 ? questionRepository.findAll()
                 : questionRepository.findByExamTypeCode(examType.getCode());
+        return filterByCategory(questions, category);
+    }
+
+    private List<Question> filterByCategory(List<Question> questions, String category) {
         if (category == null) {
             return questions;
         }

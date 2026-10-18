@@ -23,6 +23,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @EntityGraph(attributePaths = {"examType", "answerOptions"})
     List<Question> findByExamTypeCode(String examTypeCode);
 
+    @EntityGraph(attributePaths = {"examType", "answerOptions"})
+    List<Question> findByExamTypeCodeIn(java.util.Collection<String> examTypeCodes);
+
     List<Question> findByCategoryIgnoreCase(String category);
 
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.category IS NOT NULL AND q.category <> '' ORDER BY q.category")

@@ -14,6 +14,11 @@
 
     <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>
 
+    <div th:if="${#lists.isEmpty(examTypes)}" class="alert alert-info">
+        No tienes ningún banco de preguntas disponible. Si eres usuario normal,
+        pide a un administrador que te asigne uno.
+    </div>
+
     <p class="text-muted">
         Configura tu serie de preguntas. Se elegirán al azar y recibirás feedback al responder cada una.
     </p>

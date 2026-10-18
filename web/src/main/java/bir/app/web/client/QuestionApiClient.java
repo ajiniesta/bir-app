@@ -1,5 +1,6 @@
 package bir.app.web.client;
 
+import bir.app.web.dto.AdminUserResponse;
 import bir.app.web.dto.AnswerRequest;
 import bir.app.web.dto.CreateFreeSessionRequest;
 import bir.app.web.dto.CreateQuestionRequest;
@@ -11,6 +12,8 @@ import bir.app.web.dto.LoginResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
+import bir.app.web.dto.UpdateBanksRequest;
+import bir.app.web.dto.UpdateRoleRequest;
 import bir.app.web.dto.UserResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -75,4 +78,15 @@ public interface QuestionApiClient {
 
     @Post("/api/free-sessions/{id}/answers")
     FreeSessionResponse answer(Long id, @Body AnswerRequest request);
+
+    // --- Administración (solo ROLE_ADMIN) -----------------------------------
+
+    @Get("/api/admin/users")
+    List<AdminUserResponse> listUsers();
+
+    @Put("/api/admin/users/{id}/role")
+    AdminUserResponse updateUserRole(Long id, @Body UpdateRoleRequest request);
+
+    @Put("/api/admin/users/{id}/banks")
+    AdminUserResponse updateUserBanks(Long id, @Body UpdateBanksRequest request);
 }

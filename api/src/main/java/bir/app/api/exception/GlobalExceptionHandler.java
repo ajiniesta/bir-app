@@ -26,6 +26,9 @@ public class GlobalExceptionHandler implements ExceptionHandler<Exception, HttpR
         if (exception instanceof IllegalArgumentException) {
             return HttpResponse.badRequest(Map.of("error", exception.getMessage()));
         }
+        if (exception instanceof ForbiddenException) {
+            return HttpResponse.status(HttpStatus.FORBIDDEN).body(Map.of("error", exception.getMessage()));
+        }
         LOG.error("Unhandled exception processing {} {}", request.getMethod(), request.getPath(), exception);
         return HttpResponse.serverError(Map.of("error", "Internal server error"));
     }
