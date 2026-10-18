@@ -26,7 +26,13 @@ public record QuizStatsResponse(
         long correct,
         double accuracy,
         List<ExamTypeAccuracy> byExamType
-    ) {}
+    ) {
+        public Mine {
+            if (byExamType == null) {
+                byExamType = List.of();
+            }
+        }
+    }
 
     @Serdeable
     public record Global(
@@ -36,5 +42,11 @@ public record QuizStatsResponse(
         long correct,
         double accuracy,
         List<ExamTypeAccuracy> byExamType
-    ) {}
+    ) {
+        public Global {
+            if (byExamType == null) {
+                byExamType = List.of();
+            }
+        }
+    }
 }

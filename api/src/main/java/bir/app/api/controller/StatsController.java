@@ -29,6 +29,12 @@ public class StatsController {
         return questionService.dashboardStats();
     }
 
+    /** Contadores de los bancos visibles para el usuario autenticado. */
+    @Get("/banks")
+    public DashboardStatsResponse banks(Authentication authentication) {
+        return questionService.dashboardStatsFor(authentication.getName());
+    }
+
     /** Estadísticas del modo libre: las del usuario autenticado y el global. */
     @Get("/quiz")
     public QuizStatsResponse quizStats(Authentication authentication) {

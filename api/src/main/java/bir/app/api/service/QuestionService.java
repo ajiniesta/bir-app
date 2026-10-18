@@ -14,16 +14,21 @@ import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 @Singleton
 public class QuestionService {
 
     private final QuestionRepository questionRepository;
     private final ExamTypeRepository examTypeRepository;
+    private final AccessControlService accessControlService;
 
-    public QuestionService(QuestionRepository questionRepository, ExamTypeRepository examTypeRepository) {
+    public QuestionService(QuestionRepository questionRepository,
+                           ExamTypeRepository examTypeRepository,
+                           AccessControlService accessControlService) {
         this.questionRepository = questionRepository;
         this.examTypeRepository = examTypeRepository;
+        this.accessControlService = accessControlService;
     }
 
     @Transactional
@@ -124,6 +129,25 @@ public class QuestionService {
     @Transactional
     public DashboardStatsResponse dashboardStats() {
         List<DashboardStatsResponse.ExamTypeStats> byExamType = examTypeRepository.countQuestionsByExamType();
+        long total = byExamType.stream()
+                .mapToLong(DashboardStatsResponse.ExamTypeStats::total)
+                .sum();
+        return new DashboardStatsResponse(total, byExamType);
+    }
+
+    /**
+     * Contadores del banco de preguntas visibles para el usuario: todos para
+     * ADMIN/CREATOR; solo los bancos asignados para el rol USER.
+     */
+    @Transactional
+    public DashboardStatsResponse dashboardStatsFor(String username) {
+        if (accessControlService.hasGlobalBankAccess(username)) {
+            return dashboardStats();
+        }
+        Set<String> allowed = accessControlService.allowedBankCodes(username);
+        List<DashboardStatsResponse.ExamTypeStats> byExamType = examTypeRepository.countQuestionsByExamType().stream()
+                .filter(stats -> allowed.contains(stats.code()))
+                .toList();
         long total = byExamType.stream()
                 .mapToLong(DashboardStatsResponse.ExamTypeStats::total)
                 .sum();

@@ -54,7 +54,8 @@ Notes:
 |--------|------|------|-------|
 | POST | `/login` | anonymous | Built-in micronaut-security login → JWT |
 | POST | `/api/auth/register` | anonymous | Create user (always role USER) |
-| GET | `/api/stats` | anonymous | `DashboardStatsResponse` (question counters) — feeds the landing |
+| GET | `/api/stats` | anonymous | `DashboardStatsResponse` (all question counters) |
+| GET | `/api/stats/banks` | authenticated | Same, limited to the user's allowed banks (all for ADMIN/CREATOR) |
 | GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user + global) |
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
@@ -77,7 +78,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 
 | Method | Path | View | Notes |
 |--------|------|------|-------|
-| GET | `/` | `index` | Public landing / dashboard with stats |
+| GET | `/` | `index` | Landing; the bank section only shows the user's allowed banks (hidden when anonymous) |
 | GET/POST | `/login`, `/register` | `login`, `register` | Public |
 | POST | `/logout` | — | Ends the session |
 | GET | `/questions` | `question/list` | Question bank (ADMIN/CREATOR) |
@@ -127,7 +128,7 @@ app_user (id, username, password_hash, display_name, role, created_at)
 - Start a session (`POST /api/free-sessions`): filter by exam type + category + count, questions picked at random. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
 - Answer one at a time (`POST /api/free-sessions/{id}/answers`); the API records correctness immediately and marks the session finished when all items are answered.
 - The API never reveals the correct option of unanswered items (only `correctLetter` of answered ones).
-- Statistics: `GET /api/stats` (public counters) and `GET /api/stats/quiz` (current user's results plus an app-wide summary). Both are consumed by the web dashboard (`HomeWebController`).
+- Statistics: `GET /api/stats` (public counters), `GET /api/stats/banks` (counters for the user's allowed banks) and `GET /api/stats/quiz` (current user's results plus an app-wide summary). The dashboard (`HomeWebController`) uses `banks` + `quiz` when logged in.
 - In the web app the flow is `/free` (configure) → `/free/{id}` (answer) → `/free/{id}/result`.
 
 ## HTTP Client

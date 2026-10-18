@@ -62,6 +62,10 @@ public interface QuestionApiClient {
     @Get("/api/stats")
     DashboardStatsResponse stats();
 
+    /** Contadores de los bancos visibles para el usuario autenticado. */
+    @Get("/api/stats/banks")
+    DashboardStatsResponse bankStats();
+
     @Get("/api/stats/quiz")
     QuizStatsResponse quizStats();
 

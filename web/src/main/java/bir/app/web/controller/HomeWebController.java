@@ -47,13 +47,13 @@ public class HomeWebController {
             model.put("displayName", displayName != null ? displayName : authentication.getName());
         });
 
-        try {
-            model.put("stats", client.stats());
-        } catch (Exception e) {
-            model.put("error", "No se pudieron obtener las estadísticas del banco de preguntas: " + e.getMessage());
-        }
-
         if (authenticated) {
+            try {
+                model.put("stats", client.bankStats());
+            } catch (Exception e) {
+                model.put("error", "No se pudieron obtener las estadísticas del banco de preguntas: " + e.getMessage());
+            }
+
             try {
                 model.put("quizStats", client.quizStats());
             } catch (Exception e) {

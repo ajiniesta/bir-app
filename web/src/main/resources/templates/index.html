@@ -125,8 +125,8 @@
         </div>
     </div>
 
-    <!-- Banco de preguntas -->
     <div th:if="${stats != null}">
+        <!-- Banco de preguntas -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h5 mb-0">Banco de preguntas</h2>
             <span class="text-muted small">
@@ -156,7 +156,7 @@
         </div>
 
         <div th:if="${#lists.isEmpty(stats.byExamType())}" class="alert alert-info">
-            Todavía no hay tipos de examen registrados. Ejecuta las migraciones con el contexto <code>seed</code>.
+            No tienes bancos de preguntas asignados. Pide a un administrador que te asigne uno.
         </div>
     </div>
 
