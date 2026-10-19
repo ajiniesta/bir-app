@@ -15,5 +15,10 @@
     <include file="changes/009-add-app-user-role.sql" relativeToChangelogFile="true"/>
     <include file="changes/010-create-user-exam-type-access.sql" relativeToChangelogFile="true"/>
     <include file="changes/011-seed-admin.sql" relativeToChangelogFile="true"/>
+    <include file="changes/012-create-mock-exam.sql" relativeToChangelogFile="true"/>
+    <include file="changes/013-create-mock-exam-question.sql" relativeToChangelogFile="true"/>
+    <include file="changes/014-create-mock-exam-attempt.sql" relativeToChangelogFile="true"/>
+    <include file="changes/015-create-mock-exam-attempt-item.sql" relativeToChangelogFile="true"/>
+    <include file="changes/016-create-mock-exam-attempt-item-option.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

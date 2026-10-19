@@ -3,12 +3,18 @@ package bir.app.web.client;
 import bir.app.web.dto.AdminUserResponse;
 import bir.app.web.dto.AnswerRequest;
 import bir.app.web.dto.CreateFreeSessionRequest;
+import bir.app.web.dto.CreateMockExamRequest;
 import bir.app.web.dto.CreateQuestionRequest;
 import bir.app.web.dto.DashboardStatsResponse;
 import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.FreeSessionResponse;
 import bir.app.web.dto.LoginRequest;
 import bir.app.web.dto.LoginResponse;
+import bir.app.web.dto.MockExamAttemptResponse;
+import bir.app.web.dto.MockExamAttemptSummaryResponse;
+import bir.app.web.dto.MockExamResponse;
+import bir.app.web.dto.MockExamStatsResponse;
+import bir.app.web.dto.MockExamSummaryResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
@@ -69,6 +75,10 @@ public interface QuestionApiClient {
     @Get("/api/stats/quiz")
     QuizStatsResponse quizStats();
 
+    /** Estadísticas de simulacros del usuario autenticado. */
+    @Get("/api/stats/mock-exams")
+    MockExamStatsResponse mockExamStats();
+
     @Get("/api/exam-types")
     List<ExamTypeResponse> listExamTypes();
 
@@ -82,6 +92,41 @@ public interface QuestionApiClient {
 
     @Post("/api/free-sessions/{id}/answers")
     FreeSessionResponse answer(Long id, @Body AnswerRequest request);
+
+    // --- Simulacros ---------------------------------------------------------
+
+    @Get("/api/mock-exams")
+    List<MockExamSummaryResponse> listMockExams();
+
+    @Get("/api/mock-exams/{id}")
+    MockExamResponse getMockExam(Long id);
+
+    @Post("/api/mock-exams")
+    MockExamResponse createMockExam(@Body CreateMockExamRequest request);
+
+    @Put("/api/mock-exams/{id}")
+    MockExamResponse updateMockExam(Long id, @Body CreateMockExamRequest request);
+
+    @Delete("/api/mock-exams/{id}")
+    HttpStatus deleteMockExam(Long id);
+
+    @Post("/api/mock-exams/{id}/attempts")
+    MockExamAttemptResponse startMockExamAttempt(Long id);
+
+    @Get("/api/mock-exams/{id}/attempts")
+    List<MockExamAttemptSummaryResponse> listMockExamAttempts(Long id);
+
+    @Get("/api/mock-exam-attempts/{id}")
+    MockExamAttemptResponse getMockExamAttempt(Long id);
+
+    @Post("/api/mock-exam-attempts/{id}/answers")
+    MockExamAttemptResponse answerMockExamAttempt(Long id, @Body AnswerRequest request);
+
+    @Post("/api/mock-exam-attempts/{id}/finish")
+    MockExamAttemptResponse finishMockExamAttempt(Long id);
+
+    @Get("/api/mock-exam-attempts/{id}/result")
+    MockExamAttemptResponse mockExamAttemptResult(Long id);
 
     // --- Administración (solo ROLE_ADMIN) -----------------------------------
 

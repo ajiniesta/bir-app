@@ -1,8 +1,10 @@
 package bir.app.api.controller;
 
 import bir.app.api.dto.DashboardStatsResponse;
+import bir.app.api.dto.MockExamStatsResponse;
 import bir.app.api.dto.QuizStatsResponse;
 import bir.app.api.service.FreeSessionService;
+import bir.app.api.service.MockExamAttemptService;
 import bir.app.api.service.QuestionService;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -16,10 +18,14 @@ public class StatsController {
 
     private final QuestionService questionService;
     private final FreeSessionService freeSessionService;
+    private final MockExamAttemptService mockExamAttemptService;
 
-    public StatsController(QuestionService questionService, FreeSessionService freeSessionService) {
+    public StatsController(QuestionService questionService,
+                           FreeSessionService freeSessionService,
+                           MockExamAttemptService mockExamAttemptService) {
         this.questionService = questionService;
         this.freeSessionService = freeSessionService;
+        this.mockExamAttemptService = mockExamAttemptService;
     }
 
     /** Contadores del banco de preguntas: públicos (los usa la landing). */
@@ -39,5 +45,11 @@ public class StatsController {
     @Get("/quiz")
     public QuizStatsResponse quizStats(Authentication authentication) {
         return freeSessionService.stats(authentication.getName());
+    }
+
+    /** Estadísticas de simulacros del usuario autenticado. */
+    @Get("/mock-exams")
+    public MockExamStatsResponse mockExamStats(Authentication authentication) {
+        return mockExamAttemptService.stats(authentication.getName());
     }
 }

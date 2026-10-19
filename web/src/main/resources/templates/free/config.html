@@ -9,7 +9,10 @@
 <div class="container py-4" style="max-width: 640px">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Modo libre</h1>
-        <a th:href="@{/}" class="btn btn-outline-secondary">Inicio</a>
+        <div class="d-flex gap-2">
+            <a th:href="@{/simulacros}" class="btn btn-outline-primary">Simulacros</a>
+            <a th:href="@{/}" class="btn btn-outline-secondary">Inicio</a>
+        </div>
     </div>
 
     <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>

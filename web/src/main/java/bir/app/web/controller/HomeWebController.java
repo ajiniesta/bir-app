@@ -59,6 +59,12 @@ public class HomeWebController {
             } catch (Exception e) {
                 model.put("statsError", "No se pudieron obtener tus estadísticas: " + e.getMessage());
             }
+
+            try {
+                model.put("mockExamStats", client.mockExamStats());
+            } catch (Exception e) {
+                model.put("mockExamStatsError", "No se pudieron obtener tus estadísticas de simulacros: " + e.getMessage());
+            }
         }
         return new ModelAndView<>("index", model);
     }

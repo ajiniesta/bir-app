@@ -13,6 +13,7 @@
         <div class="ms-auto d-flex align-items-center gap-2">
             <th:block th:if="${authenticated}">
                 <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
+                <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
                 <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
                 <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-sm btn-outline-secondary">Administración</a>
                 <span class="text-muted small d-none d-md-inline" th:text="${displayName}">Usuario</span>
@@ -37,6 +38,7 @@
         </p>
         <div class="d-flex flex-wrap gap-2" th:if="${authenticated}">
             <a th:href="@{/free}" class="btn btn-primary">Empezar modo libre</a>
+            <a th:href="@{/simulacros}" class="btn btn-primary">Ver simulacros</a>
             <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-outline-primary">Ver todas las preguntas</a>
             <a th:if="${isAdmin or isCreator}" th:href="@{/questions/create}" class="btn btn-outline-secondary">+ Nueva pregunta</a>
             <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-outline-secondary">Administración</a>
@@ -48,6 +50,8 @@
     </div>
 
     <div th:if="${error}" class="alert alert-warning" th:text="${error}">Error</div>
+
+    <div th:if="${mockExamStatsError}" class="alert alert-warning" th:text="${mockExamStatsError}">Error</div>
 
     <!-- Mis estadísticas -->
     <div th:if="${authenticated}">
@@ -125,9 +129,80 @@
         </div>
     </div>
 
-    <div th:if="${stats != null}">
-        <!-- Banco de preguntas -->
+    <!-- Simulacros -->
+    <div th:if="${authenticated and mockExamStats != null}" class="mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Tus simulacros</h2>
+            <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-6 col-lg-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Intentos</div>
+                        <div class="fs-3 fw-semibold" th:text="${mockExamStats.attempts()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Entregados</div>
+                        <div class="fs-3 fw-semibold" th:text="${mockExamStats.finished()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Nota media</div>
+                        <div class="fs-3 fw-semibold"
+                             th:text="${#numbers.formatDecimal(mockExamStats.averageAccuracy(), 1, 1)} + '%'">0%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Mejor nota</div>
+                        <div class="fs-3 fw-semibold text-success"
+                             th:text="${mockExamStats.bestAccuracy() != null ? #numbers.formatDecimal(mockExamStats.bestAccuracy(), 1, 1) + '%' : '-'}">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(mockExamStats.byMockExam())}" class="card">
+            <div class="card-body">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                    <tr>
+                        <th>Simulacro</th>
+                        <th class="text-end">Intentos</th>
+                        <th class="text-end">Nota media</th>
+                        <th class="text-end">Mejor nota</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s : ${mockExamStats.byMockExam()}">
+                        <td>
+                            <span class="badge bg-secondary me-2" th:text="${s.examTypeCode()}">MIR</span>
+                            <a th:href="@{/simulacros/{id}(id=${s.mockExamId()})}" th:text="${s.title()}">Título</a>
+                        </td>
+                        <td class="text-end" th:text="${s.attempts()}">0</td>
+                        <td class="text-end" th:text="${#numbers.formatDecimal(s.averageAccuracy(), 1, 1)} + '%'">0%</td>
+                        <td class="text-end text-success"
+                            th:text="${s.bestAccuracy() != null ? #numbers.formatDecimal(s.bestAccuracy(), 1, 1) + '%' : '-'}">-</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${stats != null}">
+        <!-- Banco de preguntas -->        <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h5 mb-0">Banco de preguntas</h2>
             <span class="text-muted small">
                 <span th:text="${stats.totalQuestions()}">0</span> preguntas ·

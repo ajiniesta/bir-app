@@ -7,6 +7,7 @@ import bir.app.api.entity.AnswerOption;
 import bir.app.api.entity.ExamType;
 import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
+import bir.app.api.repository.MockExamRepository;
 import bir.app.api.repository.QuestionRepository;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
@@ -21,13 +22,16 @@ public class QuestionService {
 
     private final QuestionRepository questionRepository;
     private final ExamTypeRepository examTypeRepository;
+    private final MockExamRepository mockExamRepository;
     private final AccessControlService accessControlService;
 
     public QuestionService(QuestionRepository questionRepository,
                            ExamTypeRepository examTypeRepository,
+                           MockExamRepository mockExamRepository,
                            AccessControlService accessControlService) {
         this.questionRepository = questionRepository;
         this.examTypeRepository = examTypeRepository;
+        this.mockExamRepository = mockExamRepository;
         this.accessControlService = accessControlService;
     }
 
@@ -110,6 +114,10 @@ public class QuestionService {
     public void delete(Long id) {
         if (!questionRepository.existsById(id)) {
             throw new NoSuchElementException("Question not found: " + id);
+        }
+        if (mockExamRepository.countByQuestionId(id) > 0) {
+            throw new IllegalArgumentException(
+                    "La pregunta forma parte de un simulacro; quítala del simulacro antes de eliminarla");
         }
         questionRepository.deleteById(id);
     }

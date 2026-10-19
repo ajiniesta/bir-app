@@ -1,6 +1,8 @@
 package bir.app.api.service;
 
+import bir.app.api.entity.ExamType;
 import bir.app.api.entity.UserRole;
+import bir.app.api.exception.ForbiddenException;
 import jakarta.inject.Singleton;
 
 import java.util.Set;
@@ -25,5 +27,25 @@ public class AccessControlService {
 
     public Set<String> allowedBankCodes(String username) {
         return appUserService.allowedBankCodes(username);
+    }
+
+    /**
+     * Comprueba que el usuario puede acceder al banco indicado. Un USER sin
+     * bancos asignados recibe un mensaje específico.
+     */
+    public void requireBankAccess(String username, ExamType examType) {
+        if (hasGlobalBankAccess(username)) {
+            return;
+        }
+        Set<String> allowed = allowedBankCodes(username);
+        if (allowed.isEmpty()) {
+            throw new ForbiddenException(
+                    "No tienes ningún banco de preguntas asignado. Contacta con un administrador.");
+        }
+        if (examType == null || !allowed.contains(examType.getCode())) {
+            throw new ForbiddenException(
+                    "No tienes acceso al banco de preguntas: "
+                            + (examType == null ? "desconocido" : examType.getCode()));
+        }
     }
 }

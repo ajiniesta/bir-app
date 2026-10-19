@@ -101,6 +101,7 @@ public class QuestionWebController {
     }
 
     @Post("/{id}/delete")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     public HttpResponse<?> delete(Long id) {
         try {
             client.deleteQuestion(id);

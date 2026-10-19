@@ -28,6 +28,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     List<Question> findByCategoryIgnoreCase(String category);
 
+    @EntityGraph(attributePaths = {"examType", "answerOptions"})
+    List<Question> findByIdIn(java.util.Collection<Long> ids);
+
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.category IS NOT NULL AND q.category <> '' ORDER BY q.category")
     List<String> findDistinctCategories();
 }
