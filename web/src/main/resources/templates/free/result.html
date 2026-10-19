@@ -66,6 +66,10 @@
                 Tu respuesta: <strong th:text="${item.selectedLetter()}">A</strong>
                 · Correcta: <strong th:text="${item.correctLetter()}">B</strong>
             </div>
+            <div class="mt-2 small" th:if="${item.explanation() != null and !#strings.isEmpty(item.explanation())}">
+                <div class="fw-semibold">Explicación</div>
+                <div style="white-space: pre-wrap" th:text="${item.explanation()}">Explicación...</div>
+            </div>
         </div>
     </div>
 

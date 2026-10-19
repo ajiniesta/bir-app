@@ -28,6 +28,7 @@ public record FreeSessionResponse(
         Long questionId,
         String questionText,
         String category,
+        String explanation,
         List<Option> options,
         boolean answered,
         String selectedLetter,

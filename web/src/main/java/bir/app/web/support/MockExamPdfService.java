@@ -45,6 +45,9 @@ public class MockExamPdfService {
             .qcat { font-size: 8pt; color: #666; margin-top: 1pt; }
             .opt { margin: 1pt 0 1pt 14pt; }
             .letter { font-weight: bold; }
+            .explanation { margin: 3pt 0 0 0; padding: 3pt 5pt; border-left: 2pt solid #999;
+                           font-size: 9pt; color: #333; white-space: pre-wrap; }
+            .explabel { font-weight: bold; }
             .answersheet { page-break-before: always; break-before: page; }
             .answersheet h2 { font-size: 13pt; margin: 0 0 8pt 0; }
             table.answers { width: 100%; border-collapse: collapse; }
@@ -108,6 +111,10 @@ public class MockExamPdfService {
             for (MockExamResponse.OptionSummary o : q.options()) {
                 sb.append("<div class=\"opt\"><span class=\"letter\">").append(escape(o.letter()))
                   .append(")</span> ").append(escape(o.text())).append("</div>");
+            }
+            if (q.explanation() != null && !q.explanation().isBlank()) {
+                sb.append("<div class=\"explanation\"><span class=\"explabel\">Explicación:</span> ")
+                  .append(escape(q.explanation())).append("</div>");
             }
             sb.append("</div>");
         }

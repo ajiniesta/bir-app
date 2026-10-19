@@ -19,6 +19,10 @@ public class Question {
     @Column(length = 100)
     private String category;
 
+    /** Explicación opcional: el porqué de la respuesta correcta. */
+    @Column(columnDefinition = "TEXT")
+    private String explanation;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_type_id", nullable = false)
     private ExamType examType;
@@ -52,6 +56,9 @@ public class Question {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
 
     public ExamType getExamType() { return examType; }
     public void setExamType(ExamType examType) { this.examType = examType; }

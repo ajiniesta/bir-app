@@ -233,7 +233,8 @@ public class AnswerProposalService {
                 })
                 .toList();
         questionService.update(question.getId(), new CreateQuestionRequest(
-                question.getText(), question.getCategory(), question.getExamType().getId(), newOptions));
+                question.getText(), question.getCategory(), question.getExplanation(),
+                question.getExamType().getId(), newOptions));
 
         proposal.setAppliedBy(appUserService.requireByUsername(username));
         proposal.setAppliedAt(LocalDateTime.now());

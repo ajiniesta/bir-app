@@ -16,6 +16,7 @@ import java.util.List;
 public record QuestionFormSubmission(
     String text,
     String category,
+    String explanation,
     Long examTypeId,
     String correctLetter,
     List<AnswerOption> answerOptions
@@ -33,6 +34,6 @@ public record QuestionFormSubmission(
                             o.text(),
                             o.letter().equalsIgnoreCase(correctLetter)))
                     .toList();
-        return new CreateQuestionRequest(text, category, examTypeId, options);
+        return new CreateQuestionRequest(text, category, explanation, examTypeId, options);
     }
 }

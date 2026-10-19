@@ -92,6 +92,11 @@
                     </div>
                 </div>
 
+                <div class="mt-2 small" th:if="${item.explanation() != null and !#strings.isEmpty(item.explanation())}">
+                    <div class="fw-semibold">Explicación</div>
+                    <div style="white-space: pre-wrap" th:text="${item.explanation()}">Explicación...</div>
+                </div>
+
                 <div class="mt-2" th:if="${item.questionId() != null}"
                      th:with="mine=${myProposals[item.questionId()]}">
                     <div th:if="${mine != null}" class="small text-muted mb-1">

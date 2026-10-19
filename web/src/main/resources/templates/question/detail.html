@@ -32,6 +32,13 @@
             </div>
         </div>
 
+        <div class="card mb-3" th:if="${question.explanation() != null and !#strings.isEmpty(question.explanation())}">
+            <div class="card-body">
+                <div class="fw-semibold mb-1">Explicación</div>
+                <div style="white-space: pre-wrap" th:text="${question.explanation()}">Explicación...</div>
+            </div>
+        </div>
+
         <h5>Opciones de respuesta</h5>
         <div class="list-group">
             <div th:each="opt : ${question.answerOptions()}"

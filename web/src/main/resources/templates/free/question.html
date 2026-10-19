@@ -67,6 +67,13 @@
                 </div>
             </div>
 
+            <div class="card border-secondary mb-3" th:if="${feedback.explanation() != null and !#strings.isEmpty(feedback.explanation())}">
+                <div class="card-body">
+                    <div class="fw-semibold mb-1">Explicación</div>
+                    <div style="white-space: pre-wrap" th:text="${feedback.explanation()}">Explicación...</div>
+                </div>
+            </div>
+
             <a th:if="${current != null}" th:href="@{/free/{id}(id=${session.id()})}"
                class="btn btn-primary">Siguiente pregunta</a>
             <a th:unless="${current != null}" th:href="@{/free/{id}/result(id=${session.id()})}"

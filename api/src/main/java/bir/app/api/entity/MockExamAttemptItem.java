@@ -39,6 +39,9 @@ public class MockExamAttemptItem {
     @Column(length = 100)
     private String category;
 
+    @Column(columnDefinition = "TEXT")
+    private String explanation;
+
     @Column(name = "selected_letter", length = 1)
     private String selectedLetter;
 
@@ -76,6 +79,9 @@ public class MockExamAttemptItem {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getExplanation() { return explanation; }
+    public void setExplanation(String explanation) { this.explanation = explanation; }
 
     public String getSelectedLetter() { return selectedLetter; }
     public void setSelectedLetter(String selectedLetter) { this.selectedLetter = selectedLetter; }

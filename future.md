@@ -14,8 +14,8 @@ Quiero que los usuarios con el rol de administrador y creador puedan importar pr
 { 
   "exam_type" : "3",
   "category": "Fisiología",
-  "question":"Esta es la pregunta",
-  "description": "Esta es la description",
+  "text":"Esta es la pregunta",
+  "explanation": "Esta es la description",
   "answers":[
     {"letter": "A", "text": "respuesta 1", "is_correct":true},
     {"letter": "B", "text": "respuesta 2", "is_correct":false},
@@ -23,7 +23,18 @@ Quiero que los usuarios con el rol de administrador y creador puedan importar pr
     {"letter": "D", "text": "respuesta 4", "is_correct":false},    
   ]
 }
-
+{ 
+  "exam_type" : "3",
+  "category": "Fisiología",
+  "text":"Otra pregunta más",
+  "explanation": "Esta es la description de verdad mi hermano",
+  "answers":[
+    {"letter": "A", "text": "respuesta 1", "is_correct":false},
+    {"letter": "B", "text": "respuesta 2", "is_correct":false},
+    {"letter": "C", "text": "respuesta 3", "is_correct":true},
+    {"letter": "D", "text": "respuesta 4", "is_correct":false},    
+  ]
+}
 ```
 ```
 ```

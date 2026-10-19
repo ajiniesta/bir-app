@@ -54,6 +54,7 @@ public class MockExamAttemptService {
             item.setPosition(examQuestion.getPosition());
             item.setQuestionText(question.getText());
             item.setCategory(question.getCategory());
+            item.setExplanation(question.getExplanation());
             item.setCorrectLetter(correctLetter(question));
             for (AnswerOption option : question.getAnswerOptions()) {
                 MockExamAttemptItemOption snapshot = new MockExamAttemptItemOption(
@@ -222,6 +223,7 @@ public class MockExamAttemptService {
                         item.getQuestion() == null ? null : item.getQuestion().getId(),
                         item.getQuestionText(),
                         item.getCategory(),
+                        revealed ? item.getExplanation() : null,
                         item.getOptions().stream()
                                 .map(o -> new MockExamAttemptResponse.Option(o.getLetter(), o.getText()))
                                 .toList(),

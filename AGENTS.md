@@ -143,7 +143,7 @@ Thymeleaf views live in `web/src/main/resources/templates/` (non-default locatio
 
 ```
 exam_type (id, code, name)
-  └─ question (id, text, category, exam_type_id, created_at, updated_at)
+  └─ question (id, text, category, explanation, exam_type_id, created_at, updated_at)
        └─ answer_option (id, question_id, letter, text, is_correct)
 
 app_user (id, username, password_hash, display_name, role, created_at)
@@ -162,11 +162,12 @@ mock_exam (id, title, description, exam_type_id, created_by, created_at, updated
 mock_exam_attempt (id, mock_exam_id, user_id, started_at, finished_at,
                    total_questions, answered_count, correct_count)
   └─ mock_exam_attempt_item (id, attempt_id, question_id, position, question_text,
-                             category, selected_letter, correct_letter, is_correct, answered_at)
+                             category, explanation, selected_letter, correct_letter,
+                             is_correct, answered_at)
        └─ mock_exam_attempt_item_option (id, item_id, letter, text, is_correct)
 ```
 
-A **simulacro** (mock exam) is a curated, ordered collection of questions from a single `exam_type`, created by ADMIN/CREATOR. Any user with access to that bank can take it unlimited times. Each attempt stores a **full snapshot** (question text, options and correct letter) so editing or deleting a question never changes past results; `mock_exam_attempt_item.question_id` becomes `NULL` if the question is deleted. Deleting a mock exam cascades to its attempts, and a question that belongs to a mock exam cannot be deleted (`400`).
+A **simulacro** (mock exam) is a curated, ordered collection of questions from a single `exam_type`, created by ADMIN/CREATOR. Any user with access to that bank can take it unlimited times. Each attempt stores a **full snapshot** (question text, category, explanation, options and correct letter) so editing or deleting a question never changes past results; `mock_exam_attempt_item.question_id` becomes `NULL` if the question is deleted. Deleting a mock exam cascades to its attempts, and a question that belongs to a mock exam cannot be deleted (`400`).
 
 `answer_option` has a `UNIQUE(question_id, letter)` constraint — each letter A/B/C/D appears at most once per question.
 
@@ -185,19 +186,19 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 
 - Start a session (`POST /api/free-sessions`): filter by exam type + category + count, questions picked at random. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
 - Answer one at a time (`POST /api/free-sessions/{id}/answers`); the API records correctness immediately and marks the session finished when all items are answered.
-- The API never reveals the correct option of unanswered items (only `correctLetter` of answered ones).
+- The API never reveals the correct option of unanswered items (only `correctLetter` of answered ones), nor the **explanation** (`question.explanation`): it is sent only once the item is answered.
 - Statistics: `GET /api/stats` (public counters), `GET /api/stats/banks` (counters for the user's allowed banks) and `GET /api/stats/quiz` (current user's results plus an app-wide summary). The dashboard (`HomeWebController`) uses `banks` + `quiz` when logged in.
-- In the web app the flow is `/free` (configure) → `/free/{id}` (answer) → `/free/{id}/result`.
+- In the web app the flow is `/free` (configure) → `/free/{id}` (answer) → `/free/{id}/result`. The **explanation** is shown on the feedback screen after answering (`free/question.html`) and again per question in the result (`free/result.html`).
 
 ## Mock exams (simulacros)
 
 - A mock exam is a **fixed, ordered** collection of questions from a single `exam_type`, created by ADMIN/CREATOR (`/simulacros/new`). Any authenticated user with access to that bank can take it, unlimited times.
 - The creation form (`templates/simulacro/form.html`) filters questions client-side by bank, by **category chips** (multi-select, with counts and a "Sin categoría" bucket) and by **text search over the question statement** (case- and accent-insensitive). Selection order is kept in the `#orderedIds` hidden inputs (`questionIds`). The toolbar can add N random questions from the current filter, select all currently visible ones, or clear the selection, all capped at 200 questions.
-- Attempts are **exam-style**: no feedback while answering. The user answers question by question with a position navigator, can change answers and save progress, and only sees the correct answers after submitting.
+- Attempts are **exam-style**: no feedback while answering. The user answers question by question with a position navigator, can change answers and save progress, and only sees the correct answers **and the explanation** after submitting (`simulacro/result.html`).
 - Access rules: `USER` only sees mock exams of its assigned banks (403 if it has none); ADMIN/CREATOR see all. An attempt is only visible to its owner.
 - Statistics: `GET /api/stats/mock-exams` returns the user's attempt count, average and best score plus a per-mock-exam breakdown; the dashboard (`HomeWebController`) shows them under "Tus simulacros".
 - In the web app the flow is `/simulacros` (list) → `/simulacros/{id}` (detail + history) → `/simulacros/{id}/attempts/{attemptId}` (answer) → `/simulacros/{id}/attempts/{attemptId}/result`.
-- **Printable PDF**: each mock exam can be downloaded as a PDF from the list and the detail (`/simulacros/{id}/pdf`, `target="_blank"`). It is generated server-side by the `web` module with **OpenHTMLtoPDF** (`bir.app.web.support.MockExamPdfService`), which renders an XHTML document to `application/pdf` (`Content-Disposition: inline`). It contains every question with its options (letter + text, **never** the correct answer), an instructions header and an final **answer sheet** grid to mark A/B/C/D by hand. Access matches the detail page: it reuses `client.getMockExam(id)`, so `USER` only gets PDFs for its assigned banks (otherwise `404`) and anonymous requests are rejected (`401`).
+- **Printable PDF**: each mock exam can be downloaded as a PDF from the list and the detail (`/simulacros/{id}/pdf`, `target="_blank"`). It is generated server-side by the `web` module with **OpenHTMLtoPDF** (`bir.app.web.support.MockExamPdfService`), which renders an XHTML document to `application/pdf` (`Content-Disposition: inline`). It contains every question with its options (letter + text, **never** the correct answer) and its **explanation** when present, an instructions header and a final **answer sheet** grid to mark A/B/C/D by hand. Access matches the detail page: it reuses `client.getMockExam(id)`, so `USER` only gets PDFs for its assigned banks (otherwise `404`) and anonymous requests are rejected (`401`).
 - Deleting a question that belongs to a mock exam is rejected (`400`); remove it from the mock exam first.
 
 ## Answer proposals & review mode

@@ -13,13 +13,14 @@ public record QuestionForm(
     boolean editing,
     String text,
     String category,
+    String explanation,
     String examTypeCode,
     List<AnswerOptionSlot> slots
 ) {
     private static final List<String> LETTERS = List.of("A", "B", "C", "D");
 
     public static QuestionForm empty() {
-        return new QuestionForm(null, false, "", "", null, defaultSlots());
+        return new QuestionForm(null, false, "", "", "", null, defaultSlots());
     }
 
     /** Formulario de edición a partir de una pregunta existente. */
@@ -32,6 +33,7 @@ public record QuestionForm(
                 true,
                 question.text(),
                 question.category(),
+                question.explanation(),
                 question.examTypeCode(),
                 LETTERS.stream().map(letter -> {
                     QuestionResponse.AnswerOptionResponse option = byLetter.get(letter);
@@ -58,6 +60,7 @@ public record QuestionForm(
                 id != null,
                 submission.text() == null ? "" : submission.text(),
                 submission.category() == null ? "" : submission.category(),
+                submission.explanation() == null ? "" : submission.explanation(),
                 code,
                 LETTERS.stream().map(letter -> {
                     QuestionFormSubmission.AnswerOption option = byLetter.get(letter);

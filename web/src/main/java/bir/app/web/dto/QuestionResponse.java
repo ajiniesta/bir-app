@@ -9,6 +9,7 @@ public record QuestionResponse(
     Long id,
     String text,
     String category,
+    String explanation,
     String examTypeCode,
     String examTypeName,
     List<AnswerOptionResponse> answerOptions,

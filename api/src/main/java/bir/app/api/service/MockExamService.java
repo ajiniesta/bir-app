@@ -211,6 +211,7 @@ public class MockExamService {
                         q.getQuestion().getId(),
                         q.getQuestion().getText(),
                         q.getQuestion().getCategory(),
+                        q.getQuestion().getExplanation(),
                         optionsByQuestion.getOrDefault(q.getQuestion().getId(), List.of()).stream()
                                 .map(o -> new MockExamResponse.OptionSummary(o.getLetter(), o.getText()))
                                 .toList()))

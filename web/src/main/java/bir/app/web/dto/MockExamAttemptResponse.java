@@ -34,6 +34,7 @@ public record MockExamAttemptResponse(
         Long questionId,
         String questionText,
         String category,
+        String explanation,
         List<Option> options,
         boolean answered,
         String selectedLetter,

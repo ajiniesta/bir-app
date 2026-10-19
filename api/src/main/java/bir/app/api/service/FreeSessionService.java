@@ -227,6 +227,7 @@ public class FreeSessionService {
                 question.getId(),
                 question.getText(),
                 question.getCategory(),
+                item.isAnswered() ? question.getExplanation() : null,
                 options,
                 item.isAnswered(),
                 item.getSelectedLetter(),

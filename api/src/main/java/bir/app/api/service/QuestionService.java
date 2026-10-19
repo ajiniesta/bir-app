@@ -64,6 +64,7 @@ public class QuestionService {
         Question question = new Question();
         question.setText(request.text());
         question.setCategory(request.category());
+        question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
         List<AnswerOption> options = request.answerOptions().stream().map(opt -> {
@@ -93,6 +94,7 @@ public class QuestionService {
 
         question.setText(request.text());
         question.setCategory(request.category());
+        question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
         question.getAnswerOptions().clear();
@@ -160,5 +162,12 @@ public class QuestionService {
                 .mapToLong(DashboardStatsResponse.ExamTypeStats::total)
                 .sum();
         return new DashboardStatsResponse(total, byExamType);
+    }
+
+    private static String normalize(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 }

@@ -11,6 +11,7 @@ import java.util.List;
 public record CreateQuestionRequest(
     @NotBlank String text,
     String category,
+    String explanation,
     @NotNull Long examTypeId,
     @NotEmpty @Valid List<AnswerOptionRequest> answerOptions
 ) {
