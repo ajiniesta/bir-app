@@ -1,0 +1,24 @@
+{
+  "exam_type" : "3",
+  "category": "Fisiología",
+  "text":"Esta es la pregunta",
+  "explanation": "Esta es la description",
+  "answers":[
+    {"letter": "A", "text": "respuesta 1", "is_correct":true},
+    {"letter": "B", "text": "respuesta 2", "is_correct":false},
+    {"letter": "C", "text": "respuesta 3", "is_correct":false},
+    {"letter": "D", "text": "respuesta 4", "is_correct":false}
+  ]
+},
+{
+  "exam_type" : "3",
+  "category": "Fisiología",
+  "text":"Otra pregunta más",
+  "explanation": "Esta es la description de verdad mi hermano",
+  "answers":[
+    {"letter": "A", "text": "respuesta 1", "is_correct":false},
+    {"letter": "B", "text": "respuesta 2", "is_correct":false},
+    {"letter": "C", "text": "respuesta 3", "is_correct":true},
+    {"letter": "D", "text": "respuesta 4", "is_correct":false}
+  ]
+}

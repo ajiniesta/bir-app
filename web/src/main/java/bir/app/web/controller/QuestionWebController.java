@@ -4,17 +4,22 @@ import bir.app.web.client.QuestionApiClient;
 import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.QuestionForm;
 import bir.app.web.dto.QuestionFormSubmission;
+import bir.app.web.dto.QuestionImportRequest;
+import bir.app.web.dto.QuestionImportResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.support.NavService;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.views.ModelAndView;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Controller("/questions")
@@ -44,6 +49,29 @@ public class QuestionWebController {
         model.put("examTypes", examTypes());
         model.put("selectedExamType", examType.orElse(""));
         return new ModelAndView<>("question/list", navService.addTo(model));
+    }
+
+    @Get("/import")
+    public ModelAndView<Map<String, Object>> importForm() {
+        return new ModelAndView<>("question/import", navService.addTo(new HashMap<>()));
+    }
+
+    @Post("/import")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public HttpResponse<?> importQuestions(@Nullable @Part("file") CompletedFileUpload file) {
+        Map<String, Object> model = new HashMap<>();
+        if (file == null || file.getSize() == 0) {
+            model.put("error", "Selecciona un fichero con preguntas.");
+        } else {
+            try {
+                String raw = new String(file.getBytes(), StandardCharsets.UTF_8);
+                QuestionImportResponse result = client.importQuestions(new QuestionImportRequest(raw));
+                model.put("result", result);
+            } catch (Exception e) {
+                model.put("error", "No se pudo importar el fichero: " + e.getMessage());
+            }
+        }
+        return HttpResponse.ok(new ModelAndView<>("question/import", navService.addTo(model)));
     }
 
     @Get("/{id}")

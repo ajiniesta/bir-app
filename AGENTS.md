@@ -66,6 +66,7 @@ Notes:
 | POST | `/api/questions` | ADMIN/CREATOR | Create (validates exactly one correct option) |
 | PUT | `/api/questions/{id}` | ADMIN/CREATOR | Update |
 | DELETE | `/api/questions/{id}` | ADMIN/CREATOR | Delete |
+| POST | `/api/questions/import` | ADMIN/CREATOR | Bulk import (`{content}` carries the raw file text); valid questions are saved, faulty ones skipped |
 | POST | `/api/free-sessions` | authenticated | Start a free-mode session (USER limited to assigned banks) |
 | GET | `/api/free-sessions/{id}` | authenticated | Session detail |
 | POST | `/api/free-sessions/{id}/answers` | authenticated | Answer one item |
@@ -105,6 +106,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET/POST | `/questions/create` | `question/create` | ADMIN/CREATOR |
 | GET/POST | `/questions/{id}/edit` | `question/create` | ADMIN/CREATOR |
 | POST | `/questions/{id}/delete` | — | ADMIN/CREATOR |
+| GET/POST | `/questions/import` | `question/import` | Bulk import from a JSON file (ADMIN/CREATOR) |
 | GET/POST | `/free` | `free/config` | Configure a free-mode session (any authenticated) |
 | GET | `/free/{id}` | `free/question` | |
 | POST | `/free/{id}/answer` | — | |
@@ -210,6 +212,14 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 - Review is **one step**: **accepting** a proposal (optionally with a note) immediately applies it — the proposed option becomes the only correct one and, if there is an alternative text, that option is reworded — reusing `QuestionService.update` (so the "exactly one correct option" rule holds). **Rejecting** leaves the question untouched. The API still exposes `POST /api/proposals/{id}/apply` (only when `ACCEPTED`, idempotent) for programmatic use.
 - Changing the correct answer affects the live question: free-mode pages may show a different correct letter from then on, but past statistics do not change (they are snapshotted in `session_item` / `mock_exam_attempt_item`).
 - Web views: the proposal form is inside `free/question.html` and `simulacro/result.html`; the inbox is `review/list.html`. The web form `@Post` handlers carry `@Consumes(MediaType.APPLICATION_FORM_URLENCODED)`.
+
+## Question import (importación de preguntas)
+
+- ADMIN/CREATOR can bulk-import questions from a local file at `/questions/import` (web) → `POST /api/questions/import` (api, JSON `{"content": "..."}`). The web reads the uploaded file as UTF-8 and forwards its text in `content`; the API does the parsing.
+- Accepted format: **several concatenated JSON objects**, a JSON **array**, or a single object. Trailing commas and a UTF-8 BOM are tolerated. Each object is parsed independently, so a syntactically broken question does not block the rest.
+- Fields: `exam_type` (numeric → exam-type **id**, e.g. `"3"`; otherwise → **code**, e.g. `"BIR"`), `text` (required), `category` (optional, ≤ 100 chars), `explanation` (optional), `answers` (non-empty) with `letter` (`A`–`D`, unique per question), `text` and `is_correct`.
+- Validation: **exactly one** answer with `is_correct: true`; letters are normalized to uppercase; text fields are trimmed. An invalid question is **skipped and reported** (with its 1-based position) while the valid ones are imported. The response is `QuestionImportResponse(total, imported, skipped, errors)` and is always `200`; the view lists the errors and the imported count.
+- Each valid question is created through `QuestionService.create` (same "exactly one correct option" invariant), so imported questions behave like manually created ones. No Liquibase changes are needed.
 
 ## HTTP Client
 

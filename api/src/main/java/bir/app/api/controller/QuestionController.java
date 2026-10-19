@@ -1,7 +1,10 @@
 package bir.app.api.controller;
 
 import bir.app.api.dto.CreateQuestionRequest;
+import bir.app.api.dto.QuestionImportRequest;
+import bir.app.api.dto.QuestionImportResponse;
 import bir.app.api.dto.QuestionResponse;
+import bir.app.api.service.QuestionImportService;
 import bir.app.api.service.QuestionService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
@@ -16,9 +19,12 @@ import java.util.List;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final QuestionImportService questionImportService;
 
-    public QuestionController(QuestionService questionService) {
+    public QuestionController(QuestionService questionService,
+                              QuestionImportService questionImportService) {
         this.questionService = questionService;
+        this.questionImportService = questionImportService;
     }
 
     @Get
@@ -40,6 +46,15 @@ public class QuestionController {
     @Status(HttpStatus.CREATED)
     public QuestionResponse create(@Body @Valid CreateQuestionRequest request) {
         return questionService.create(request);
+    }
+
+    /**
+     * Importa preguntas desde el texto crudo de un fichero. Las preguntas
+     * válidas se guardan y las defectuosas se descartan, informando del motivo.
+     */
+    @Post("/import")
+    public QuestionImportResponse importQuestions(@Body QuestionImportRequest request) {
+        return questionImportService.importQuestions(request == null ? null : request.content());
     }
 
     @Put("/{id}")

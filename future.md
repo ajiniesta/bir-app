@@ -8,7 +8,6 @@ A su vez podrán responder el examen más de una vez, se podrán ver sus resulta
 # Herramienta para importar preguntas
 
 Quiero que los usuarios con el rol de administrador y creador puedan importar preguntas a través de un nuevo modo de importación. Las preguntas vienen en el siguiente formato:
-```json
 
 ```json
 { 
@@ -35,7 +34,5 @@ Quiero que los usuarios con el rol de administrador y creador puedan importar pr
     {"letter": "D", "text": "respuesta 4", "is_correct":false},    
   ]
 }
-```
-```
 ```
 Se seleccione un fichero en local al servidor y se pase a cargar con el formato anterior. Si tiene fallos la pregunta que evite la importación.

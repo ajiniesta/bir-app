@@ -19,6 +19,8 @@ import bir.app.web.dto.MockExamStatsResponse;
 import bir.app.web.dto.MockExamSummaryResponse;
 import bir.app.web.dto.MyProposalResponse;
 import bir.app.web.dto.ProposalCountResponse;
+import bir.app.web.dto.QuestionImportRequest;
+import bir.app.web.dto.QuestionImportResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
@@ -59,6 +61,10 @@ public interface QuestionApiClient {
 
     @Post("/api/questions")
     QuestionResponse createQuestion(@Body CreateQuestionRequest request);
+
+    /** Importa el texto crudo de un fichero de preguntas (ADMIN/CREATOR). */
+    @Post("/api/questions/import")
+    QuestionImportResponse importQuestions(@Body QuestionImportRequest request);
 
     @Put("/api/questions/{id}")
     QuestionResponse updateQuestion(Long id, @Body CreateQuestionRequest request);
