@@ -2,6 +2,7 @@ package bir.app.web.controller;
 
 import bir.app.web.client.QuestionApiClient;
 import bir.app.web.dto.*;
+import bir.app.web.support.NavService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -13,6 +14,7 @@ import io.micronaut.security.utils.SecurityService;
 import io.micronaut.views.ModelAndView;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.*;
 
 /**
@@ -27,10 +29,12 @@ public class MockExamWebController {
 
     private final QuestionApiClient client;
     private final SecurityService securityService;
+    private final NavService navService;
 
-    public MockExamWebController(QuestionApiClient client, SecurityService securityService) {
+    public MockExamWebController(QuestionApiClient client, SecurityService securityService, NavService navService) {
         this.client = client;
         this.securityService = securityService;
+        this.navService = navService;
     }
 
     // --- Listado y detalle ---------------------------------------------------
@@ -44,7 +48,7 @@ public class MockExamWebController {
             model.put("error", "No se pudieron cargar los simulacros: " + rootMessage(e));
         }
         model.put("canManage", canManage());
-        return new ModelAndView<>("simulacro/list", model);
+        return new ModelAndView<>("simulacro/list", navService.addTo(model));
     }
 
     @Get("/{id}")
@@ -65,7 +69,7 @@ public class MockExamWebController {
         if (error.isPresent() && !model.containsKey("error")) {
             model.put("error", "No se pudo iniciar el simulacro. Inténtalo de nuevo.");
         }        model.put("canManage", canManage());
-        return HttpResponse.ok(new ModelAndView<>("simulacro/detail", model));
+        return HttpResponse.ok(new ModelAndView<>("simulacro/detail", navService.addTo(model)));
     }
 
     // --- Gestión (ADMIN/CREATOR) --------------------------------------------
@@ -165,7 +169,7 @@ public class MockExamWebController {
         model.put("current", current);
         model.put("currentPosition", current == null ? 1 : current.position());
         model.put("saved", saved.isPresent());
-        return HttpResponse.ok(new ModelAndView<>("simulacro/attempt", model));
+        return HttpResponse.ok(new ModelAndView<>("simulacro/attempt", navService.addTo(model)));
     }
 
     @Post("/{id}/attempts/{attemptId}/answer")
@@ -201,16 +205,39 @@ public class MockExamWebController {
     }
 
     @Get("/{id}/attempts/{attemptId}/result")
-    public ModelAndView<Map<String, Object>> result(Long id, Long attemptId) {
+    public ModelAndView<Map<String, Object>> result(Long id, Long attemptId,
+                                                    @QueryValue Optional<String> proposed,
+                                                    @QueryValue Optional<String> proposalError) {
         Map<String, Object> model = new HashMap<>();
+        MockExamAttemptResponse attempt = null;
         try {
-            model.put("attempt", client.mockExamAttemptResult(attemptId));
+            attempt = client.mockExamAttemptResult(attemptId);
+            model.put("attempt", attempt);
         } catch (Exception e) {
             model.put("error", "No se pudo cargar el resultado: " + rootMessage(e));
         }
         model.put("mockExamId", id);
-        model.put("blankCount", blankCount(model.get("attempt")));
-        return new ModelAndView<>("simulacro/result", model);
+        model.put("blankCount", blankCount(attempt));
+        model.put("myProposals", proposalsByQuestion(attempt));
+        model.put("proposed", proposed.isPresent());
+        model.put("proposalError", proposalError.orElse(null));
+        return new ModelAndView<>("simulacro/result", navService.addTo(model));
+    }
+
+    /** Guarda una propuesta de respuesta alternativa desde la revisión del intento. */
+    @Post("/{id}/attempts/{attemptId}/proposals")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public HttpResponse<?> propose(Long id, Long attemptId, @Body ProposalForm form) {
+        String base = "/simulacros/" + id + "/attempts/" + attemptId + "/result";
+        try {
+            client.proposeAnswer(new CreateAnswerProposalRequest(
+                    form.questionId(), form.proposedLetter(), form.proposedText(), form.comment(),
+                    "MOCK_EXAM_ATTEMPT", attemptId, form.position(), form.selectedLetter()));
+            return HttpResponse.seeOther(URI.create(base + "?proposed=1"));
+        } catch (Exception e) {
+            return HttpResponse.seeOther(URI.create(base + "?proposalError="
+                    + URLEncoder.encode(rootMessage(e), java.nio.charset.StandardCharsets.UTF_8)));
+        }
     }
 
     // --- Helpers -------------------------------------------------------------
@@ -226,7 +253,7 @@ public class MockExamWebController {
         if (error != null) {
             model.put("error", error);
         }
-        return model;
+        return navService.addTo(model);
     }
 
     private boolean canManage() {
@@ -290,6 +317,30 @@ public class MockExamWebController {
             return 0;
         }
         return (int) a.items().stream().filter(i -> !i.answered()).count();
+    }
+
+    /** Mis propuestas para las preguntas del intento, indexadas por pregunta. */
+    private Map<Long, MyProposalResponse> proposalsByQuestion(MockExamAttemptResponse attempt) {
+        if (attempt == null || attempt.items().isEmpty()) {
+            return Map.of();
+        }
+        List<Long> ids = attempt.items().stream()
+                .map(MockExamAttemptResponse.Item::questionId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        try {
+            Map<Long, MyProposalResponse> byQuestion = new HashMap<>();
+            for (MyProposalResponse proposal : client.myProposals(ids)) {
+                byQuestion.put(proposal.questionId(), proposal);
+            }
+            return byQuestion;
+        } catch (Exception e) {
+            return Map.of();
+        }
     }
 
     private static String rootMessage(Throwable e) {

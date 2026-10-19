@@ -11,6 +11,8 @@
         <h1 class="h3 mb-0">Modo libre</h1>
         <div class="d-flex gap-2">
             <a th:href="@{/simulacros}" class="btn btn-outline-primary">Simulacros</a>
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
             <a th:href="@{/}" class="btn btn-outline-secondary">Inicio</a>
         </div>
     </div>

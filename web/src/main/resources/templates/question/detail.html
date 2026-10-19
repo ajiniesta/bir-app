@@ -16,6 +16,8 @@
             <h1 class="h4">Pregunta #<span th:text="${question.id()}">1</span></h1>
             <div>
                 <a th:href="@{/questions/{id}/edit(id=${question.id()})}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                    <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
                 <a th:href="@{/questions}" class="btn btn-sm btn-outline-primary">Volver</a>
             </div>
         </div>

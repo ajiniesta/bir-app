@@ -1,7 +1,9 @@
 package bir.app.web.client;
 
 import bir.app.web.dto.AdminUserResponse;
+import bir.app.web.dto.AnswerProposalResponse;
 import bir.app.web.dto.AnswerRequest;
+import bir.app.web.dto.CreateAnswerProposalRequest;
 import bir.app.web.dto.CreateFreeSessionRequest;
 import bir.app.web.dto.CreateMockExamRequest;
 import bir.app.web.dto.CreateQuestionRequest;
@@ -15,12 +17,16 @@ import bir.app.web.dto.MockExamAttemptSummaryResponse;
 import bir.app.web.dto.MockExamResponse;
 import bir.app.web.dto.MockExamStatsResponse;
 import bir.app.web.dto.MockExamSummaryResponse;
+import bir.app.web.dto.MyProposalResponse;
+import bir.app.web.dto.ProposalCountResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
+import bir.app.web.dto.ReviewProposalRequest;
 import bir.app.web.dto.UpdateBanksRequest;
 import bir.app.web.dto.UpdateRoleRequest;
 import bir.app.web.dto.UserResponse;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.client.annotation.Client;
@@ -127,6 +133,32 @@ public interface QuestionApiClient {
 
     @Get("/api/mock-exam-attempts/{id}/result")
     MockExamAttemptResponse mockExamAttemptResult(Long id);
+
+    // --- Propuestas de respuesta / revisión ---------------------------------
+
+    /** Crea o actualiza mi propuesta para una pregunta (usuario autenticado). */
+    @Post("/api/proposals")
+    AnswerProposalResponse proposeAnswer(@Body CreateAnswerProposalRequest request);
+
+    /** Mis propuestas para un conjunto de preguntas (estado en la UI). */
+    @Get("/api/proposals/mine")
+    List<MyProposalResponse> myProposals(@QueryValue("questionIds") List<Long> questionIds);
+
+    /** Bandeja de revisión (ADMIN/CREATOR). {@code status} vacío = todas. */
+    @Get("/api/proposals{?status,examType}")
+    List<AnswerProposalResponse> listAnswerProposals(@Nullable String status, @Nullable String examType);
+
+    /** Número de propuestas pendientes (contador del menú). */
+    @Get("/api/proposals/pending-count")
+    ProposalCountResponse pendingProposalCount();
+
+    /** Veredicto: aceptar o rechazar una propuesta (ADMIN/CREATOR). */
+    @Post("/api/proposals/{id}/review")
+    AnswerProposalResponse reviewAnswerProposal(Long id, @Body ReviewProposalRequest request);
+
+    /** Aplica la propuesta a la pregunta (ADMIN/CREATOR). */
+    @Post("/api/proposals/{id}/apply")
+    AnswerProposalResponse applyAnswerProposal(Long id);
 
     // --- Administración (solo ROLE_ADMIN) -----------------------------------
 

@@ -7,6 +7,7 @@ import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.RoleForm;
 import bir.app.web.dto.UpdateBanksRequest;
 import bir.app.web.dto.UpdateRoleRequest;
+import bir.app.web.support.NavService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -34,9 +35,11 @@ public class AdminWebController {
     private static final List<String> ROLES = List.of("ADMIN", "CREATOR", "USER");
 
     private final QuestionApiClient client;
+    private final NavService navService;
 
-    public AdminWebController(QuestionApiClient client) {
+    public AdminWebController(QuestionApiClient client, NavService navService) {
         this.client = client;
+        this.navService = navService;
     }
 
     @Get("/users")
@@ -86,7 +89,7 @@ public class AdminWebController {
         if (error != null) {
             model.put("error", error);
         }
-        return model;
+        return navService.addTo(model);
     }
 
     private List<ExamTypeResponse> safeExamTypes() {

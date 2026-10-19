@@ -2,9 +2,13 @@ package bir.app.web.controller;
 
 import bir.app.web.client.QuestionApiClient;
 import bir.app.web.dto.AnswerRequest;
+import bir.app.web.dto.CreateAnswerProposalRequest;
 import bir.app.web.dto.CreateFreeSessionRequest;
 import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.FreeSessionResponse;
+import bir.app.web.dto.MyProposalResponse;
+import bir.app.web.dto.ProposalForm;
+import bir.app.web.support.NavService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -15,6 +19,8 @@ import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.views.ModelAndView;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +37,16 @@ import java.util.Optional;
 public class FreeSessionWebController {
 
     private final QuestionApiClient client;
+    private final NavService navService;
 
-    public FreeSessionWebController(QuestionApiClient client) {
+    public FreeSessionWebController(QuestionApiClient client, NavService navService) {
         this.client = client;
+        this.navService = navService;
     }
 
     @Get
     public ModelAndView<Map<String, Object>> config() {
-        return new ModelAndView<>("free/config", configModel(new HashMap<>()));
+        return new ModelAndView<>("free/config", navService.addTo(configModel(new HashMap<>())));
     }
 
     @Post
@@ -50,12 +58,15 @@ public class FreeSessionWebController {
         } catch (Exception e) {
             Map<String, Object> model = configModel(new HashMap<>());
             model.put("error", "No se pudo iniciar la partida: " + e.getMessage());
-            return HttpResponse.ok(new ModelAndView<>("free/config", model));
+            return HttpResponse.ok(new ModelAndView<>("free/config", navService.addTo(model)));
         }
     }
 
     @Get("/{id}")
-    public HttpResponse<?> session(Long id, @QueryValue Optional<Integer> answered) {
+    public HttpResponse<?> session(Long id,
+                                   @QueryValue Optional<Integer> answered,
+                                   @QueryValue Optional<String> proposed,
+                                   @QueryValue Optional<String> proposalError) {
         FreeSessionResponse session = client.getFreeSession(id);
 
         if (answered.isEmpty() && session.finished()) {
@@ -69,7 +80,10 @@ public class FreeSessionWebController {
         model.put("session", session);
         model.put("feedback", feedback);
         model.put("current", firstUnanswered(session));
-        return HttpResponse.ok(new ModelAndView<>("free/question", model));
+        model.put("myProposal", feedback == null ? null : myProposalFor(feedback.questionId()));
+        model.put("proposed", proposed.isPresent());
+        model.put("proposalError", proposalError.orElse(null));
+        return HttpResponse.ok(new ModelAndView<>("free/question", navService.addTo(model)));
     }
 
     @Post("/{id}/answer")
@@ -84,11 +98,27 @@ public class FreeSessionWebController {
         return HttpResponse.seeOther(URI.create("/free/" + id + "?answered=" + request.position()));
     }
 
+    /** Guarda una propuesta de respuesta alternativa desde el feedback del modo libre. */
+    @Post("/{id}/proposals")
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public HttpResponse<?> propose(Long id, @Body ProposalForm form) {
+        String base = "/free/" + id + "?answered=" + form.position();
+        try {
+            client.proposeAnswer(new CreateAnswerProposalRequest(
+                    form.questionId(), form.proposedLetter(), form.proposedText(), form.comment(),
+                    "FREE_SESSION", id, form.position(), form.selectedLetter()));
+            return HttpResponse.seeOther(URI.create(base + "&proposed=1"));
+        } catch (Exception e) {
+            return HttpResponse.seeOther(URI.create(base + "&proposalError="
+                    + URLEncoder.encode(rootMessage(e), StandardCharsets.UTF_8)));
+        }
+    }
+
     @Get("/{id}/result")
     public ModelAndView<Map<String, Object>> result(Long id) {
         Map<String, Object> model = new HashMap<>();
         model.put("session", client.getFreeSession(id));
-        return new ModelAndView<>("free/result", model);
+        return new ModelAndView<>("free/result", navService.addTo(model));
     }
 
     // --- helpers ------------------------------------------------------------
@@ -127,5 +157,24 @@ public class FreeSessionWebController {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    private MyProposalResponse myProposalFor(Long questionId) {
+        if (questionId == null) {
+            return null;
+        }
+        try {
+            return client.myProposals(List.of(questionId)).stream().findFirst().orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String rootMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() == null ? "error inesperado" : cause.getMessage();
     }
 }

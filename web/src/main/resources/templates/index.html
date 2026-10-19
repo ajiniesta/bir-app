@@ -16,6 +16,8 @@
                 <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
                 <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
                 <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-sm btn-outline-secondary">Administración</a>
+                <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                    <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
                 <span class="text-muted small d-none d-md-inline" th:text="${displayName}">Usuario</span>
                 <form th:action="@{/logout}" method="post" class="d-inline">
                     <button type="submit" class="btn btn-sm btn-outline-secondary">Salir</button>

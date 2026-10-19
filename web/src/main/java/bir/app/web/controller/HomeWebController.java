@@ -1,6 +1,7 @@
 package bir.app.web.controller;
 
 import bir.app.web.client.QuestionApiClient;
+import bir.app.web.support.NavService;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -26,10 +27,12 @@ public class HomeWebController {
 
     private final QuestionApiClient client;
     private final SecurityService securityService;
+    private final NavService navService;
 
-    public HomeWebController(QuestionApiClient client, SecurityService securityService) {
+    public HomeWebController(QuestionApiClient client, SecurityService securityService, NavService navService) {
         this.client = client;
         this.securityService = securityService;
+        this.navService = navService;
     }
 
     @Get("/")
@@ -66,6 +69,6 @@ public class HomeWebController {
                 model.put("mockExamStatsError", "No se pudieron obtener tus estadísticas de simulacros: " + e.getMessage());
             }
         }
-        return new ModelAndView<>("index", model);
+        return new ModelAndView<>("index", navService.addTo(model));
     }
 }

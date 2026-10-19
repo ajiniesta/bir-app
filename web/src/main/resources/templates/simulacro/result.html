@@ -12,12 +12,16 @@
         <div class="ms-auto d-flex align-items-center gap-2">
             <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-secondary">Simulacros</a>
             <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
         </div>
     </div>
 </nav>
 
 <div class="container py-4" style="max-width: 820px">
     <div th:if="${error}" class="alert alert-warning" th:text="${error}">Error</div>
+    <div th:if="${proposed}" class="alert alert-success py-2">Propuesta enviada. Gracias, un revisor la valorará.</div>
+    <div th:if="${proposalError}" class="alert alert-danger py-2" th:text="${proposalError}">Error</div>
 
     <div th:if="${attempt != null}">
         <div class="mb-4">
@@ -86,6 +90,45 @@
                         <span th:if="${isCorrect}" class="badge bg-success ms-2">Correcta</span>
                         <span th:if="${isSelected and !isCorrect}" class="badge bg-danger ms-2">Tu respuesta</span>
                     </div>
+                </div>
+
+                <div class="mt-2" th:if="${item.questionId() != null}"
+                     th:with="mine=${myProposals[item.questionId()]}">
+                    <div th:if="${mine != null}" class="small text-muted mb-1">
+                        Tu propuesta:
+                        <strong th:text="${mine.status() == 'PENDING' ? 'pendiente' : (mine.status() == 'ACCEPTED' ? 'aceptada' : 'rechazada')}">pendiente</strong>
+                        <span th:if="${mine.proposedLetter() != null}"> · opción <strong th:text="${mine.proposedLetter()}">A</strong></span>
+                    </div>
+                    <details>
+                        <summary class="btn btn-sm btn-outline-warning d-inline-block">Proponer respuesta alternativa</summary>
+                        <form class="mt-2"
+                              th:action="@{/simulacros/{id}/attempts/{aid}/proposals(id=${mockExamId}, aid=${attempt.id()})}"
+                              method="post">
+                            <input type="hidden" name="questionId" th:value="${item.questionId()}">
+                            <input type="hidden" name="position" th:value="${item.position()}">
+                            <input type="hidden" name="selectedLetter" th:value="${item.selectedLetter()}">
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Creo que la opción correcta es</label>
+                                <select name="proposedLetter" class="form-select form-select-sm">
+                                    <option value="">— Ninguna / no lo sé —</option>
+                                    <option th:each="opt : ${item.options()}" th:value="${opt.letter()}"
+                                            th:text="${opt.letter() + ') ' + opt.text()}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Otra respuesta alternativa (texto)</label>
+                                <textarea name="proposedText" class="form-control form-control-sm" rows="2"
+                                          placeholder="Si la respuesta correcta debería ser otra distinta de las opciones"></textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Motivo <span class="text-danger">*</span></label>
+                                <textarea name="comment" class="form-control form-control-sm" rows="2" required
+                                          placeholder="Explica por qué la respuesta es errónea o conflictiva"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-warning">Enviar propuesta</button>
+                        </form>
+                    </details>
                 </div>
             </div>
         </div>

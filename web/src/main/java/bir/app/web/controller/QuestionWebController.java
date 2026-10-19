@@ -5,6 +5,7 @@ import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.QuestionForm;
 import bir.app.web.dto.QuestionFormSubmission;
 import bir.app.web.dto.QuestionResponse;
+import bir.app.web.support.NavService;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -23,9 +24,11 @@ import java.util.*;
 public class QuestionWebController {
 
     private final QuestionApiClient client;
+    private final NavService navService;
 
-    public QuestionWebController(QuestionApiClient client) {
+    public QuestionWebController(QuestionApiClient client, NavService navService) {
         this.client = client;
+        this.navService = navService;
     }
 
     @Get
@@ -40,7 +43,7 @@ public class QuestionWebController {
         model.put("questions", questions);
         model.put("examTypes", examTypes());
         model.put("selectedExamType", examType.orElse(""));
-        return new ModelAndView<>("question/list", model);
+        return new ModelAndView<>("question/list", navService.addTo(model));
     }
 
     @Get("/{id}")
@@ -51,7 +54,7 @@ public class QuestionWebController {
             q -> model.put("question", q),
             () -> model.put("error", "Question not found")
         );
-        return new ModelAndView<>("question/detail", model);
+        return new ModelAndView<>("question/detail", navService.addTo(model));
     }
 
     @Get("/create")
@@ -70,7 +73,7 @@ public class QuestionWebController {
             model.put("form", QuestionForm.of(submission, null, examTypes()));
             model.put("error", "Failed to create question: " + e.getMessage());
             model.put("examTypes", examTypes());
-            return HttpResponse.ok(new ModelAndView<>("question/create", model));
+            return HttpResponse.ok(new ModelAndView<>("question/create", navService.addTo(model)));
         }
     }
 
@@ -96,7 +99,7 @@ public class QuestionWebController {
             model.put("form", QuestionForm.of(submission, id, examTypes()));
             model.put("error", "Failed to update question: " + e.getMessage());
             model.put("examTypes", examTypes());
-            return HttpResponse.ok(new ModelAndView<>("question/create", model));
+            return HttpResponse.ok(new ModelAndView<>("question/create", navService.addTo(model)));
         }
     }
 
@@ -113,7 +116,7 @@ public class QuestionWebController {
         Map<String, Object> model = new HashMap<>();
         model.put("form", form);
         model.put("examTypes", examTypes());
-        return model;
+        return navService.addTo(model);
     }
 
     private List<ExamTypeResponse> examTypes() {

@@ -32,7 +32,7 @@ The Postgres container exposes host port **5434** (`5434:5432`); both `api`'s da
 
 - **`api`** is the authority: it stores users (`app_user`, BCrypt) and issues a **JWT** via the built-in `POST /login` (micronaut-security, `authentication: bearer`). All endpoints are authenticated by default; only `POST /login`, `POST /api/auth/register` and `GET /api/stats` are anonymous. The JWT carries the user's single role as a `ROLE_*` authority.
 - **`web`** uses **session** authentication (micronaut-security-session). `ApiAuthenticationProvider` validates credentials against the API's `/login` and stores the JWT in the session; `ApiTokenFilter` (HTTP client filter) re-sends it as `Authorization: Bearer` on every API call.
-- Public web routes: `/` (landing), `/login`, `/register`. Everything else requires a session. `/questions*` requires ADMIN or CREATOR; `/admin/**` requires ADMIN.
+- Public web routes: `/` (landing), `/login`, `/register`. Everything else requires a session. `/questions*` and `/revisiones*` require ADMIN or CREATOR; `/admin/**` requires ADMIN.
 
 ## Roles and permissions
 
@@ -47,6 +47,7 @@ A "question bank" is an `exam_type`. Access for `USER` lives in `user_exam_type_
 Notes:
 - Roles travel in the JWT: a role change applies when the user logs in again. Bank access is checked against the DB on every request (immediate).
 - `GET /api/questions*` is restricted to ADMIN/CREATOR because `QuestionResponse` exposes each option's `isCorrect`.
+- **Answer proposals**: any authenticated user can propose an alternative answer on a question they saw in their own free session / mock-exam attempt; only ADMIN/CREATOR can list, review (accept/reject) and apply proposals (see **Answer proposals & review mode**).
 
 ## API endpoints (`api`, port 18080)
 
@@ -83,6 +84,12 @@ Notes:
 | GET | `/api/admin/users` | ADMIN | Users with role and assigned banks |
 | PUT | `/api/admin/users/{id}/role` | ADMIN | Change a user's role |
 | PUT | `/api/admin/users/{id}/banks` | ADMIN | Replace a user's assigned banks (by exam-type code) |
+| POST | `/api/proposals` | authenticated | Create/update my proposal for a question (needs the session/attempt context) |
+| GET | `/api/proposals/mine{?questionIds}` | authenticated | My proposals for those questions (UI state) |
+| GET | `/api/proposals{?status,examType}` | ADMIN/CREATOR | Review inbox (`status` empty = all, oldest first) |
+| GET | `/api/proposals/pending-count` | ADMIN/CREATOR | `ProposalCountResponse` (menu counter) |
+| POST | `/api/proposals/{id}/review` | ADMIN/CREATOR | `{status: ACCEPTED\|REJECTED, note}`; `ACCEPTED` applies the change to the question |
+| POST | `/api/proposals/{id}/apply` | ADMIN/CREATOR | Apply the change programmatically (only if `ACCEPTED`, idempotent) |
 
 Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementException` → 404, `IllegalArgumentException` → 400, `ForbiddenException` → 403, anything else → 500 (JSON `{"error": ...}`).
 
@@ -101,6 +108,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET/POST | `/free` | `free/config` | Configure a free-mode session (any authenticated) |
 | GET | `/free/{id}` | `free/question` | |
 | POST | `/free/{id}/answer` | — | |
+| POST | `/free/{id}/proposals` | — | Propose an alternative answer from the feedback screen |
 | GET | `/free/{id}/result` | `free/result` | |
 | GET | `/simulacros` | `simulacro/list` | Mock exams visible to the user |
 | GET | `/simulacros/{id}` | `simulacro/detail` | Detail + attempt history |
@@ -111,7 +119,10 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET | `/simulacros/{id}/attempts/{attemptId}` | `simulacro/attempt` | Answer one question at a time |
 | POST | `/simulacros/{id}/attempts/{attemptId}/answer` | — | Save an answer |
 | POST | `/simulacros/{id}/attempts/{attemptId}/finish` | — | Submit the attempt |
-| GET | `/simulacros/{id}/attempts/{attemptId}/result` | `simulacro/result` | Result + review |
+| GET | `/simulacros/{id}/attempts/{attemptId}/result` | `simulacro/result` | Result + review (propose an alternative answer per item) |
+| POST | `/simulacros/{id}/attempts/{attemptId}/proposals` | — | Propose an alternative answer from the mock-exam review |
+| GET | `/revisiones{?status,examType}` | `review/list` | Review inbox (ADMIN/CREATOR) |
+| POST | `/revisiones/{id}/review` | — | Accept/reject a proposal with a note; **accepting applies the change** (ADMIN/CREATOR) |
 | GET | `/admin/users` | `admin/users` | User/role/bank management (ADMIN) |
 | POST | `/admin/users/{id}/role` | — | Change role (ADMIN) |
 | POST | `/admin/users/{id}/banks` | — | Replace assigned banks (ADMIN) |
@@ -160,6 +171,15 @@ A **simulacro** (mock exam) is a curated, ordered collection of questions from a
 
 `session_item` stores the answer as a **snapshot** (`selected_letter` + `is_correct`), so editing a question later does not change past statistics. Deleting a question removes its `session_item` rows (`ON DELETE CASCADE`).
 
+```
+answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, comment,
+                 source, source_id, position, selected_letter, status,
+                 created_at, updated_at, reviewed_by, reviewed_at, reviewer_note,
+                 applied_by, applied_at)
+```
+
+`answer_proposal` stores a user's request to change the correct answer of a question: optionally another existing option (`proposed_letter`) and/or an alternative text (`proposed_text`), plus a mandatory `comment` (motivo). `source`/`source_id`/`position`/`selected_letter` record the **context** (a `free_session` or a `mock_exam_attempt`). There is **at most one proposal per (`question_id`, `proposed_by`)**; re-sending while not accepted updates it and resets `status` to `PENDING`. `status` is `PENDING`/`ACCEPTED`/`REJECTED`. Deleting the question cascades to its proposals (`ON DELETE CASCADE`).
+
 ## Free mode (modo libre)
 
 - Start a session (`POST /api/free-sessions`): filter by exam type + category + count, questions picked at random. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
@@ -178,9 +198,19 @@ A **simulacro** (mock exam) is a curated, ordered collection of questions from a
 - In the web app the flow is `/simulacros` (list) → `/simulacros/{id}` (detail + history) → `/simulacros/{id}/attempts/{attemptId}` (answer) → `/simulacros/{id}/attempts/{attemptId}/result`.
 - Deleting a question that belongs to a mock exam is rejected (`400`); remove it from the mock exam first.
 
+## Answer proposals & review mode
+
+- Any authenticated user can **propose an alternative answer** when a question seems wrong or contentious, from two places: the free-mode **feedback** screen (`/free/{id}` after answering) and the mock-exam **review** (`/simulacros/{id}/attempts/{attemptId}/result`). The proposal may pick a different existing option and/or write a new alternative text, plus a **mandatory motivo** (`comment`).
+- The proposal records its context (`source` = `FREE_SESSION` | `MOCK_EXAM_ATTEMPT`, `source_id`, `position`, `selected_letter`). The API validates that the question really belongs to that session/attempt **owned by the caller** (a mock-exam attempt must be finished); otherwise `404`/`400`.
+- One proposal per user and question: sending another updates it and resets it to `PENDING`. If it is already `ACCEPTED` the API returns `400`.
+- ADMIN/CREATOR see a **counter of pending proposals** in the menu that is recomputed on **every page** (one extra API call per render, via `web/.../support/NavService.java`), and a **review inbox** at `/revisiones` (top-level, *not* under `/admin/**`, so CREATOR can reach it). Filter by status and bank.
+- Review is **one step**: **accepting** a proposal (optionally with a note) immediately applies it — the proposed option becomes the only correct one and, if there is an alternative text, that option is reworded — reusing `QuestionService.update` (so the "exactly one correct option" rule holds). **Rejecting** leaves the question untouched. The API still exposes `POST /api/proposals/{id}/apply` (only when `ACCEPTED`, idempotent) for programmatic use.
+- Changing the correct answer affects the live question: free-mode pages may show a different correct letter from then on, but past statistics do not change (they are snapshotted in `session_item` / `mock_exam_attempt_item`).
+- Web views: the proposal form is inside `free/question.html` and `simulacro/result.html`; the inbox is `review/list.html`. The web form `@Post` handlers carry `@Consumes(MediaType.APPLICATION_FORM_URLENCODED)`.
+
 ## HTTP Client
 
-Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`) — no REST template boilerplate. It covers the whole API surface (auth, questions, stats, exam types, free sessions, mock exams). If migrating to a different client, keep the interface contract matching the API's endpoints.
+Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`) — no REST template boilerplate. It covers the whole API surface (auth, questions, stats, exam types, free sessions, mock exams, answer proposals). Optional query params (e.g. `listAnswerProposals(status, examType)`) must be annotated `@Nullable` or the client throws when they are `null`. If migrating to a different client, keep the interface contract matching the API's endpoints.
 
 ## Build
 

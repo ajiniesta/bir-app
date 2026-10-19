@@ -20,5 +20,6 @@
     <include file="changes/014-create-mock-exam-attempt.sql" relativeToChangelogFile="true"/>
     <include file="changes/015-create-mock-exam-attempt-item.sql" relativeToChangelogFile="true"/>
     <include file="changes/016-create-mock-exam-attempt-item-option.sql" relativeToChangelogFile="true"/>
+    <include file="changes/017-create-answer-proposal.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

@@ -10,7 +10,11 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h4 mb-0">Resultado de la partida</h1>
-        <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+        <div class="d-flex gap-2">
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
+            <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+        </div>
     </div>
 
     <div class="row g-3 mb-4">

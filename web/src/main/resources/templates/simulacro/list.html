@@ -14,6 +14,8 @@
             <a th:href="@{/free}" class="btn btn-sm btn-outline-primary">Modo libre</a>
             <a th:if="${canManage}" th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
             <a th:if="${canManage}" th:href="@{/simulacros/new}" class="btn btn-sm btn-primary">+ Nuevo simulacro</a>
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
             <form th:action="@{/logout}" method="post" class="d-inline">
                 <button type="submit" class="btn btn-sm btn-outline-secondary">Salir</button>
             </form>

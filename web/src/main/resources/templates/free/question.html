@@ -10,7 +10,11 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 mb-0">Modo libre</h1>
-        <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+        <div class="d-flex gap-2">
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
+            <a th:href="@{/}" class="btn btn-sm btn-outline-secondary">Inicio</a>
+        </div>
     </div>
 
     <div th:with="shown=${feedback != null ? feedback : current}">
@@ -67,6 +71,55 @@
                class="btn btn-primary">Siguiente pregunta</a>
             <a th:unless="${current != null}" th:href="@{/free/{id}/result(id=${session.id()})}"
                class="btn btn-primary">Ver resultado</a>
+
+            <div th:if="${proposed}" class="alert alert-success py-2 mt-3 mb-0">
+                Propuesta enviada. Gracias, un revisor la valorará.
+            </div>
+            <div th:if="${proposalError}" class="alert alert-danger py-2 mt-3 mb-0" th:text="${proposalError}">Error</div>
+
+            <div class="card mt-3" th:if="${feedback.questionId() != null}">
+                <div class="card-body">
+                    <p class="mb-2 fw-semibold">¿Crees que la respuesta correcta es errónea o conflictiva?</p>
+
+                    <div th:if="${myProposal != null}" class="alert alert-info py-2 small">
+                        Ya enviaste una propuesta:
+                        <strong th:text="${myProposal.status() == 'PENDING' ? 'pendiente de revisión' : (myProposal.status() == 'ACCEPTED' ? 'aceptada' : 'rechazada')}">pendiente</strong>.
+                        <span th:if="${myProposal.proposedLetter() != null}">
+                            Opción propuesta: <strong th:text="${myProposal.proposedLetter()}">A</strong>.</span>
+                        <span th:if="${myProposal.proposedText() != null}">
+                            Texto alternativo: «<span th:text="${myProposal.proposedText()}"></span>».</span>
+                    </div>
+
+                    <details>
+                        <summary class="btn btn-sm btn-outline-warning d-inline-block">Proponer respuesta alternativa</summary>
+                        <form class="mt-3" th:action="@{/free/{id}/proposals(id=${session.id()})}" method="post">
+                            <input type="hidden" name="questionId" th:value="${feedback.questionId()}">
+                            <input type="hidden" name="position" th:value="${feedback.position()}">
+                            <input type="hidden" name="selectedLetter" th:value="${feedback.selectedLetter()}">
+
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Creo que la opción correcta es</label>
+                                <select name="proposedLetter" class="form-select form-select-sm">
+                                    <option value="">— Ninguna / no lo sé —</option>
+                                    <option th:each="opt : ${feedback.options()}" th:value="${opt.letter()}"
+                                            th:text="${opt.letter() + ') ' + opt.text()}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Otra respuesta alternativa (texto)</label>
+                                <textarea name="proposedText" class="form-control form-control-sm" rows="2"
+                                          placeholder="Si la respuesta correcta debería ser otra distinta de las opciones"></textarea>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Motivo <span class="text-danger">*</span></label>
+                                <textarea name="comment" class="form-control form-control-sm" rows="3" required
+                                          placeholder="Explica por qué la respuesta es errónea o conflictiva"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-warning">Enviar propuesta</button>
+                        </form>
+                    </details>
+                </div>
+            </div>
         </div>
 
         <!-- Pregunta pendiente -->

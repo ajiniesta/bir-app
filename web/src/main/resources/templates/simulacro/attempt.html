@@ -11,6 +11,8 @@
         <a class="navbar-brand fw-semibold" th:href="@{/}">BirApp</a>
         <div class="ms-auto d-flex align-items-center gap-2">
             <span class="text-muted small d-none d-md-inline" th:text="${attempt.mockExamTitle()}">Simulacro</span>
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
             <a th:href="@{/simulacros/{id}(id=${mockExamId})}" class="btn btn-sm btn-outline-secondary">Salir</a>
         </div>
     </div>
