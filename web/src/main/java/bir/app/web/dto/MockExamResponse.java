@@ -26,6 +26,19 @@ public record MockExamResponse(
         int position,
         Long questionId,
         String text,
-        String category
+        String category,
+        List<OptionSummary> options
+    ) {
+        public QuestionSummary {
+            if (options == null) {
+                options = List.of();
+            }
+        }
+    }
+
+    @Serdeable
+    public record OptionSummary(
+        String letter,
+        String text
     ) {}
 }

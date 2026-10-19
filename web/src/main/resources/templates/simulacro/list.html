@@ -72,6 +72,8 @@
                               th:action="@{/simulacros/{id}/start(id=${m.id()})}" method="post" class="d-inline">
                             <button type="submit" class="btn btn-sm btn-primary">Empezar simulacro</button>
                         </form>
+                        <a th:href="@{/simulacros/{id}/pdf(id=${m.id()})}" target="_blank" rel="noopener"
+                           class="btn btn-sm btn-outline-dark">Imprimir PDF</a>
                         <a th:if="${canManage}" th:href="@{/simulacros/{id}/edit(id=${m.id()})}"
                            class="btn btn-sm btn-outline-secondary">Editar</a>
                     </div>

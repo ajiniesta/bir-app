@@ -204,12 +204,16 @@ public class MockExamService {
     }
 
     private MockExamResponse toResponse(MockExam exam) {
+        Map<Long, List<AnswerOption>> optionsByQuestion = loadOptions(exam);
         List<MockExamResponse.QuestionSummary> questions = exam.getQuestions().stream()
                 .map(q -> new MockExamResponse.QuestionSummary(
                         q.getPosition(),
                         q.getQuestion().getId(),
                         q.getQuestion().getText(),
-                        q.getQuestion().getCategory()))
+                        q.getQuestion().getCategory(),
+                        optionsByQuestion.getOrDefault(q.getQuestion().getId(), List.of()).stream()
+                                .map(o -> new MockExamResponse.OptionSummary(o.getLetter(), o.getText()))
+                                .toList()))
                 .toList();
         return new MockExamResponse(
                 exam.getId(),
@@ -219,6 +223,26 @@ public class MockExamService {
                 exam.getExamType().getName(),
                 questions.size(),
                 questions);
+    }
+
+    /**
+     * Carga las opciones de todas las preguntas del simulacro en una única
+     * consulta (el {@code EntityGraph} de {@link QuestionRepository#findByIdIn}
+     * inicializa {@code answerOptions}), evitando el N+1 al montar la respuesta.
+     * Solo se usan letra y texto: la marca de correcta nunca sale de aquí.
+     */
+    private Map<Long, List<AnswerOption>> loadOptions(MockExam exam) {
+        List<Long> ids = exam.getQuestions().stream()
+                .map(mq -> mq.getQuestion().getId())
+                .toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<AnswerOption>> byQuestion = new HashMap<>();
+        for (Question question : questionRepository.findByIdIn(ids)) {
+            byQuestion.put(question.getId(), question.getAnswerOptions());
+        }
+        return byQuestion;
     }
 
     private static String normalize(String value) {

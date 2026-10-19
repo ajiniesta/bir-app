@@ -70,7 +70,7 @@ Notes:
 | GET | `/api/free-sessions/{id}` | authenticated | Session detail |
 | POST | `/api/free-sessions/{id}/answers` | authenticated | Answer one item |
 | GET | `/api/mock-exams` | authenticated | Mock exams visible to the user (filtered by banks) |
-| GET | `/api/mock-exams/{id}` | authenticated | Mock exam detail (no correct answers) |
+| GET | `/api/mock-exams/{id}` | authenticated | Mock exam detail: each question with its options (letter + text, **never** the correct one) |
 | POST | `/api/mock-exams` | ADMIN/CREATOR | Create a mock exam |
 | PUT | `/api/mock-exams/{id}` | ADMIN/CREATOR | Update a mock exam |
 | DELETE | `/api/mock-exams/{id}` | ADMIN/CREATOR | Delete a mock exam and its attempts |
@@ -112,6 +112,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET | `/free/{id}/result` | `free/result` | |
 | GET | `/simulacros` | `simulacro/list` | Mock exams visible to the user |
 | GET | `/simulacros/{id}` | `simulacro/detail` | Detail + attempt history |
+| GET | `/simulacros/{id}/pdf` | — | Printable PDF of the whole mock exam (questions + options, no correct answers, with an answer sheet) |
 | GET/POST | `/simulacros/new` | `simulacro/form` | Create a mock exam (ADMIN/CREATOR) |
 | GET/POST | `/simulacros/{id}/edit` | `simulacro/form` | Edit a mock exam (ADMIN/CREATOR) |
 | POST | `/simulacros/{id}/delete` | — | Delete a mock exam (ADMIN/CREATOR) |
@@ -196,6 +197,7 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 - Access rules: `USER` only sees mock exams of its assigned banks (403 if it has none); ADMIN/CREATOR see all. An attempt is only visible to its owner.
 - Statistics: `GET /api/stats/mock-exams` returns the user's attempt count, average and best score plus a per-mock-exam breakdown; the dashboard (`HomeWebController`) shows them under "Tus simulacros".
 - In the web app the flow is `/simulacros` (list) → `/simulacros/{id}` (detail + history) → `/simulacros/{id}/attempts/{attemptId}` (answer) → `/simulacros/{id}/attempts/{attemptId}/result`.
+- **Printable PDF**: each mock exam can be downloaded as a PDF from the list and the detail (`/simulacros/{id}/pdf`, `target="_blank"`). It is generated server-side by the `web` module with **OpenHTMLtoPDF** (`bir.app.web.support.MockExamPdfService`), which renders an XHTML document to `application/pdf` (`Content-Disposition: inline`). It contains every question with its options (letter + text, **never** the correct answer), an instructions header and an final **answer sheet** grid to mark A/B/C/D by hand. Access matches the detail page: it reuses `client.getMockExam(id)`, so `USER` only gets PDFs for its assigned banks (otherwise `404`) and anonymous requests are rejected (`401`).
 - Deleting a question that belongs to a mock exam is rejected (`400`); remove it from the mock exam first.
 
 ## Answer proposals & review mode

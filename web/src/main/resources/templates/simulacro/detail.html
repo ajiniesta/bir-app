@@ -33,6 +33,8 @@
                    th:text="${mockExam.description()}">Descripción</p>
             </div>
             <div class="d-flex gap-2">
+                <a th:href="@{/simulacros/{id}/pdf(id=${mockExam.id()})}" target="_blank" rel="noopener"
+                   class="btn btn-outline-dark">Imprimir PDF</a>
                 <a th:if="${canManage}" th:href="@{/simulacros/{id}/edit(id=${mockExam.id()})}"
                    class="btn btn-outline-secondary">Editar</a>
                 <form th:if="${canManage}" th:action="@{/simulacros/{id}/delete(id=${mockExam.id()})}" method="post">

@@ -2,8 +2,10 @@ package bir.app.web.controller;
 
 import bir.app.web.client.QuestionApiClient;
 import bir.app.web.dto.*;
+import bir.app.web.support.MockExamPdfService;
 import bir.app.web.support.NavService;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.scheduling.TaskExecutors;
@@ -15,6 +17,7 @@ import io.micronaut.views.ModelAndView;
 
 import java.net.URI;
 import java.net.URLEncoder;
+import java.text.Normalizer;
 import java.util.*;
 
 /**
@@ -30,11 +33,14 @@ public class MockExamWebController {
     private final QuestionApiClient client;
     private final SecurityService securityService;
     private final NavService navService;
+    private final MockExamPdfService pdfService;
 
-    public MockExamWebController(QuestionApiClient client, SecurityService securityService, NavService navService) {
+    public MockExamWebController(QuestionApiClient client, SecurityService securityService,
+                                 NavService navService, MockExamPdfService pdfService) {
         this.client = client;
         this.securityService = securityService;
         this.navService = navService;
+        this.pdfService = pdfService;
     }
 
     // --- Listado y detalle ---------------------------------------------------
@@ -70,6 +76,32 @@ public class MockExamWebController {
             model.put("error", "No se pudo iniciar el simulacro. Inténtalo de nuevo.");
         }        model.put("canManage", canManage());
         return HttpResponse.ok(new ModelAndView<>("simulacro/detail", navService.addTo(model)));
+    }
+
+    // --- PDF imprimible ------------------------------------------------------
+
+    /** Descarga el simulacro completo en PDF (sin respuestas) para imprimir. */
+    @Get("/{id}/pdf")
+    @Produces(MediaType.APPLICATION_PDF)
+    public HttpResponse<?> pdf(Long id) {
+        MockExamResponse exam;
+        try {
+            exam = client.getMockExam(id);
+        } catch (Exception e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND)
+                    .contentType(MediaType.TEXT_PLAIN).body("Simulacro no encontrado");
+        }
+        try {
+            byte[] bytes = pdfService.render(exam);
+            String filename = "simulacro-" + id + "-" + slug(exam.title()) + ".pdf";
+            return HttpResponse.ok(bytes)
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .header("Content-Disposition", "inline; filename=\"" + filename + "\"");
+        } catch (Exception e) {
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("No se pudo generar el PDF: " + rootMessage(e));
+        }
     }
 
     // --- Gestión (ADMIN/CREATOR) --------------------------------------------
@@ -349,5 +381,18 @@ public class MockExamWebController {
             cause = cause.getCause();
         }
         return cause.getMessage() == null ? "error inesperado" : cause.getMessage();
+    }
+
+    /** Convierte el título en un fragmento de nombre de fichero seguro. */
+    private static String slug(String value) {
+        if (value == null || value.isBlank()) {
+            return "simulacro";
+        }
+        String slug = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-+|-+$)", "");
+        return slug.isBlank() ? "simulacro" : slug;
     }
 }
