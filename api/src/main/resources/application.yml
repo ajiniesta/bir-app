@@ -3,6 +3,9 @@ micronaut:
     name: bir-app-api
   server:
     port: 18080
+    max-request-size: 50MB
+    multipart:
+      max-file-size: 50MB
   security:
     enabled: true
     authentication: bearer

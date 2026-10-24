@@ -3,6 +3,9 @@ micronaut:
     name: bir-app-web
   server:
     port: 8081
+    max-request-size: 50MB
+    multipart:
+      max-file-size: 50MB
   views:
     # Micronaut busca las vistas en classpath:/views por defecto; este proyecto
     # las tiene en templates/ (convención tipo Spring Boot).
