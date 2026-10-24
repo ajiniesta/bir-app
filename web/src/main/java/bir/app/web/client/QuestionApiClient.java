@@ -21,6 +21,7 @@ import bir.app.web.dto.MyProposalResponse;
 import bir.app.web.dto.ProposalCountResponse;
 import bir.app.web.dto.QuestionImportRequest;
 import bir.app.web.dto.QuestionImportResponse;
+import bir.app.web.dto.QuestionPageResponse;
 import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
@@ -52,6 +53,11 @@ public interface QuestionApiClient {
 
     @Get("/api/questions")
     List<QuestionResponse> listQuestions();
+
+    /** Búsqueda paginada por texto, banco y categoría (ADMIN/CREATOR). */
+    @Get("/api/questions/page{?page,size,q,examType,category}")
+    QuestionPageResponse searchQuestions(int page, int size, @Nullable String q,
+                                         @Nullable String examType, @Nullable String category);
 
     @Get("/api/questions/categories")
     List<String> listCategories();

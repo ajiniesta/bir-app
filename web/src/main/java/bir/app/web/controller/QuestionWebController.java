@@ -6,7 +6,9 @@ import bir.app.web.dto.QuestionForm;
 import bir.app.web.dto.QuestionFormSubmission;
 import bir.app.web.dto.QuestionImportRequest;
 import bir.app.web.dto.QuestionImportResponse;
+import bir.app.web.dto.QuestionPageResponse;
 import bir.app.web.dto.QuestionResponse;
+import bir.app.web.dto.QuestionSummaryResponse;
 import bir.app.web.support.NavService;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -28,6 +30,11 @@ import java.util.*;
 @ExecuteOn(TaskExecutors.BLOCKING)
 public class QuestionWebController {
 
+    private static final int PAGE_SIZE = 20;
+    private static final String NO_CATEGORY = "__NONE__";
+    /** Número máximo de enlaces de página que se muestran en el paginador. */
+    private static final int PAGE_WINDOW = 7;
+
     private final QuestionApiClient client;
     private final NavService navService;
 
@@ -37,17 +44,53 @@ public class QuestionWebController {
     }
 
     @Get
-    public ModelAndView<Map<String, Object>> list(@QueryValue Optional<String> examType) {
-        List<QuestionResponse> questions;
-        if (examType.isPresent() && !examType.get().isBlank()) {
-            questions = client.filterQuestions(examType.get());
-        } else {
-            questions = client.listQuestions();
+    public ModelAndView<Map<String, Object>> list(@QueryValue Optional<String> examType,
+                                                  @QueryValue Optional<String> category,
+                                                  @QueryValue Optional<String> q,
+                                                  @QueryValue Optional<Integer> page) {
+        int requestedPage = page.filter(p -> p > 0).orElse(1);
+        String examTypeCode = blankToNull(examType.orElse(null));
+        String categoryFilter = blankToNull(category.orElse(null));
+        String searchText = blankToNull(q.orElse(null));
+
+        List<QuestionSummaryResponse> questions = List.of();
+        int currentPage = 1;
+        int totalPages = 0;
+        long total = 0;
+        int pageSize = PAGE_SIZE;
+        String error = null;
+        try {
+            QuestionPageResponse result = client.searchQuestions(
+                    requestedPage, PAGE_SIZE, searchText, examTypeCode, categoryFilter);
+            // Micronaut Serde omite las listas vacías al serializar, así que
+            // `items` puede llegar como null cuando no hay resultados.
+            questions = result.items() == null ? List.of() : result.items();
+            currentPage = result.page();
+            totalPages = result.totalPages();
+            total = result.total();
+            pageSize = result.size();
+        } catch (Exception e) {
+            error = "No se pudieron cargar las preguntas: " + rootMessage(e);
         }
+
         Map<String, Object> model = new HashMap<>();
         model.put("questions", questions);
         model.put("examTypes", examTypes());
-        model.put("selectedExamType", examType.orElse(""));
+        model.put("categories", categories());
+        model.put("selectedExamType", examTypeCode == null ? "" : examTypeCode);
+        model.put("selectedCategory", categoryFilter == null ? "" : categoryFilter);
+        model.put("noCategoryValue", NO_CATEGORY);
+        model.put("searchText", searchText == null ? "" : searchText);
+        model.put("page", currentPage);
+        model.put("pageSize", pageSize);
+        model.put("totalPages", totalPages);
+        model.put("total", total);
+        model.put("pageNumbers", pageNumbers(currentPage, totalPages));
+        model.put("from", total == 0 ? 0L : (long) (currentPage - 1) * pageSize + 1);
+        model.put("to", total == 0 ? 0L : Math.min(total, (long) currentPage * pageSize));
+        if (error != null) {
+            model.put("error", error);
+        }
         return new ModelAndView<>("question/list", navService.addTo(model));
     }
 
@@ -153,5 +196,40 @@ public class QuestionWebController {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    private List<String> categories() {
+        try {
+            return client.listCategories();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /** Ventana de números de página alrededor de la actual. */
+    private static List<Integer> pageNumbers(int current, int totalPages) {
+        if (totalPages <= 1) {
+            return List.of();
+        }
+        int start = Math.max(1, current - PAGE_WINDOW / 2);
+        int end = Math.min(totalPages, start + PAGE_WINDOW - 1);
+        start = Math.max(1, end - PAGE_WINDOW + 1);
+        List<Integer> numbers = new ArrayList<>();
+        for (int i = start; i <= end; i++) {
+            numbers.add(i);
+        }
+        return numbers;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String rootMessage(Throwable e) {
+        Throwable cause = e;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        return cause.getMessage() == null ? "error inesperado" : cause.getMessage();
     }
 }

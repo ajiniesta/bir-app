@@ -3,6 +3,7 @@ package bir.app.api.controller;
 import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionImportRequest;
 import bir.app.api.dto.QuestionImportResponse;
+import bir.app.api.dto.QuestionPageResponse;
 import bir.app.api.dto.QuestionResponse;
 import bir.app.api.service.QuestionImportService;
 import bir.app.api.service.QuestionService;
@@ -30,6 +31,19 @@ public class QuestionController {
     @Get
     public List<QuestionResponse> list() {
         return questionService.findAll();
+    }
+
+    /**
+     * Listado paginado para la pantalla de preguntas: filtros opcionales por
+     * texto del enunciado, banco y categoría.
+     */
+    @Get("/page{?page,size,q,examType,category}")
+    public QuestionPageResponse page(@Nullable Integer page,
+                                     @Nullable Integer size,
+                                     @Nullable String q,
+                                     @Nullable String examType,
+                                     @Nullable String category) {
+        return questionService.search(page, size, q, examType, category);
     }
 
     @Get("/categories")

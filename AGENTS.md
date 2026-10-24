@@ -60,6 +60,7 @@ Notes:
 | GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user + global) |
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
+| GET | `/api/questions/page{?page,size,q,examType,category}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank and category |
 | GET | `/api/questions/categories` | ADMIN/CREATOR | Distinct categories |
 | GET | `/api/questions/{id}` | ADMIN/CREATOR | Single question |
 | GET | `/api/questions/filter{?examType}` | ADMIN/CREATOR | Filter by exam type |
@@ -101,7 +102,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET | `/` | `index` | Landing; the bank section only shows the user's allowed banks (hidden when anonymous) |
 | GET/POST | `/login`, `/register` | `login`, `register` | Public |
 | POST | `/logout` | — | Ends the session |
-| GET | `/questions` | `question/list` | Question bank (ADMIN/CREATOR) |
+| GET | `/questions` | `question/list` | Question bank (ADMIN/CREATOR); paginated 20/page with text search + bank/category filters (`?q=&examType=&category=&page=`) |
 | GET | `/questions/{id}` | `question/detail` | ADMIN/CREATOR |
 | GET/POST | `/questions/create` | `question/create` | ADMIN/CREATOR |
 | GET/POST | `/questions/{id}/edit` | `question/create` | ADMIN/CREATOR |

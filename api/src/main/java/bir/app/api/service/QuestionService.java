@@ -2,23 +2,35 @@ package bir.app.api.service;
 
 import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.DashboardStatsResponse;
+import bir.app.api.dto.QuestionPageResponse;
 import bir.app.api.dto.QuestionResponse;
+import bir.app.api.dto.QuestionSummaryResponse;
 import bir.app.api.entity.AnswerOption;
 import bir.app.api.entity.ExamType;
 import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.MockExamRepository;
 import bir.app.api.repository.QuestionRepository;
+import io.micronaut.data.model.Page;
+import io.micronaut.data.model.Pageable;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
 @Singleton
 public class QuestionService {
+
+    /** Tamaño de página por defecto del listado de preguntas. */
+    public static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
+    /** Valor de categoría que significa "preguntas sin categoría". */
+    public static final String NO_CATEGORY = "__NONE__";
 
     private final QuestionRepository questionRepository;
     private final ExamTypeRepository examTypeRepository;
@@ -136,6 +148,49 @@ public class QuestionService {
         return questionRepository.findDistinctCategories();
     }
 
+    /**
+     * Búsqueda paginada del banco de preguntas. Ordena de más reciente a más
+     * antigua y devuelve solo los datos que pinta el listado.
+     */
+    @Transactional
+    public QuestionPageResponse search(Integer page, Integer size, String q,
+                                       String examType, String category) {
+        int pageNumber = (page == null || page < 1) ? 1 : page;
+        int pageSize = (size == null || size < 1)
+                ? DEFAULT_PAGE_SIZE
+                : Math.min(size, MAX_PAGE_SIZE);
+        String examTypeCode = normalize(examType);
+        String categoryFilter = normalize(category);
+        String text = normalizeSearch(q);
+        String pattern = "%" + text + "%";
+
+        Page<Question> result = questionRepository.search(
+                examTypeCode == null ? "" : examTypeCode,
+                categoryFilter == null ? "" : categoryFilter,
+                pattern,
+                Pageable.from(pageNumber - 1, pageSize));
+
+        // Si la página pedida ya no existe (p. ej. tras borrar preguntas),
+        // devuelve la última página disponible.
+        if (result.getTotalPages() > 0 && pageNumber > result.getTotalPages()) {
+            result = questionRepository.search(
+                    examTypeCode == null ? "" : examTypeCode,
+                    categoryFilter == null ? "" : categoryFilter,
+                    pattern,
+                    Pageable.from(result.getTotalPages() - 1, pageSize));
+        }
+
+        List<QuestionSummaryResponse> items = result.getContent() == null
+                ? List.of()
+                : result.getContent().stream().map(QuestionSummaryResponse::from).toList();
+        return new QuestionPageResponse(
+                items,
+                result.getPageNumber() + 1,
+                result.getSize(),
+                result.getTotalSize(),
+                result.getTotalPages());
+    }
+
     @Transactional
     public DashboardStatsResponse dashboardStats() {
         List<DashboardStatsResponse.ExamTypeStats> byExamType = examTypeRepository.countQuestionsByExamType();
@@ -169,5 +224,15 @@ public class QuestionService {
             return null;
         }
         return value.trim();
+    }
+
+    /** Texto de búsqueda en minúsculas y sin acentos (igual que el translate de la query). */
+    private static String normalizeSearch(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 }
