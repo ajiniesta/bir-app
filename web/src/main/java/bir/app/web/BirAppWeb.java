@@ -2,8 +2,8 @@ package bir.app.web;
 
 import io.micronaut.runtime.Micronaut;
 
-public class Application {
+public class BirAppWeb {
     public static void main(String[] args) {
-        Micronaut.run(Application.class, args);
+        Micronaut.run(BirAppWeb.class, args);
     }
 }

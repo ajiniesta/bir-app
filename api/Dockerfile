@@ -41,4 +41,4 @@ EXPOSE 18080
 
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
 
-ENTRYPOINT ["java", "-cp", "/app/classes:/app/dependency/*", "bir.app.api.Application"]
+ENTRYPOINT ["java", "-cp", "/app/classes:/app/dependency/*", "bir.app.api.BirAppApi"]
