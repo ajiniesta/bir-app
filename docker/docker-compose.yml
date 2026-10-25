@@ -1,0 +1,93 @@
+# Stack completo de la aplicación: base de datos + migraciones + API + web.
+#
+#   docker compose -f docker-compose.full.yml up -d --build
+#   open http://localhost:8081/
+#
+# El docker-compose.yml de la raíz sigue siendo el de desarrollo: solo levanta
+# PostgreSQL en el puerto 5434 para ejecutar los módulos con `mvn mn:run`.
+#
+# Variables opcionales (con valores por defecto para local): DB_USERNAME,
+# DB_PASSWORD y JWT_SECRET.
+
+name: bir-app-full
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bir_app
+      POSTGRES_USER: ${DB_USERNAME:-bir_app}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bir_app_secret}
+    volumes:
+      - pgdata-full:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-bir_app} -d bir_app"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Ejecuta los changelogs de Liquibase una sola vez y termina. api y web
+  # esperan a que este contenedor acabe con código 0.
+  migrations:
+    image: liquibase/liquibase:4.31
+    volumes:
+      - ../db-migrations/src/main/resources/db/changelog:/liquibase/changelog:ro
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://postgres:5432/bir_app
+      LIQUIBASE_COMMAND_USERNAME: ${DB_USERNAME:-bir_app}
+      LIQUIBASE_COMMAND_PASSWORD: ${DB_PASSWORD:-bir_app_secret}
+      # La ruta es relativa al directorio de trabajo de la imagen (/liquibase),
+      # donde está montado el changelog; los <include> resuelven contra él.
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/db.changelog-master.xml
+      # Contexto "seed": datos de ejemplo (bancos, demo, admin).
+      LIQUIBASE_COMMAND_CONTEXT_FILTER: seed
+    command: ["update"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: ghcr.io/ajiniesta/bir-app/api:latest
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/bir_app
+      DB_USERNAME: ${DB_USERNAME:-bir_app}
+      DB_PASSWORD: ${DB_PASSWORD:-bir_app_secret}
+      JWT_SECRET: ${JWT_SECRET:-bir-app-full-secret-change-me-0123456789abcdef}
+    ports:
+      - "18080:18080"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      # /api/stats es público: sirve para saber si la API ya atiende.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:18080/api/stats >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/ajiniesta/bir-app/web:latest
+    build:
+      context: ..
+      dockerfile: ../web/Dockerfile
+    environment:
+      API_BASE_URL: http://api:18080
+    ports:
+      - "8081:8081"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  pgdata-full:
