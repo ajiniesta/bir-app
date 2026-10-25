@@ -1,0 +1,12 @@
+# El contexto de los Dockerfiles es la raíz del repo; todo esto sobra dentro de
+# la imagen (oficiales/ y to_import_sample_data/ suman más de 200 MB).
+.git
+.gitignore
+.github
+.idea
+**/target
+oficiales
+to_import_sample_data
+*.md
+sample.json
+docker-compose*.yml

@@ -15,7 +15,7 @@
 
     <properties>
         <!-- Clase principal del módulo; mn:run la usa para lanzar la aplicación -->
-        <exec.mainClass>bir.app.web.Application</exec.mainClass>
+        <exec.mainClass>bir.app.web.BirAppWeb</exec.mainClass>
     </properties>
 
     <dependencies>

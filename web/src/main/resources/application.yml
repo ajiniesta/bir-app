@@ -34,4 +34,6 @@ micronaut:
         url: /login
 
 api:
-  base-url: http://localhost:18080
+  # En local la API corre en el mismo host (18080); dentro de docker compose se
+  # sobrescribe con API_BASE_URL (por ejemplo http://api:18080).
+  base-url: ${API_BASE_URL:`http://localhost:18080`}
