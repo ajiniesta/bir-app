@@ -1,0 +1,9 @@
+micronaut:
+  server:
+    # Puerto aleatorio para no chocar con una instancia en desarrollo.
+    port: -1
+  http:
+    client:
+      # Sin seguir redirecciones: los tests comprueban los 303 y las cabeceras
+      # Location del login/redirect, no la página final.
+      follow-redirects: false

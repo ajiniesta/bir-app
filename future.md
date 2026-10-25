@@ -41,9 +41,10 @@ Se seleccione un fichero en local al servidor y se pase a cargar con el formato 
 
 [X] Done
 
-# Categorías 
+# Categorías
 
 Al crear las preguntas, en el campo de categoria, pase a ser un combo mostrando todas las categorías para ese exam_type.
+
 
 # estadísticas
 

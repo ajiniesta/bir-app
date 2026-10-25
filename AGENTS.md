@@ -231,7 +231,17 @@ Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`
 
 - `mvn compile` builds all modules.
 - `mvn mn:run -pl <module>` runs a module with the Micronaut Maven plugin.
-- No tests yet — add under `src/test/java` in each module following Micronaut conventions.
+- `mvn test` runs the whole suite; `mvn -pl api test` / `mvn -pl web test` run one module. Tests use **JUnit 5 + Mockito + AssertJ** (versions from the Micronaut platform BOM) and **never touch the development database**.
+
+## Tests
+
+- **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
+- **`web`** — two layers:
+  - Unit tests with Mockito: forms (`QuestionForm`, `MockExamForm`), `MockExamPdfService` (renders a PDF and extracts its text with PDFBox), `ApiAuthenticationProvider`, `ApiTokenFilter`, `NavService`.
+  - `@MicronautTest` HTTP tests (`QuestionWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
+  - `web/src/test/resources/application-test.yml` sets `micronaut.server.port: -1` and `micronaut.http.client.follow-redirects: false` so tests assert `303` + `Location` instead of the final page.
+  - Regression coverage: creating a mock exam with **210 `questionIds`** (the `form-max-fields: 512` fix) and the 211-question rejection.
+- Names in English and `@DisplayName` in Spanish, like the rest of the docs.
 
 ## Running from IDE
 
