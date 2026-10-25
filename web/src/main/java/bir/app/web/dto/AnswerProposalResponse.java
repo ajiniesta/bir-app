@@ -12,6 +12,7 @@ public record AnswerProposalResponse(
     Long questionId,
     String questionText,
     String category,
+    String tag,
     String examTypeCode,
     String correctLetter,
     List<Option> options,

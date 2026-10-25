@@ -27,6 +27,8 @@
                 <div class="mb-2">
                     <span class="badge bg-secondary" th:text="${question.examTypeCode()}">MIR</span>
                     <span th:if="${question.category()}" class="badge bg-info ms-1" th:text="${question.category()}">Cat</span>
+                    <span th:if="${question.tag()}" class="badge bg-warning text-dark ms-1"
+                          th:text="'#' + ${question.tag()}">#tag</span>
                 </div>
                 <p class="card-text fs-5" th:text="${question.text()}">Texto de la pregunta...</p>
             </div>

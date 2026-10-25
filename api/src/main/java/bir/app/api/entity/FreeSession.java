@@ -28,6 +28,10 @@ public class FreeSession {
     @Column(length = 100)
     private String category;
 
+    /** Tag con el que se filtró la partida (opcional). */
+    @Column(length = 100)
+    private String tag;
+
     @Column(name = "requested_count", nullable = false)
     private Integer requestedCount;
 
@@ -62,6 +66,9 @@ public class FreeSession {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getTag() { return tag; }
+    public void setTag(String tag) { this.tag = tag; }
 
     public Integer getRequestedCount() { return requestedCount; }
     public void setRequestedCount(Integer requestedCount) { this.requestedCount = requestedCount; }

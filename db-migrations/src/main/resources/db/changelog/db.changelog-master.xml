@@ -23,5 +23,8 @@
     <include file="changes/017-create-answer-proposal.sql" relativeToChangelogFile="true"/>
     <include file="changes/018-add-question-explanation.sql" relativeToChangelogFile="true"/>
     <include file="changes/019-add-mock-exam-attempt-item-explanation.sql" relativeToChangelogFile="true"/>
+    <include file="changes/020-add-question-tag.sql" relativeToChangelogFile="true"/>
+    <include file="changes/021-add-free-session-tag.sql" relativeToChangelogFile="true"/>
+    <include file="changes/022-add-mock-exam-attempt-item-tag.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

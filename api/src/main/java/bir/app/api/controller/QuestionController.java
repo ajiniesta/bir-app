@@ -37,13 +37,14 @@ public class QuestionController {
      * Listado paginado para la pantalla de preguntas: filtros opcionales por
      * texto del enunciado, banco y categoría.
      */
-    @Get("/page{?page,size,q,examType,category}")
+    @Get("/page{?page,size,q,examType,category,tag}")
     public QuestionPageResponse page(@Nullable Integer page,
                                      @Nullable Integer size,
                                      @Nullable String q,
                                      @Nullable String examType,
-                                     @Nullable String category) {
-        return questionService.search(page, size, q, examType, category);
+                                     @Nullable String category,
+                                     @Nullable String tag) {
+        return questionService.search(page, size, q, examType, category, tag);
     }
 
     @Get("/categories")

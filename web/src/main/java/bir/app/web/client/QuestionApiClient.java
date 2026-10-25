@@ -54,13 +54,18 @@ public interface QuestionApiClient {
     @Get("/api/questions")
     List<QuestionResponse> listQuestions();
 
-    /** Búsqueda paginada por texto, banco y categoría (ADMIN/CREATOR). */
-    @Get("/api/questions/page{?page,size,q,examType,category}")
+    /** Búsqueda paginada por texto, banco, categoría y tag (ADMIN/CREATOR). */
+    @Get("/api/questions/page{?page,size,q,examType,category,tag}")
     QuestionPageResponse searchQuestions(int page, int size, @Nullable String q,
-                                         @Nullable String examType, @Nullable String category);
+                                         @Nullable String examType, @Nullable String category,
+                                         @Nullable String tag);
 
     @Get("/api/questions/categories")
     List<String> listCategories();
+
+    /** Tags distintos del banco de preguntas (cualquier usuario autenticado). */
+    @Get("/api/tags")
+    List<String> listTags();
 
     @Get("/api/questions/{id}")
     Optional<QuestionResponse> getQuestion(Long id);

@@ -36,10 +36,14 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.category IS NOT NULL AND q.category <> '' ORDER BY q.category")
     List<String> findDistinctCategories();
 
+    @Query("SELECT DISTINCT q.tag FROM Question q WHERE q.tag IS NOT NULL AND q.tag <> '' ORDER BY q.tag")
+    List<String> findDistinctTags();
+
     /**
-     * Búsqueda paginada por banco, categoría y texto del enunciado. Los filtros
-     * vacíos ({@code ""}) no filtran; {@code __NONE__} como categoría busca las
-     * preguntas sin categoría. El texto se compara sin mayúsculas ni acentos.
+     * Búsqueda paginada por banco, categoría, tag y texto del enunciado. Los
+     * filtros vacíos ({@code ""}) no filtran; {@code __NONE__} como categoría o
+     * tag busca las preguntas sin categoría/tag. El texto se compara sin
+     * mayúsculas ni acentos.
      */
     @Query(value = """
             SELECT q FROM Question q JOIN FETCH q.examType e
@@ -47,6 +51,9 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
               AND (:category = ''
                    OR (:category = '__NONE__' AND (q.category IS NULL OR q.category = ''))
                    OR q.category = :category)
+              AND (:tag = ''
+                   OR (:tag = '__NONE__' AND (q.tag IS NULL OR q.tag = ''))
+                   OR q.tag = :tag)
               AND LOWER(FUNCTION('translate', q.text, 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN')) LIKE :text
             ORDER BY q.id DESC
             """,
@@ -56,7 +63,10 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
               AND (:category = ''
                    OR (:category = '__NONE__' AND (q.category IS NULL OR q.category = ''))
                    OR q.category = :category)
+              AND (:tag = ''
+                   OR (:tag = '__NONE__' AND (q.tag IS NULL OR q.tag = ''))
+                   OR q.tag = :tag)
               AND LOWER(FUNCTION('translate', q.text, 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN')) LIKE :text
             """)
-    Page<Question> search(String examType, String category, String text, Pageable pageable);
+    Page<Question> search(String examType, String category, String tag, String text, Pageable pageable);
 }

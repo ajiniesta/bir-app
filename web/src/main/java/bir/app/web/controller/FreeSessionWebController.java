@@ -126,6 +126,7 @@ public class FreeSessionWebController {
     private Map<String, Object> configModel(Map<String, Object> model) {
         model.put("examTypes", safeExamTypes());
         model.put("categories", safeCategories());
+        model.put("tags", safeTags());
         return model;
     }
 
@@ -154,6 +155,14 @@ public class FreeSessionWebController {
     private List<String> safeCategories() {
         try {
             return client.listCategories();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<String> safeTags() {
+        try {
+            return client.listTags();
         } catch (Exception e) {
             return List.of();
         }

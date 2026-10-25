@@ -32,6 +32,7 @@ import java.util.Set;
 public class QuestionImportService {
 
     private static final int MAX_CATEGORY_LENGTH = 100;
+    private static final int MAX_TAG_LENGTH = 100;
     private static final Set<String> ALLOWED_LETTERS = Set.of("A", "B", "C", "D");
 
     private final QuestionService questionService;
@@ -114,6 +115,11 @@ public class QuestionImportService {
             errors.add(prefix + "la categoría no puede superar " + MAX_CATEGORY_LENGTH + " caracteres.");
         }
 
+        String tag = trimToNull(question.tag());
+        if (tag != null && tag.length() > MAX_TAG_LENGTH) {
+            errors.add(prefix + "el tag no puede superar " + MAX_TAG_LENGTH + " caracteres.");
+        }
+
         String explanation = trimToNull(question.explanation());
         Long examTypeId = resolveExamType(question.examType(), prefix, errors);
 
@@ -164,7 +170,7 @@ public class QuestionImportService {
         }
 
         options.sort(Comparator.comparing(CreateQuestionRequest.AnswerOptionRequest::letter));
-        return new CreateQuestionRequest(text, category, explanation, examTypeId, options);
+        return new CreateQuestionRequest(text, category, tag, explanation, examTypeId, options);
     }
 
     /**
@@ -285,6 +291,7 @@ public class QuestionImportService {
     record ImportQuestion(
         @JsonProperty("exam_type") String examType,
         String category,
+        String tag,
         String text,
         String explanation,
         List<ImportAnswer> answers

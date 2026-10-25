@@ -74,6 +74,8 @@
                     <span>
                         <span class="badge bg-secondary me-2" th:text="${item.position()}">1</span>
                         <span th:text="${item.questionText()}">Enunciado</span>
+                        <span th:if="${item.tag() != null}" class="badge bg-warning text-dark ms-1"
+                              th:text="'#' + ${item.tag()}">#tag</span>
                     </span>
                     <span class="badge flex-shrink-0"
                           th:classappend="${!item.answered()} ? 'bg-secondary' : (${item.correct()} ? 'bg-success' : 'bg-danger')"

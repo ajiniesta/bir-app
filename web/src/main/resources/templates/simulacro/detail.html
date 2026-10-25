@@ -68,7 +68,11 @@
                 <span class="badge bg-secondary flex-shrink-0" th:text="${q.position()}">1</span>
                 <div>
                     <div th:text="${q.text()}">Enunciado</div>
-                    <div class="small text-muted" th:if="${q.category() != null}" th:text="${q.category()}">Cat</div>
+                    <div class="small text-muted" th:if="${q.category() != null or q.tag() != null}">
+                        <span th:if="${q.category() != null}" th:text="${q.category()}">Cat</span>
+                        <span th:if="${q.tag() != null}" class="badge bg-warning text-dark ms-1"
+                              th:text="'#' + ${q.tag()}">#tag</span>
+                    </div>
                 </div>
             </div>
         </div>

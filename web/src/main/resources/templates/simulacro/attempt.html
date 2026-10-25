@@ -48,6 +48,8 @@
                 <span class="badge bg-secondary" th:text="${attempt.examTypeCode()}">MIR</span>
                 <span class="badge bg-info ms-1" th:if="${current.category() != null}"
                       th:text="${current.category()}">Cat</span>
+                <span class="badge bg-warning text-dark ms-1" th:if="${current.tag() != null}"
+                      th:text="'#' + ${current.tag()}">#tag</span>
             </div>
             <p class="card-text fs-5 mb-0" th:text="${current.questionText()}">Enunciado</p>
         </div>

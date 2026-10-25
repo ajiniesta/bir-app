@@ -32,6 +32,7 @@ public class QuestionWebController {
 
     private static final int PAGE_SIZE = 20;
     private static final String NO_CATEGORY = "__NONE__";
+    private static final String NO_TAG = "__NONE__";
     /** Número máximo de enlaces de página que se muestran en el paginador. */
     private static final int PAGE_WINDOW = 7;
 
@@ -46,11 +47,13 @@ public class QuestionWebController {
     @Get
     public ModelAndView<Map<String, Object>> list(@QueryValue Optional<String> examType,
                                                   @QueryValue Optional<String> category,
+                                                  @QueryValue Optional<String> tag,
                                                   @QueryValue Optional<String> q,
                                                   @QueryValue Optional<Integer> page) {
         int requestedPage = page.filter(p -> p > 0).orElse(1);
         String examTypeCode = blankToNull(examType.orElse(null));
         String categoryFilter = blankToNull(category.orElse(null));
+        String tagFilter = blankToNull(tag.orElse(null));
         String searchText = blankToNull(q.orElse(null));
 
         List<QuestionSummaryResponse> questions = List.of();
@@ -61,7 +64,7 @@ public class QuestionWebController {
         String error = null;
         try {
             QuestionPageResponse result = client.searchQuestions(
-                    requestedPage, PAGE_SIZE, searchText, examTypeCode, categoryFilter);
+                    requestedPage, PAGE_SIZE, searchText, examTypeCode, categoryFilter, tagFilter);
             // Micronaut Serde omite las listas vacías al serializar, así que
             // `items` puede llegar como null cuando no hay resultados.
             questions = result.items() == null ? List.of() : result.items();
@@ -77,9 +80,12 @@ public class QuestionWebController {
         model.put("questions", questions);
         model.put("examTypes", examTypes());
         model.put("categories", categories());
+        model.put("tags", tags());
         model.put("selectedExamType", examTypeCode == null ? "" : examTypeCode);
         model.put("selectedCategory", categoryFilter == null ? "" : categoryFilter);
+        model.put("selectedTag", tagFilter == null ? "" : tagFilter);
         model.put("noCategoryValue", NO_CATEGORY);
+        model.put("noTagValue", NO_TAG);
         model.put("searchText", searchText == null ? "" : searchText);
         model.put("page", currentPage);
         model.put("pageSize", pageSize);
@@ -187,6 +193,7 @@ public class QuestionWebController {
         Map<String, Object> model = new HashMap<>();
         model.put("form", form);
         model.put("examTypes", examTypes());
+        model.put("tags", tags());
         return navService.addTo(model);
     }
 
@@ -201,6 +208,14 @@ public class QuestionWebController {
     private List<String> categories() {
         try {
             return client.listCategories();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private List<String> tags() {
+        try {
+            return client.listTags();
         } catch (Exception e) {
             return List.of();
         }

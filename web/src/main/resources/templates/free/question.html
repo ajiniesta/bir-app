@@ -38,6 +38,8 @@
                           th:text="${session.examTypeCode() != null ? session.examTypeCode() : 'TODOS'}">MIR</span>
                     <span class="badge bg-info ms-1" th:if="${shown.category() != null}"
                           th:text="${shown.category()}">Cat</span>
+                    <span class="badge bg-warning text-dark ms-1" th:if="${shown.tag() != null}"
+                          th:text="'#' + ${shown.tag()}">#tag</span>
                 </div>
                 <p class="card-text fs-5 mb-0" th:text="${shown.questionText()}">Texto de la pregunta...</p>
             </div>

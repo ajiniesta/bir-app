@@ -52,12 +52,19 @@
         <span th:if="${session.category() != null}" class="ms-2">
             Categoría: <strong th:text="${session.category()}">Cat</strong>
         </span>
+        <span th:if="${session.tag() != null}" class="ms-2">
+            Tag: <strong th:text="${session.tag()}">tag</strong>
+        </span>
     </div>
 
     <div class="list-group mb-4">
         <div th:each="item : ${session.items()}" class="list-group-item">
             <div class="d-flex justify-content-between align-items-start gap-2">
-                <span th:text="'#' + ${item.position()} + '. ' + ${item.questionText()}">Pregunta</span>
+                <span>
+                    <span th:text="'#' + ${item.position()} + '. ' + ${item.questionText()}">Pregunta</span>
+                    <span th:if="${item.tag() != null}" class="badge bg-warning text-dark ms-1"
+                          th:text="'#' + ${item.tag()}">#tag</span>
+                </span>
                 <span class="badge flex-shrink-0"
                       th:classappend="${item.correct()} ? 'bg-success' : 'bg-danger'"
                       th:text="${item.correct()} ? 'Correcta' : 'Incorrecta'">?</span>

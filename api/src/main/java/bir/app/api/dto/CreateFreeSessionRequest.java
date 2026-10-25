@@ -10,11 +10,13 @@ import jakarta.validation.constraints.NotNull;
  *
  * @param examTypeCode código del tipo de examen (MIR, EIR...); {@code null} o vacío = todos
  * @param category     categoría a filtrar; {@code null} o vacío = todas
+ * @param tag          tag a filtrar; {@code null} o vacío = todos
  * @param count        número de preguntas deseado
  */
 @Serdeable
 public record CreateFreeSessionRequest(
     String examTypeCode,
     String category,
+    String tag,
     @NotNull @Min(1) @Max(100) Integer count
 ) {}

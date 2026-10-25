@@ -7,6 +7,7 @@ import java.util.List;
 public record CreateQuestionRequest(
     String text,
     String category,
+    String tag,
     String explanation,
     Long examTypeId,
     List<AnswerOptionRequest> answerOptions

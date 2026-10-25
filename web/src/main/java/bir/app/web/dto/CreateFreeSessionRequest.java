@@ -6,5 +6,6 @@ import io.micronaut.serde.annotation.Serdeable;
 public record CreateFreeSessionRequest(
     String examTypeCode,
     String category,
+    String tag,
     Integer count
 ) {}

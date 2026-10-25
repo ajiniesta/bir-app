@@ -49,8 +49,9 @@ public class FreeSessionService {
         AppUser user = appUserService.requireByUsername(username);
         ExamType examType = resolveExamType(request.examTypeCode());
         String category = normalize(request.category());
+        String tag = normalize(request.tag());
 
-        List<Question> pool = new ArrayList<>(loadAllowedPool(username, examType, category));
+        List<Question> pool = new ArrayList<>(loadAllowedPool(username, examType, category, tag));
         Collections.shuffle(pool);
         int count = Math.min(request.count(), pool.size());
         if (count == 0) {
@@ -61,6 +62,7 @@ public class FreeSessionService {
         session.setUser(user);
         session.setExamType(examType);
         session.setCategory(category);
+        session.setTag(tag);
         session.setRequestedCount(request.count());
         for (int i = 0; i < count; i++) {
             SessionItem item = new SessionItem();
@@ -151,9 +153,9 @@ public class FreeSessionService {
                 .orElseThrow(() -> new NoSuchElementException("Tipo de examen no encontrado: " + examTypeCode));
     }
 
-    private List<Question> loadAllowedPool(String username, ExamType examType, String category) {
+    private List<Question> loadAllowedPool(String username, ExamType examType, String category, String tag) {
         if (accessControlService.hasGlobalBankAccess(username)) {
-            return loadPool(examType, category);
+            return loadPool(examType, category, tag);
         }
 
         Set<String> allowed = accessControlService.allowedBankCodes(username);
@@ -162,27 +164,27 @@ public class FreeSessionService {
                     "No tienes ningún banco de preguntas asignado. Contacta con un administrador.");
         }
         if (examType == null) {
-            return filterByCategory(questionRepository.findByExamTypeCodeIn(allowed), category);
+            return filterPool(questionRepository.findByExamTypeCodeIn(allowed), category, tag);
         }
         if (!allowed.contains(examType.getCode())) {
             throw new ForbiddenException("No tienes acceso al banco de preguntas: " + examType.getCode());
         }
-        return loadPool(examType, category);
+        return loadPool(examType, category, tag);
     }
 
-    private List<Question> loadPool(ExamType examType, String category) {
+    private List<Question> loadPool(ExamType examType, String category, String tag) {
         List<Question> questions = examType == null
                 ? questionRepository.findAll()
                 : questionRepository.findByExamTypeCode(examType.getCode());
-        return filterByCategory(questions, category);
+        return filterPool(questions, category, tag);
     }
 
-    private List<Question> filterByCategory(List<Question> questions, String category) {
-        if (category == null) {
-            return questions;
-        }
+    private List<Question> filterPool(List<Question> questions, String category, String tag) {
         return questions.stream()
-                .filter(q -> q.getCategory() != null && q.getCategory().equalsIgnoreCase(category))
+                .filter(q -> category == null
+                        || (q.getCategory() != null && q.getCategory().equalsIgnoreCase(category)))
+                .filter(q -> tag == null
+                        || (q.getTag() != null && q.getTag().equalsIgnoreCase(tag)))
                 .toList();
     }
 
@@ -203,6 +205,7 @@ public class FreeSessionService {
                 session.getExamType() == null ? null : session.getExamType().getCode(),
                 session.getExamType() == null ? null : session.getExamType().getName(),
                 session.getCategory(),
+                session.getTag(),
                 session.getItems().size(),
                 answered,
                 correct,
@@ -227,6 +230,7 @@ public class FreeSessionService {
                 question.getId(),
                 question.getText(),
                 question.getCategory(),
+                question.getTag(),
                 item.isAnswered() ? question.getExplanation() : null,
                 options,
                 item.isAnswered(),

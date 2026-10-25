@@ -105,8 +105,20 @@ public class MockExamPdfService {
             sb.append("<div class=\"q\">")
               .append("<div class=\"qhead\"><span class=\"qnum\">").append(q.position()).append(".</span>")
               .append(escape(q.text())).append("</div>");
-            if (q.category() != null && !q.category().isBlank()) {
-                sb.append("<div class=\"qcat\">").append(escape(q.category())).append("</div>");
+            boolean hasCategory = q.category() != null && !q.category().isBlank();
+            boolean hasTag = q.tag() != null && !q.tag().isBlank();
+            if (hasCategory || hasTag) {
+                sb.append("<div class=\"qcat\">");
+                if (hasCategory) {
+                    sb.append(escape(q.category()));
+                }
+                if (hasTag) {
+                    if (hasCategory) {
+                        sb.append(" · ");
+                    }
+                    sb.append("Tag: #").append(escape(q.tag()));
+                }
+                sb.append("</div>");
             }
             for (MockExamResponse.OptionSummary o : q.options()) {
                 sb.append("<div class=\"opt\"><span class=\"letter\">").append(escape(o.letter()))

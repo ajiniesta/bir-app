@@ -54,12 +54,13 @@
             El fichero puede contener varios objetos JSON seguidos (o un array). Cada pregunta necesita
             <code>text</code>, <code>exam_type</code> (id numérico o código, por ejemplo <code>3</code> o
             <code>BIR</code>) y <code>answers</code> con exactamente una respuesta correcta. Las letras
-            válidas son A, B, C y D. <code>category</code> y <code>explanation</code> son opcionales.
+            válidas son A, B, C y D. <code>category</code>, <code>tag</code> y <code>explanation</code> son opcionales.
             Las comas finales están permitidas. Las preguntas con errores se descartan y el resto se importa.
         </p>
         <pre class="small mb-0" style="white-space: pre-wrap;">{
   "exam_type": "3",
   "category": "Fisiología",
+  "tag": "Tema 1",
   "text": "Esta es la pregunta",
   "explanation": "Esta es la explicación",
   "answers": [

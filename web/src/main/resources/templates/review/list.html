@@ -71,6 +71,8 @@
                 <div>
                     <span class="badge bg-secondary me-1" th:text="${p.examTypeCode() != null ? p.examTypeCode() : '—'}">MIR</span>
                     <span class="badge bg-info me-1" th:if="${p.category() != null}" th:text="${p.category()}">Cat</span>
+                    <span class="badge bg-warning text-dark me-1" th:if="${p.tag() != null}"
+                          th:text="'#' + ${p.tag()}">#tag</span>
                     <a th:if="${p.questionId() != null}" th:href="@{/questions/{id}(id=${p.questionId()})}"
                        class="small ms-1">Ver pregunta #<span th:text="${p.questionId()}">1</span></a>
                 </div>

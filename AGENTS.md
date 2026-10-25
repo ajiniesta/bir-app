@@ -60,8 +60,9 @@ Notes:
 | GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user + global) |
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
-| GET | `/api/questions/page{?page,size,q,examType,category}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank and category |
+| GET | `/api/questions/page{?page,size,q,examType,category,tag}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank, category and tag; `__NONE__` = without category/tag |
 | GET | `/api/questions/categories` | ADMIN/CREATOR | Distinct categories |
+| GET | `/api/tags` | authenticated | Distinct question tags (also needed by USER for the free-mode filter) |
 | GET | `/api/questions/{id}` | ADMIN/CREATOR | Single question |
 | GET | `/api/questions/filter{?examType}` | ADMIN/CREATOR | Filter by exam type |
 | POST | `/api/questions` | ADMIN/CREATOR | Create (validates exactly one correct option) |
@@ -102,7 +103,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET | `/` | `index` | Landing; the bank section only shows the user's allowed banks (hidden when anonymous) |
 | GET/POST | `/login`, `/register` | `login`, `register` | Public |
 | POST | `/logout` | — | Ends the session |
-| GET | `/questions` | `question/list` | Question bank (ADMIN/CREATOR); paginated 20/page with text search + bank/category filters (`?q=&examType=&category=&page=`) |
+| GET | `/questions` | `question/list` | Question bank (ADMIN/CREATOR); paginated 20/page with text search + bank/category/tag filters (`?q=&examType=&category=&tag=&page=`) |
 | GET | `/questions/{id}` | `question/detail` | ADMIN/CREATOR |
 | GET/POST | `/questions/create` | `question/create` | ADMIN/CREATOR |
 | GET/POST | `/questions/{id}/edit` | `question/create` | ADMIN/CREATOR |
@@ -146,12 +147,12 @@ Thymeleaf views live in `web/src/main/resources/templates/` (non-default locatio
 
 ```
 exam_type (id, code, name)
-  └─ question (id, text, category, explanation, exam_type_id, created_at, updated_at)
+  └─ question (id, text, category, tag, explanation, exam_type_id, created_at, updated_at)
        └─ answer_option (id, question_id, letter, text, is_correct)
 
 app_user (id, username, password_hash, display_name, role, created_at)
   ├─ user_exam_type_access (user_id, exam_type_id)   # bancos asignados al USER
-  └─ free_session (id, user_id, exam_type_id, category, requested_count, created_at, finished_at)
+  └─ free_session (id, user_id, exam_type_id, category, tag, requested_count, created_at, finished_at)
        └─ session_item (id, session_id, question_id, position, selected_letter, is_correct, answered_at)
 ```
 
@@ -165,12 +166,12 @@ mock_exam (id, title, description, exam_type_id, created_by, created_at, updated
 mock_exam_attempt (id, mock_exam_id, user_id, started_at, finished_at,
                    total_questions, answered_count, correct_count)
   └─ mock_exam_attempt_item (id, attempt_id, question_id, position, question_text,
-                             category, explanation, selected_letter, correct_letter,
+                             category, tag, explanation, selected_letter, correct_letter,
                              is_correct, answered_at)
        └─ mock_exam_attempt_item_option (id, item_id, letter, text, is_correct)
 ```
 
-A **simulacro** (mock exam) is a curated, ordered collection of questions from a single `exam_type`, created by ADMIN/CREATOR. Any user with access to that bank can take it unlimited times. Each attempt stores a **full snapshot** (question text, category, explanation, options and correct letter) so editing or deleting a question never changes past results; `mock_exam_attempt_item.question_id` becomes `NULL` if the question is deleted. Deleting a mock exam cascades to its attempts, and a question that belongs to a mock exam cannot be deleted (`400`).
+A **simulacro** (mock exam) is a curated, ordered collection of questions from a single `exam_type`, created by ADMIN/CREATOR. Any user with access to that bank can take it unlimited times. Each attempt stores a **full snapshot** (question text, category, tag, explanation, options and correct letter) so editing or deleting a question never changes past results; `mock_exam_attempt_item.question_id` becomes `NULL` if the question is deleted. Deleting a mock exam cascades to its attempts, and a question that belongs to a mock exam cannot be deleted (`400`).
 
 `answer_option` has a `UNIQUE(question_id, letter)` constraint — each letter A/B/C/D appears at most once per question.
 
@@ -187,7 +188,7 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 
 ## Free mode (modo libre)
 
-- Start a session (`POST /api/free-sessions`): filter by exam type + category + count, questions picked at random. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
+- Start a session (`POST /api/free-sessions`): filter by exam type + category + tag + count, questions picked at random. The selected tag is stored in `free_session.tag` and shown on the result page. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
 - Answer one at a time (`POST /api/free-sessions/{id}/answers`); the API records correctness immediately and marks the session finished when all items are answered.
 - The API never reveals the correct option of unanswered items (only `correctLetter` of answered ones), nor the **explanation** (`question.explanation`): it is sent only once the item is answered.
 - Statistics: `GET /api/stats` (public counters), `GET /api/stats/banks` (counters for the user's allowed banks) and `GET /api/stats/quiz` (current user's results plus an app-wide summary). The dashboard (`HomeWebController`) uses `banks` + `quiz` when logged in.
@@ -196,7 +197,7 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 ## Mock exams (simulacros)
 
 - A mock exam is a **fixed, ordered** collection of questions from a single `exam_type`, created by ADMIN/CREATOR (`/simulacros/new`). Any authenticated user with access to that bank can take it, unlimited times.
-- The creation form (`templates/simulacro/form.html`) filters questions client-side by bank, by **category chips** (multi-select, with counts and a "Sin categoría" bucket) and by **text search over the question statement** (case- and accent-insensitive). Selection order is kept in the `#orderedIds` hidden inputs (`questionIds`). The toolbar can add N random questions from the current filter, select all currently visible ones, or clear the selection, all capped at 200 questions.
+- The creation form (`templates/simulacro/form.html`) filters questions client-side by bank, by **category chips** (multi-select, with counts and a "Sin categoría" bucket) and by **text search over the question statement** (case- and accent-insensitive). It also has a **tag selector** with an "Añadir todas del tag" button that appends every question of the selected tag (including a "Sin tag" bucket). Selection order is kept in the `#orderedIds` hidden inputs (`questionIds`). The toolbar can add N random questions from the current filter, select all currently visible ones, or clear the selection, all capped at 200 questions.
 - Attempts are **exam-style**: no feedback while answering. The user answers question by question with a position navigator, can change answers and save progress, and only sees the correct answers **and the explanation** after submitting (`simulacro/result.html`).
 - Access rules: `USER` only sees mock exams of its assigned banks (403 if it has none); ADMIN/CREATOR see all. An attempt is only visible to its owner.
 - Statistics: `GET /api/stats/mock-exams` returns the user's attempt count, average and best score plus a per-mock-exam breakdown; the dashboard (`HomeWebController`) shows them under "Tus simulacros".
@@ -218,7 +219,7 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 
 - ADMIN/CREATOR can bulk-import questions from a local file at `/questions/import` (web) → `POST /api/questions/import` (api, JSON `{"content": "..."}`). The web reads the uploaded file as UTF-8 and forwards its text in `content`; the API does the parsing.
 - Accepted format: **several concatenated JSON objects**, a JSON **array**, or a single object. Trailing commas and a UTF-8 BOM are tolerated. Each object is parsed independently, so a syntactically broken question does not block the rest.
-- Fields: `exam_type` (numeric → exam-type **id**, e.g. `"3"`; otherwise → **code**, e.g. `"BIR"`), `text` (required), `category` (optional, ≤ 100 chars), `explanation` (optional), `answers` (non-empty) with `letter` (`A`–`D`, unique per question), `text` and `is_correct`.
+- Fields: `exam_type` (numeric → exam-type **id**, e.g. `"3"`; otherwise → **code**, e.g. `"BIR"`), `text` (required), `category` (optional, ≤ 100 chars), `tag` (optional, ≤ 100 chars), `explanation` (optional), `answers` (non-empty) with `letter` (`A`–`D`, unique per question), `text` and `is_correct`.
 - Validation: **exactly one** answer with `is_correct: true`; letters are normalized to uppercase; text fields are trimmed. An invalid question is **skipped and reported** (with its 1-based position) while the valid ones are imported. The response is `QuestionImportResponse(total, imported, skipped, errors)` and is always `200`; the view lists the errors and the imported count.
 - Each valid question is created through `QuestionService.create` (same "exactly one correct option" invariant), so imported questions behave like manually created ones. No Liquibase changes are needed.
 

@@ -19,6 +19,10 @@ public class Question {
     @Column(length = 100)
     private String category;
 
+    /** Etiqueta opcional para agrupar preguntas (por ejemplo, por tema). */
+    @Column(length = 100)
+    private String tag;
+
     /** Explicación opcional: el porqué de la respuesta correcta. */
     @Column(columnDefinition = "TEXT")
     private String explanation;
@@ -56,6 +60,9 @@ public class Question {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getTag() { return tag; }
+    public void setTag(String tag) { this.tag = tag; }
 
     public String getExplanation() { return explanation; }
     public void setExplanation(String explanation) { this.explanation = explanation; }

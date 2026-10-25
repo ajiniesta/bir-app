@@ -76,6 +76,7 @@ public class QuestionService {
         Question question = new Question();
         question.setText(request.text());
         question.setCategory(request.category());
+        question.setTag(normalize(request.tag()));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -106,6 +107,7 @@ public class QuestionService {
 
         question.setText(request.text());
         question.setCategory(request.category());
+        question.setTag(normalize(request.tag()));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -148,25 +150,32 @@ public class QuestionService {
         return questionRepository.findDistinctCategories();
     }
 
+    @Transactional
+    public List<String> listTags() {
+        return questionRepository.findDistinctTags();
+    }
+
     /**
      * Búsqueda paginada del banco de preguntas. Ordena de más reciente a más
      * antigua y devuelve solo los datos que pinta el listado.
      */
     @Transactional
     public QuestionPageResponse search(Integer page, Integer size, String q,
-                                       String examType, String category) {
+                                       String examType, String category, String tag) {
         int pageNumber = (page == null || page < 1) ? 1 : page;
         int pageSize = (size == null || size < 1)
                 ? DEFAULT_PAGE_SIZE
                 : Math.min(size, MAX_PAGE_SIZE);
         String examTypeCode = normalize(examType);
         String categoryFilter = normalize(category);
+        String tagFilter = normalize(tag);
         String text = normalizeSearch(q);
         String pattern = "%" + text + "%";
 
         Page<Question> result = questionRepository.search(
                 examTypeCode == null ? "" : examTypeCode,
                 categoryFilter == null ? "" : categoryFilter,
+                tagFilter == null ? "" : tagFilter,
                 pattern,
                 Pageable.from(pageNumber - 1, pageSize));
 
@@ -176,6 +185,7 @@ public class QuestionService {
             result = questionRepository.search(
                     examTypeCode == null ? "" : examTypeCode,
                     categoryFilter == null ? "" : categoryFilter,
+                    tagFilter == null ? "" : tagFilter,
                     pattern,
                     Pageable.from(result.getTotalPages() - 1, pageSize));
         }

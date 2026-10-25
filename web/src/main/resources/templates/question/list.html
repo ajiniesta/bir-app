@@ -22,7 +22,7 @@
 
     <form th:action="@{/questions}" method="get" class="card card-body mb-4">
         <div class="row g-2 align-items-end">
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-3">
                 <label for="q" class="form-label small mb-1">Buscar en el enunciado</label>
                 <input type="search" id="q" name="q" class="form-control" th:value="${searchText}"
                        placeholder="Texto de la pregunta...">
@@ -35,7 +35,7 @@
                             th:selected="${selectedExamType == et.code()}"></option>
                 </select>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-2">
                 <label for="category" class="form-label small mb-1">Categoría</label>
                 <select id="category" name="category" class="form-select">
                     <option value="">Todas</option>
@@ -44,6 +44,17 @@
                     </option>
                     <option th:each="c : ${categories}" th:value="${c}" th:text="${c}"
                             th:selected="${selectedCategory == c}"></option>
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label for="tag" class="form-label small mb-1">Tag</label>
+                <select id="tag" name="tag" class="form-select">
+                    <option value="">Todos</option>
+                    <option th:value="${noTagValue}" th:selected="${selectedTag == noTagValue}">
+                        Sin tag
+                    </option>
+                    <option th:each="t : ${tags}" th:value="${t}" th:text="${t}"
+                            th:selected="${selectedTag == t}"></option>
                 </select>
             </div>
             <div class="col-12 col-md-auto d-flex gap-2">
@@ -61,10 +72,10 @@
     </div>
 
     <div th:if="${error == null and #lists.isEmpty(questions)}" class="alert alert-info">
-        <span th:if="${total == 0 and #strings.isEmpty(searchText) and #strings.isEmpty(selectedExamType) and #strings.isEmpty(selectedCategory)}">
+        <span th:if="${total == 0 and #strings.isEmpty(searchText) and #strings.isEmpty(selectedExamType) and #strings.isEmpty(selectedCategory) and #strings.isEmpty(selectedTag)}">
             No hay preguntas disponibles.
         </span>
-        <span th:unless="${total == 0 and #strings.isEmpty(searchText) and #strings.isEmpty(selectedExamType) and #strings.isEmpty(selectedCategory)}">
+        <span th:unless="${total == 0 and #strings.isEmpty(searchText) and #strings.isEmpty(selectedExamType) and #strings.isEmpty(selectedCategory) and #strings.isEmpty(selectedTag)}">
             No se encontraron preguntas con esos filtros.
         </span>
     </div>
@@ -73,7 +84,11 @@
         <div class="card-body">
             <div class="d-flex justify-content-between">
                 <span class="badge bg-secondary mb-2" th:text="${q.examTypeCode()}">MIR</span>
-                <span th:if="${q.category()}" class="text-muted small" th:text="${q.category()}">Cat</span>
+                <span class="text-end">
+                    <span th:if="${q.category()}" class="text-muted small" th:text="${q.category()}">Cat</span>
+                    <span th:if="${q.tag()}" class="badge bg-warning text-dark ms-1"
+                          th:text="'#' + ${q.tag()}">#tag</span>
+                </span>
             </div>
             <p class="card-text" th:text="${q.text()}">Pregunta...</p>
             <div class="d-flex gap-2">
@@ -91,16 +106,16 @@
         <ul class="pagination justify-content-center flex-wrap">
             <li class="page-item" th:classappend="${page <= 1} ? 'disabled'">
                 <a class="page-link"
-                   th:href="@{/questions(page=${page - 1}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory})}">Anterior</a>
+                   th:href="@{/questions(page=${page - 1}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory}, tag=${selectedTag})}">Anterior</a>
             </li>
             <li class="page-item" th:each="p : ${pageNumbers}" th:classappend="${p == page} ? 'active'">
                 <a class="page-link"
-                   th:href="@{/questions(page=${p}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory})}"
+                   th:href="@{/questions(page=${p}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory}, tag=${selectedTag})}"
                    th:text="${p}">1</a>
             </li>
             <li class="page-item" th:classappend="${page >= totalPages} ? 'disabled'">
                 <a class="page-link"
-                   th:href="@{/questions(page=${page + 1}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory})}">Siguiente</a>
+                   th:href="@{/questions(page=${page + 1}, q=${searchText}, examType=${selectedExamType}, category=${selectedCategory}, tag=${selectedTag})}">Siguiente</a>
             </li>
         </ul>
     </nav>

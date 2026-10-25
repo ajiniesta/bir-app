@@ -12,6 +12,7 @@ public record QuestionSummaryResponse(
     Long id,
     String text,
     String category,
+    String tag,
     String examTypeCode
 ) {
     public static QuestionSummaryResponse from(Question q) {
@@ -19,6 +20,7 @@ public record QuestionSummaryResponse(
             q.getId(),
             q.getText(),
             q.getCategory(),
+            q.getTag(),
             q.getExamType().getCode()
         );
     }

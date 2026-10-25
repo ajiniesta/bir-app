@@ -24,6 +24,7 @@ public record MockExamResponse(
         Long questionId,
         String text,
         String category,
+        String tag,
         String explanation,
         List<OptionSummary> options
     ) {

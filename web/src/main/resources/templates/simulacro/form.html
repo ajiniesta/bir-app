@@ -82,6 +82,18 @@
 
             <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
                 <div>
+                    <label class="form-label small text-muted mb-1" for="tagSelect">Añadir por tag</label>
+                    <select id="tagSelect" class="form-select form-select-sm" style="min-width: 220px">
+                        <option value="">Selecciona un tag...</option>
+                    </select>
+                </div>
+                <button type="button" id="addTagged" class="btn btn-sm btn-outline-primary">
+                    Añadir todas del tag
+                </button>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+                <div>
                     <label class="form-label small text-muted mb-1" for="randomCount">Nº de preguntas</label>
                     <input type="number" id="randomCount" class="form-control form-control-sm"
                            value="10" min="1" max="200" style="width: 110px">
@@ -97,7 +109,7 @@
             <div id="questionList" class="border rounded p-2 mb-3" style="max-height: 460px; overflow-y: auto">
                 <div th:each="q : ${questions}"
                      class="form-check border-bottom py-2 question-row"
-                     th:attr="data-exam-type=${q.examTypeCode()},data-text=${q.text()},data-category=${q.category()}">
+                     th:attr="data-exam-type=${q.examTypeCode()},data-text=${q.text()},data-category=${q.category()},data-tag=${q.tag()}">
                     <input class="form-check-input question-checkbox" type="checkbox"
                            th:id="|q_${q.id()}|"
                            th:value="${q.id()}"
@@ -109,6 +121,8 @@
                         <span th:text="${q.text()}">Enunciado</span>
                         <span class="text-muted small ms-1" th:if="${q.category() != null}"
                               th:text="'(' + ${q.category()} + ')'">(Cat)</span>
+                        <span class="badge bg-warning text-dark ms-1" th:if="${q.tag() != null}"
+                              th:text="'#' + ${q.tag()}">#tag</span>
                     </label>
                 </div>
                 <div id="noQuestions" class="text-muted small p-2" style="display: none">
@@ -139,6 +153,8 @@
         const noQuestions = document.getElementById('noQuestions');
         const search = document.getElementById('questionSearch');
         const categoryChips = document.getElementById('categoryChips');
+        const tagSelect = document.getElementById('tagSelect');
+        const addTaggedButton = document.getElementById('addTagged');
         const visibleCount = document.getElementById('visibleCount');
         const selectionMessage = document.getElementById('selectionMessage');
         const randomCount = document.getElementById('randomCount');
@@ -174,6 +190,10 @@
 
         function categoryOf(row) {
             return (row.dataset.category || '').trim();
+        }
+
+        function tagOf(row) {
+            return (row.dataset.tag || '').trim();
         }
 
         function rowBank(row) {
@@ -285,6 +305,37 @@
                 });
         }
 
+        function renderTagOptions() {
+            const code = currentCode();
+            const previous = tagSelect.value;
+            tagSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Selecciona un tag...';
+            tagSelect.appendChild(placeholder);
+
+            const counts = new Map();
+            rows.filter(row => rowBank(row) === code).forEach(row => {
+                const tag = tagOf(row);
+                counts.set(tag, (counts.get(tag) || 0) + 1);
+            });
+
+            Array.from(counts.entries())
+                .sort((a, b) => (a[0] || '').localeCompare(b[0] || '', 'es'))
+                .forEach(([tag, count]) => {
+                    const option = document.createElement('option');
+                    option.value = tag === '' ? '__NO_TAG__' : tag;
+                    option.textContent = (tag || 'Sin tag') + ' (' + count + ')';
+                    tagSelect.appendChild(option);
+                });
+
+            if (Array.from(tagSelect.options).some(o => o.value === previous)) {
+                tagSelect.value = previous;
+            }
+            updateButtons();
+        }
+
         function applyFilters() {
             const code = currentCode();
             const hasBank = !!code;
@@ -329,6 +380,7 @@
             addRandomButton.disabled = !hasBank || unselectedVisible.length === 0;
             selectVisibleButton.disabled = !hasBank || unselectedVisible.length === 0;
             clearSelectionButton.disabled = order.length === 0;
+            addTaggedButton.disabled = !hasBank || !tagSelect.value;
         }
 
         // --- Acciones --------------------------------------------------------
@@ -374,6 +426,36 @@
             }
 
             shuffled(candidates).slice(0, take).forEach(selectRow);
+            sync();
+        });
+
+        addTaggedButton.addEventListener('click', () => {
+            const tag = tagSelect.value;
+            if (!tag) {
+                return;
+            }
+            const code = currentCode();
+            const matches = rows.filter(row => rowBank(row) === code
+                && (tag === '__NO_TAG__' ? tagOf(row) === '' : tagOf(row) === tag));
+            const candidates = matches.filter(
+                row => !row.querySelector('.question-checkbox').checked);
+            if (candidates.length === 0) {
+                showMessage('No quedan preguntas sin seleccionar con ese tag.');
+                return;
+            }
+            const room = MAX_QUESTIONS - order.length;
+            if (room <= 0) {
+                showMessage('Has alcanzado el máximo de ' + MAX_QUESTIONS + ' preguntas por simulacro.');
+                return;
+            }
+            const take = Math.min(candidates.length, room);
+            if (take < candidates.length) {
+                showMessage('Solo se han añadido ' + take + ' preguntas del tag: '
+                    + 'se alcanzó el máximo de ' + MAX_QUESTIONS + ' por simulacro.');
+            } else {
+                hideMessage();
+            }
+            candidates.slice(0, take).forEach(selectRow);
             sync();
         });
 
@@ -433,16 +515,19 @@
             selectedCategories.clear();
             hideMessage();
             renderCategoryChips();
+            renderTagOptions();
             applyFilters();
         });
 
         search.addEventListener('input', applyFilters);
+        tagSelect.addEventListener('change', updateButtons);
 
         // --- Arranque --------------------------------------------------------
 
         renderOrderedInputs();
         refreshBadges();
         renderCategoryChips();
+        renderTagOptions();
         applyFilters();
     })();
 </script>

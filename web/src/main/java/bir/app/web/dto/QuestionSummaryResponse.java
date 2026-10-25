@@ -10,5 +10,6 @@ public record QuestionSummaryResponse(
     Long id,
     String text,
     String category,
+    String tag,
     String examTypeCode
 ) {}

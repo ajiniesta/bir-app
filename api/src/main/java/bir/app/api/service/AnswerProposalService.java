@@ -233,7 +233,7 @@ public class AnswerProposalService {
                 })
                 .toList();
         questionService.update(question.getId(), new CreateQuestionRequest(
-                question.getText(), question.getCategory(), question.getExplanation(),
+                question.getText(), question.getCategory(), question.getTag(), question.getExplanation(),
                 question.getExamType().getId(), newOptions));
 
         proposal.setAppliedBy(appUserService.requireByUsername(username));
@@ -304,6 +304,7 @@ public class AnswerProposalService {
                 q == null ? null : q.getId(),
                 q == null ? "(pregunta eliminada)" : q.getText(),
                 q == null ? null : q.getCategory(),
+                q == null ? null : q.getTag(),
                 q == null ? null : q.getExamType().getCode(),
                 correctLetter,
                 options,
