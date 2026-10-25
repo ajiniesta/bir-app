@@ -28,6 +28,18 @@ Open http://localhost:8081/ — landing page (public). Seeded users (context `se
 
 The Postgres container exposes host port **5434** (`5434:5432`); both `api`'s datasource and `db-migrations/liquibase.properties` point at `jdbc:postgresql://localhost:5434/bir_app`.
 
+### Whole stack with Docker (no local Maven)
+
+`docker-compose.full.yml` brings up **PostgreSQL + migrations + API + web** (builds the images from the Dockerfiles):
+
+```bash
+docker compose -f docker-compose.full.yml up -d --build   # web → http://localhost:8081
+docker compose -f docker-compose.full.yml logs -f web
+docker compose -f docker-compose.full.yml down -v         # -v also drops pgdata-full
+```
+
+It uses its own project name (`bir-app-full`) and volume (`pgdata-full`), so it does not clash with the dev `docker-compose.yml`. Optional overrides: `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`. See **Docker images & CI** below.
+
 ## Authentication
 
 - **`api`** is the authority: it stores users (`app_user`, BCrypt) and issues a **JWT** via the built-in `POST /login` (micronaut-security, `authentication: bearer`). All endpoints are authenticated by default; only `POST /login`, `POST /api/auth/register` and `GET /api/stats` are anonymous. The JWT carries the user's single role as a `ROLE_*` authority.
@@ -232,6 +244,38 @@ Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`
 - `mvn compile` builds all modules.
 - `mvn mn:run -pl <module>` runs a module with the Micronaut Maven plugin.
 - `mvn test` runs the whole suite; `mvn -pl api test` / `mvn -pl web test` run one module. Tests use **JUnit 5 + Mockito + AssertJ** (versions from the Micronaut platform BOM) and **never touch the development database**.
+- `mvn verify` is what CI runs (same tests, no extra integration phase).
+
+## Docker images & CI
+
+### Images
+
+`api/Dockerfile` and `web/Dockerfile` are self-contained multi-stage builds: the build stage compiles with Maven, the runtime stage is `eclipse-temurin:21-jre-alpine` and runs `java -cp /app/classes:/app/dependency/*`. The **build context is the repository root** (the POMs are a multi-module aggregator, so all of them must be copied before `-pl <module> -am`):
+
+```bash
+docker build -f api/Dockerfile -t bir-app-api:local .
+docker build -f web/Dockerfile -t bir-app-web:local .
+```
+
+Notes:
+
+- There is no fat-jar plugin, so the image ships `target/classes` plus `dependency:copy-dependencies` output (`target/dependency`).
+- The `web` runtime installs `fontconfig` + `ttf-dejavu`; without them OpenHTMLtoPDF renders PDFs with no text.
+- `.dockerignore` drops `.git`, `**/target`, `oficiales/` and `to_import_sample_data/` (>200 MB of sample data).
+- Configuration is env-driven: `api` reads `${DB_URL:...}` / `DB_USERNAME` / `DB_PASSWORD` / `JWT_SECRET`, `web` reads `${API_BASE_URL:http://localhost:18080}`.
+
+### Pipeline (`.github/workflows/ci.yml`)
+
+| Job | When | What it does |
+|-----|------|--------------|
+| `build-test` | every push and PR | `mvn -B -ntp verify`; uploads `surefire-reports` as an artifact on failure |
+| `docker` (matrix `api`, `web`) | pushes to `main` only | Buildx build + push to GHCR |
+| `smoke` | pushes to `main` only | `docker compose -f docker-compose.full.yml up -d --build`, then asserts `GET /api/stats` contains `totalQuestions` and that a real form login (`admin/admin1234`) returns `303`; dumps logs on failure and always runs `down -v` |
+
+- Registry auth uses the built-in `GITHUB_TOKEN` (`permissions: packages: write`), no extra secrets.
+- Image names: `ghcr.io/<owner>/<repo>/api` and `ghcr.io/<owner>/<repo>/web` (lowercased with `${GITHUB_REPOSITORY,,}`, which GHCR requires).
+- Tags per image: `main` (branch), `sha-<short>` and `latest`.
+- Build cache: `type=gha` scoped per module.
 
 ## Tests
 
