@@ -23,7 +23,8 @@ import java.util.*;
 public class MockExamService {
 
     /** Tope de preguntas por simulacro (coincide con el máximo del modo libre). */
-    public static final int MAX_QUESTIONS = 200;
+    /** Tope de preguntas por simulacro: 200 del examen + 10 de reserva. */
+    public static final int MAX_QUESTIONS = 210;
 
     private final MockExamRepository mockExamRepository;
     private final MockExamAttemptRepository attemptRepository;

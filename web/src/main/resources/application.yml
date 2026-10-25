@@ -4,6 +4,11 @@ micronaut:
   server:
     port: 8081
     max-request-size: 50MB
+    netty:
+      # El formulario de simulacros envía un campo questionIds por cada pregunta
+      # seleccionada (hasta 210) más título, descripción y banco. El límite por
+      # defecto de Netty es 128 campos y provoca un error de "tamaño" al guardar.
+      form-max-fields: 512
     multipart:
       max-file-size: 50MB
   views:

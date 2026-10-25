@@ -62,11 +62,13 @@
                 <h2 class="h5 mb-0">Preguntas</h2>
                 <span class="text-muted small">
                     Seleccionadas: <strong id="selectedCount" th:text="${#lists.size(selectedIds)}">0</strong>
+                    / 210
                 </span>
             </div>
             <p class="text-muted small">
                 Elige las preguntas en el orden en que quieres que aparezcan: el número indica su posición.
                 Puedes filtrarlas por categoría o buscarlas por su enunciado.
+                Máximo 210 preguntas (200 del examen + 10 de reserva).
             </p>
 
             <div class="mb-3">
@@ -96,7 +98,7 @@
                 <div>
                     <label class="form-label small text-muted mb-1" for="randomCount">Nº de preguntas</label>
                     <input type="number" id="randomCount" class="form-control form-control-sm"
-                           value="10" min="1" max="200" style="width: 110px">
+                           value="10" min="1" max="210" style="width: 110px">
                 </div>
                 <button type="button" id="addRandom" class="btn btn-sm btn-outline-primary">Añadir al azar</button>
                 <button type="button" id="selectVisible" class="btn btn-sm btn-outline-primary">Seleccionar visibles</button>
@@ -144,7 +146,7 @@
 
 <script th:inline="javascript">
     (function () {
-        const MAX_QUESTIONS = 200;
+        const MAX_QUESTIONS = 210;
 
         const examTypeSelect = document.getElementById('examTypeId');
         const questionTools = document.getElementById('questionTools');
