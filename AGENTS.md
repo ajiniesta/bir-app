@@ -80,7 +80,9 @@ Notes:
 | POST | `/api/questions` | ADMIN/CREATOR | Create (validates exactly one correct option) |
 | PUT | `/api/questions/{id}` | ADMIN/CREATOR | Update |
 | DELETE | `/api/questions/{id}` | ADMIN/CREATOR | Delete |
-| POST | `/api/questions/import` | ADMIN/CREATOR | Bulk import (`{content}` carries the raw file text); valid questions are saved, faulty ones skipped |
+| POST | `/api/questions/import` | ADMIN/CREATOR | Bulk import of **one batch** (`{content}` carries the raw text); valid questions are saved, faulty ones skipped, already-existing ones counted as `duplicates` |
+| GET | `/api/questions/duplicates{?examType}` | ADMIN/CREATOR | Read-only preview of duplicate questions (same bank + statement + options) |
+| POST | `/api/questions/duplicates/purge` | ADMIN/CREATOR | Delete up to `maxGroups` duplicate groups, re-pointing their history; returns `remaining` |
 | POST | `/api/free-sessions` | authenticated | Start a free-mode session (USER limited to assigned banks) |
 | GET | `/api/free-sessions/{id}` | authenticated | Session detail |
 | POST | `/api/free-sessions/{id}/answers` | authenticated | Answer one item |
@@ -120,7 +122,12 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | GET/POST | `/questions/create` | `question/create` | ADMIN/CREATOR |
 | GET/POST | `/questions/{id}/edit` | `question/create` | ADMIN/CREATOR |
 | POST | `/questions/{id}/delete` | — | ADMIN/CREATOR |
-| GET/POST | `/questions/import` | `question/import` | Bulk import from a JSON file (ADMIN/CREATOR) |
+| GET/POST | `/questions/import` | `question/import` | Bulk import from a JSON file: splits it into batches kept in the session (ADMIN/CREATOR) |
+| POST | `/questions/import/batch` | — | Process one batch, returns its counters as JSON (progress bar) |
+| POST | `/questions/import/all` | `question/import` | No-JS fallback: process every pending batch at once |
+| GET | `/questions/duplicates{?examType}` | `question/duplicates` | Duplicate cleanup: preview of the groups for a bank (ADMIN/CREATOR) |
+| POST | `/questions/duplicates/purge/batch` | — | Delete one batch of duplicates, returns the counters as JSON (progress bar) |
+| POST | `/questions/duplicates/purge` | `question/duplicates` | No-JS fallback: repeat the purge until nothing is left |
 | GET/POST | `/free` | `free/config` | Configure a free-mode session (any authenticated) |
 | GET | `/free/{id}` | `free/question` | |
 | POST | `/free/{id}/answer` | — | |
@@ -230,10 +237,23 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 ## Question import (importación de preguntas)
 
 - ADMIN/CREATOR can bulk-import questions from a local file at `/questions/import` (web) → `POST /api/questions/import` (api, JSON `{"content": "..."}`). The web reads the uploaded file as UTF-8 and forwards its text in `content`; the API does the parsing.
-- Accepted format: **several concatenated JSON objects**, a JSON **array**, or a single object. Trailing commas and a UTF-8 BOM are tolerated. Each object is parsed independently, so a syntactically broken question does not block the rest.
+- Accepted format: **several concatenated JSON objects**, a JSON **array**, or a single object. Trailing commas and a UTF-8 BOM are tolerated. Each object is parsed independently, so a syntactically broken question does not block the rest. The splitter lives in `bir.app.api.support.JsonObjectSplitter` (mirrored in `bir.app.web.support`, since `web` never depends on `api`).
 - Fields: `exam_type` (numeric → exam-type **id**, e.g. `"3"`; otherwise → **code**, e.g. `"BIR"`), `text` (required), `category` (optional, ≤ 100 chars), `tag` (optional, ≤ 100 chars), `explanation` (optional), `answers` (non-empty) with `letter` (`A`–`D`, unique per question), `text` and `is_correct`.
-- Validation: **exactly one** answer with `is_correct: true`; letters are normalized to uppercase; text fields are trimmed. An invalid question is **skipped and reported** (with its 1-based position) while the valid ones are imported. The response is `QuestionImportResponse(total, imported, skipped, errors)` and is always `200`; the view lists the errors and the imported count.
-- Each valid question is created through `QuestionService.create` (same "exactly one correct option" invariant), so imported questions behave like manually created ones. No Liquibase changes are needed.
+- Validation: **exactly one** answer with `is_correct: true`; letters are normalized to uppercase; text fields are trimmed. An invalid question is **skipped and reported** (with its 1-based position) while the valid ones are imported. The response is `QuestionImportResponse(total, imported, skipped, duplicates, errors)` and is always `200`; the view lists the errors and the imported count.
+- **Batched on purpose.** The web never sends the whole file in one call: `QuestionWebController` splits it into batches of **100 objects** (`QuestionImportStore.BATCH_SIZE`) and keeps them in the HTTP **session** (`QuestionImportJob`). The view then posts one batch at a time to `POST /questions/import/batch`, which returns `{index, totalBatches, total, imported, skipped, duplicates, errors}` as JSON and drives the Bootstrap progress bar. Without JavaScript the page offers `POST /questions/import/all`, which walks every batch server-side and renders the aggregated summary. Sending the whole file in one request used to hit the client `read-timeout` (10 s by default) on big files: the browser got `Read Timeout` while the API kept saving questions in the background. `web` now sets `micronaut.http.client.read-timeout: 60s` as a safety net.
+- **Duplicates are skipped, not errors.** A question whose *statement* already exists in the same bank (normalized: lowercase, accents and repeated spaces ignored) is counted in `duplicates` and not saved; the same check runs against the questions already imported in the same request. That makes re-uploading an interrupted file **resume** the import: the already-saved questions are skipped and the rest are added. Different banks may hold the same statement. The texts of the affected banks are loaded once per request (`QuestionRepository.findTextsByExamTypeId`), and the `exam_type` lookup is cached per raw value.
+- Each valid question is created through `QuestionService.create` (same "exactly one correct option" invariant), so imported questions behave like manually created ones. The import logs progress every 100 questions (`Importación de preguntas: X de N procesadas…`). No Liquibase changes are needed.
+
+## Duplicate question cleanup (limpieza de duplicadas)
+
+- ADMIN/CREATOR can clean duplicated questions at `/questions/duplicates` (web) → `GET /api/questions/duplicates` (preview) and `POST /api/questions/duplicates/purge` (api). A bank must be selected before purging; the API accepts an empty `examType` (all banks) but the UI always sends one.
+- **What counts as a duplicate**: same `exam_type`, same statement **and** same answer options. Both texts are compared through `QuestionTextNormalizer` (lowercase, accents removed, whitespace collapsed — the same helper the import uses): the statement, each option's text by letter, and which letter is correct. A single typo in an option means they are *not* duplicates by design.
+- **Which one is kept**: the most complete — with `explanation` first, then the one with more options, and on a tie the oldest (`id` lower). The preview shows the reason per group.
+- **History is re-pointed, not lost** (per duplicate, before deleting it): `mock_exam_question` rows move to the keeper (if that mock exam already had the keeper, the row is removed and the mock exam **positions are renumbered** — the attempt navigator walks with `position ± 1`, and `mock_exam_attempt_item.position` copies the mock exam's position); `answer_proposal` rows move to the keeper unless that user already proposed on the keeper (`UNIQUE(question_id, proposed_by)`, then the duplicate's proposal is deleted); `session_item` rows move to the keeper keeping their position and snapshot, so past free sessions and their statistics do not shrink. Attempt items keep their full snapshot (`question_id` is `ON DELETE SET NULL` in the DB).
+- **Batched**: each purge call processes at most 200 groups (`QuestionDuplicatesService.DEFAULT_MAX_GROUPS`, hard cap 1000) inside a single transaction and returns `remaining`; the view loops until it is 0, so no request gets near the HTTP timeout. Without JavaScript, `POST /questions/duplicates/purge` repeats the call server-side (max 50 passes) and renders the aggregated summary.
+- **There is no undo.** The preview is read-only, the purge needs an explicit confirmation checkbox, and the summary plus the API log list every group with the kept/question ids. Re-running the job is safe and idempotent (a second pass finds nothing).
+- Statements repeated with **different options** are not touched; the preview lists them separately ("mismo enunciado pero con opciones distintas") so they can be reviewed by hand.
+- Tests: `QuestionDuplicatesServiceTest` (grouping, keep selection, mock exam re-pointing and renumbering, proposal conflicts, session items, bank filter, idempotency, `remaining`), `QuestionTextNormalizerTest` and `DuplicateQuestionsWebControllerTest` (preview, batch, no-JS purge, CREATOR allowed, USER rejected).
 
 ## HTTP Client
 
@@ -279,10 +299,10 @@ Notes:
 
 ## Tests
 
-- **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
+- **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService`, `QuestionDuplicatesService`, `JsonObjectSplitter`, `QuestionTextNormalizer` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
 - **`web`** — two layers:
-  - Unit tests with Mockito: forms (`QuestionForm`, `MockExamForm`), `MockExamPdfService` (renders a PDF and extracts its text with PDFBox), `ApiAuthenticationProvider`, `ApiTokenFilter`, `NavService`.
-  - `@MicronautTest` HTTP tests (`QuestionWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
+  - Unit tests with Mockito: forms (`QuestionForm`, `MockExamForm`), `MockExamPdfService` (renders a PDF and extracts its text with PDFBox), `ApiAuthenticationProvider`, `ApiTokenFilter`, `NavService`, `JsonObjectSplitter`, `QuestionImportJob`.
+  - `@MicronautTest` HTTP tests (`QuestionWebController`, `DuplicateQuestionsWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
   - `web/src/test/resources/application-test.yml` sets `micronaut.server.port: -1` and `micronaut.http.client.follow-redirects: false` so tests assert `303` + `Location` instead of the final page.
   - Regression coverage: creating a mock exam with **210 `questionIds`** (the `form-max-fields: 512` fix) and the 211-question rejection.
 - Names in English and `@DisplayName` in Spanish, like the rest of the docs.

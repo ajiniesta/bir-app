@@ -1,10 +1,14 @@
 package bir.app.api.controller;
 
 import bir.app.api.dto.CreateQuestionRequest;
+import bir.app.api.dto.DuplicatePurgeRequest;
+import bir.app.api.dto.DuplicatePurgeResponse;
+import bir.app.api.dto.DuplicateQuestionsResponse;
 import bir.app.api.dto.QuestionImportRequest;
 import bir.app.api.dto.QuestionImportResponse;
 import bir.app.api.dto.QuestionPageResponse;
 import bir.app.api.dto.QuestionResponse;
+import bir.app.api.service.QuestionDuplicatesService;
 import bir.app.api.service.QuestionImportService;
 import bir.app.api.service.QuestionService;
 import io.micronaut.core.annotation.Nullable;
@@ -21,11 +25,14 @@ public class QuestionController {
 
     private final QuestionService questionService;
     private final QuestionImportService questionImportService;
+    private final QuestionDuplicatesService questionDuplicatesService;
 
     public QuestionController(QuestionService questionService,
-                              QuestionImportService questionImportService) {
+                              QuestionImportService questionImportService,
+                              QuestionDuplicatesService questionDuplicatesService) {
         this.questionService = questionService;
         this.questionImportService = questionImportService;
+        this.questionDuplicatesService = questionDuplicatesService;
     }
 
     @Get
@@ -69,7 +76,33 @@ public class QuestionController {
      */
     @Post("/import")
     public QuestionImportResponse importQuestions(@Body QuestionImportRequest request) {
-        return questionImportService.importQuestions(request == null ? null : request.content());
+        if (request == null) {
+            return questionImportService.importQuestions(null);
+        }
+        int offset = request.startPosition() == null ? 0 : request.startPosition();
+        return questionImportService.importQuestions(request.content(), offset);
+    }
+
+    /**
+     * Vista previa (solo lectura) de las preguntas duplicadas: mismo banco,
+     * mismo enunciado normalizado y mismas opciones. No borra nada.
+     */
+    @Get("/duplicates{?examType}")
+    public DuplicateQuestionsResponse duplicates(@Nullable String examType) {
+        return questionDuplicatesService.findDuplicates(examType);
+    }
+
+    /**
+     * Borra una tanda de preguntas duplicadas conservando la más completa de cada
+     * grupo y re-apuntando su historial. Repetir la llamada hasta que
+     * {@code remaining} sea 0 limpia el banco entero.
+     */
+    @Post("/duplicates/purge")
+    public DuplicatePurgeResponse purgeDuplicates(@Nullable @Body DuplicatePurgeRequest request) {
+        if (request == null) {
+            return questionDuplicatesService.purge(null, null);
+        }
+        return questionDuplicatesService.purge(request.examType(), request.maxGroups());
     }
 
     @Put("/{id}")

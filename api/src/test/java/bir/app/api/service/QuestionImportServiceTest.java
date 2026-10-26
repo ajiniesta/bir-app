@@ -4,6 +4,7 @@ import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionImportResponse;
 import bir.app.api.entity.ExamType;
 import bir.app.api.repository.ExamTypeRepository;
+import bir.app.api.repository.QuestionRepository;
 import bir.app.api.support.TestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,10 +14,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,12 +32,14 @@ class QuestionImportServiceTest {
     QuestionService questionService;
     @Mock
     ExamTypeRepository examTypeRepository;
+    @Mock
+    QuestionRepository questionRepository;
 
     QuestionImportService service;
 
     @BeforeEach
     void setUp() {
-        service = new QuestionImportService(questionService, examTypeRepository);
+        service = new QuestionImportService(questionService, examTypeRepository, questionRepository);
     }
 
     private static String question(String examType, String text) {
@@ -156,7 +162,7 @@ class QuestionImportServiceTest {
         assertThat(response.imported()).isZero();
         assertThat(response.errors()).anySatisfy(error ->
                 assertThat(error).contains("exactamente una respuesta correcta (hay 2)"));
-        verify(questionService, org.mockito.Mockito.never()).create(any());
+        verify(questionService, never()).create(any());
     }
 
     @Test
@@ -223,6 +229,19 @@ class QuestionImportServiceTest {
     }
 
     @Test
+    @DisplayName("numera las preguntas con la posición global del fichero")
+    void numbersQuestionsFromTheStartPosition() {
+        String content = """
+                {"exam_type":"BIR","answers":[{"letter":"A","text":"Una","is_correct":true}]}
+                """;
+
+        QuestionImportResponse response = service.importQuestions(content, 1000);
+
+        assertThat(response.errors()).anySatisfy(error ->
+                assertThat(error).startsWith("Pregunta 1001: "));
+    }
+
+    @Test
     @DisplayName("reporta el fallo al guardar una pregunta válida")
     void reportsSaveFailure() {
         when(examTypeRepository.findByCode("BIR"))
@@ -233,7 +252,89 @@ class QuestionImportServiceTest {
 
         assertThat(response.imported()).isZero();
         assertThat(response.skipped()).isEqualTo(1);
+        assertThat(response.duplicates()).isZero();
         assertThat(response.errors()).anySatisfy(error ->
                 assertThat(error).contains("no se pudo guardar (boom)"));
+    }
+
+    @Test
+    @DisplayName("salta las preguntas que ya existen en el mismo banco")
+    void skipsQuestionsAlreadyInTheBank() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        when(questionRepository.findTextsByExamTypeId(2L))
+                .thenReturn(List.of("¿Qué es la mitosis?"));
+
+        QuestionImportResponse response = service.importQuestions(question("BIR", "¿que es la MITOSIS?"));
+
+        assertThat(response.total()).isEqualTo(1);
+        assertThat(response.imported()).isZero();
+        assertThat(response.duplicates()).isEqualTo(1);
+        assertThat(response.skipped()).isZero();
+        assertThat(response.errors()).isEmpty();
+        verify(questionService, never()).create(any());
+    }
+
+    @Test
+    @DisplayName("no salta una pregunta con el mismo enunciado en otro banco")
+    void keepsSameTextInAnotherBank() {
+        when(examTypeRepository.findByCode("MIR"))
+                .thenReturn(Optional.of(TestData.examType(1L, "MIR", "MIR")));
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        when(questionRepository.findTextsByExamTypeId(2L)).thenReturn(List.of());
+        when(questionRepository.findTextsByExamTypeId(1L)).thenReturn(List.of());
+
+        QuestionImportResponse response = service.importQuestions(
+                question("MIR", "Pregunta repetida") + question("BIR", "Pregunta repetida"));
+
+        assertThat(response.imported()).isEqualTo(2);
+        assertThat(response.duplicates()).isZero();
+    }
+
+    @Test
+    @DisplayName("salta las preguntas repetidas dentro del mismo fichero")
+    void skipsRepeatedQuestionsInsideTheFile() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+
+        QuestionImportResponse response = service.importQuestions(
+                question("BIR", "Primera") + question("BIR", " Primera ") + question("BIR", "Otra"));
+
+        assertThat(response.total()).isEqualTo(3);
+        assertThat(response.imported()).isEqualTo(2);
+        assertThat(response.duplicates()).isEqualTo(1);
+        assertThat(response.skipped()).isZero();
+        verify(questionService, times(2)).create(any());
+    }
+
+    @Test
+    @DisplayName("separa las descartadas de las duplicadas en el resumen")
+    void separatesSkippedFromDuplicates() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        when(questionRepository.findTextsByExamTypeId(2L)).thenReturn(List.of("Nueva"));
+
+        String broken = "{\"exam_type\": BIR, \"text\": \"Rota\"}";
+        QuestionImportResponse response = service.importQuestions(
+                question("BIR", "Nueva") + broken + question("BIR", "Otra"));
+
+        assertThat(response.total()).isEqualTo(3);
+        assertThat(response.imported()).isEqualTo(1);
+        assertThat(response.duplicates()).isEqualTo(1);
+        assertThat(response.skipped()).isEqualTo(1);
+        assertThat(response.errors()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("resuelve el tipo de examen una sola vez por valor")
+    void cachesExamTypeLookups() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+
+        service.importQuestions(question("BIR", "Una") + question("BIR", "Dos") + question("BIR", "Tres"));
+
+        verify(examTypeRepository, times(1)).findByCode("BIR");
+        verify(questionService, times(3)).create(any());
     }
 }

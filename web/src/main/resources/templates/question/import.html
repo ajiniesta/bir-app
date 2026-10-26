@@ -18,10 +18,65 @@
 
     <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>
 
+    <!-- Progreso de la importación por lotes (se rellena con JavaScript). -->
+    <div th:if="${importId != null}" id="importProgress" class="card p-4 mb-4"
+         th:attr="data-import-id=${importId},
+                  data-total-batches=${totalBatches},
+                  data-total-questions=${totalQuestions}">
+        <h2 class="h5">Importando <span th:text="${totalQuestions}">0</span> preguntas
+            <span class="text-muted fw-normal" th:text="'(' + ${totalBatches} + ' lote(s) de ' + ${batchSize} + ')'"></span>
+        </h2>
+
+        <div class="progress my-3" role="progressbar" aria-label="Progreso de la importación"
+             aria-valuemin="0" th:attr="aria-valuemax=${totalBatches}" aria-valuenow="0" id="importBarWrapper">
+            <div id="importBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                 style="width: 0%">0%</div>
+        </div>
+
+        <p id="importStatus" class="mb-2 text-muted">Preparando la importación…</p>
+
+        <ul class="list-unstyled small mb-0">
+            <li>Importadas: <strong id="countImported">0</strong></li>
+            <li>Ya existentes (omitidas): <strong id="countDuplicates">0</strong></li>
+            <li>Con errores (descartadas): <strong id="countSkipped">0</strong></li>
+        </ul>
+
+        <div id="importErrors" class="alert alert-warning mt-3 mb-0 d-none">
+            <p class="mb-2"><strong>Preguntas descartadas</strong> (el resto se ha importado):</p>
+            <ul class="mb-0 small" id="importErrorList"></ul>
+        </div>
+
+        <div id="importDone" class="alert alert-success mt-3 mb-0 d-none">
+            Importación terminada. <span id="importDoneDetail"></span>
+        </div>
+
+        <div id="importFailed" class="alert alert-danger mt-3 mb-0 d-none">
+            <p class="mb-2" id="importFailedMessage">La importación se ha interrumpido.</p>
+            <p class="mb-2 small">Las preguntas ya guardadas no se duplicarán: puedes reintentar y se omitirán.</p>
+            <button type="button" class="btn btn-sm btn-outline-danger" id="importRetry">Reintentar</button>
+        </div>
+
+        <noscript>
+            <form th:action="@{/questions/import/all}" method="post" class="mt-3">
+                <input type="hidden" name="importId" th:value="${importId}">
+                <p class="text-muted small">
+                    Tu navegador tiene JavaScript desactivado: se procesarán todos los lotes de una vez al pulsar el botón.
+                </p>
+                <button type="submit" class="btn btn-primary">Importar ahora</button>
+            </form>
+        </noscript>
+    </div>
+
     <div th:if="${result != null and result.imported() > 0}" class="alert alert-success">
         Se <span th:text="${result.imported() == 1 ? 'ha' : 'han'}">han</span> importado
         <strong th:text="${result.imported()}">0</strong>
         <span th:text="${result.imported() == 1 ? 'pregunta' : 'preguntas'}">preguntas</span>.
+    </div>
+
+    <div th:if="${result != null and result.duplicates() > 0}" class="alert alert-info">
+        <strong th:text="${result.duplicates()}">0</strong>
+        <span th:text="${result.duplicates() == 1 ? 'pregunta ya existía' : 'preguntas ya existían'}">preguntas ya existían</span>
+        en el mismo banco y se han omitido.
     </div>
 
     <div th:if="${result != null and !#lists.isEmpty(result.errors())}" class="alert alert-warning">
@@ -35,12 +90,22 @@
         </ul>
     </div>
 
+    <div th:if="${not #lists.isEmpty(batchErrors)}" class="alert alert-danger">
+        <p class="mb-2">Algunos lotes no se pudieron procesar:</p>
+        <ul class="mb-0">
+            <li th:each="e : ${batchErrors}" th:text="${e}">Error</li>
+        </ul>
+    </div>
+
     <form th:action="@{/questions/import}" method="post" enctype="multipart/form-data" class="card p-4 mb-4">
         <div class="mb-3">
             <label for="file" class="form-label">Fichero de preguntas</label>
             <input type="file" id="file" name="file" class="form-control"
                    accept=".json,.txt,application/json,text/plain" required>
-            <div class="form-text">Selecciona un fichero JSON con las preguntas que quieres importar.</div>
+            <div class="form-text">
+                Selecciona un fichero JSON con las preguntas que quieres importar. Si vuelves a subir el
+                mismo fichero, las preguntas ya guardadas se omiten.
+            </div>
         </div>
         <div>
             <button type="submit" class="btn btn-primary">Importar</button>
@@ -56,6 +121,8 @@
             <code>BIR</code>) y <code>answers</code> con exactamente una respuesta correcta. Las letras
             válidas son A, B, C y D. <code>category</code>, <code>tag</code> y <code>explanation</code> son opcionales.
             Las comas finales están permitidas. Las preguntas con errores se descartan y el resto se importa.
+            Las que ya existen en el mismo banco (mismo enunciado) se omiten, así que puedes repetir una
+            importación interrumpida sin crear duplicados.
         </p>
         <pre class="small mb-0" style="white-space: pre-wrap;">{
   "exam_type": "3",
@@ -72,5 +139,107 @@
 }</pre>
     </details>
 </div>
+
+<script th:if="${importId != null}" th:inline="javascript">
+    (function () {
+        const panel = document.getElementById('importProgress');
+        const importId = panel.dataset.importId;
+        const totalBatches = parseInt(panel.dataset.totalBatches, 10) || 0;
+        const bar = document.getElementById('importBar');
+        const status = document.getElementById('importStatus');
+        const errorsBox = document.getElementById('importErrors');
+        const errorList = document.getElementById('importErrorList');
+        const doneBox = document.getElementById('importDone');
+        const failedBox = document.getElementById('importFailed');
+        const failedMessage = document.getElementById('importFailedMessage');
+
+        let imported = 0;
+        let duplicates = 0;
+        let skipped = 0;
+
+        function setProgress(done) {
+            const percent = totalBatches === 0 ? 100 : Math.round((done / totalBatches) * 100);
+            bar.style.width = percent + '%';
+            bar.textContent = percent + '%';
+            document.getElementById('importBarWrapper').setAttribute('aria-valuenow', String(done));
+            document.getElementById('countImported').textContent = imported;
+            document.getElementById('countDuplicates').textContent = duplicates;
+            document.getElementById('countSkipped').textContent = skipped;
+        }
+
+        function addErrors(errors) {
+            if (!errors || errors.length === 0) {
+                return;
+            }
+            errorsBox.classList.remove('d-none');
+            errors.forEach(function (message) {
+                const item = document.createElement('li');
+                item.textContent = message;
+                errorList.appendChild(item);
+            });
+        }
+
+        async function runBatch(index) {
+            const body = new URLSearchParams({importId: importId, index: index});
+            const response = await fetch('/questions/import/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                },
+                body: body.toString(),
+                credentials: 'same-origin'
+            });
+            let payload = {};
+            try {
+                payload = await response.json();
+            } catch (ignored) {
+                // respuesta sin cuerpo JSON: se trata como error genérico
+            }
+            if (!response.ok) {
+                throw new Error(payload.error || ('El servidor devolvió ' + response.status));
+            }
+            return payload;
+        }
+
+        async function run(from) {
+            failedBox.classList.add('d-none');
+            for (let index = from; index < totalBatches; index++) {
+                status.textContent = 'Procesando lote ' + (index + 1) + ' de ' + totalBatches + '…';
+                const result = await runBatch(index);
+                imported += result.imported || 0;
+                duplicates += result.duplicates || 0;
+                skipped += result.skipped || 0;
+                addErrors(result.errors);
+                setProgress(index + 1);
+            }
+            bar.classList.remove('progress-bar-animated');
+            status.textContent = 'Importación terminada: ' + totalBatches + ' lote(s) procesados.';
+            document.getElementById('importDoneDetail').textContent =
+                imported + ' importadas, ' + duplicates + ' ya existentes, ' + skipped + ' con errores.';
+            doneBox.classList.remove('d-none');
+        }
+
+        document.getElementById('importRetry').addEventListener('click', function () {
+            imported = 0;
+            duplicates = 0;
+            skipped = 0;
+            errorList.innerHTML = '';
+            errorsBox.classList.add('d-none');
+            doneBox.classList.add('d-none');
+            setProgress(0);
+            run(0).catch(showError);
+        });
+
+        function showError(error) {
+            status.textContent = 'Importación interrumpida.';
+            failedMessage.textContent = error && error.message ? error.message : 'La importación se ha interrumpido.';
+            failedBox.classList.remove('d-none');
+        }
+
+        setProgress(0);
+        run(0).catch(showError);
+    })();
+</script>
 </body>
 </html>

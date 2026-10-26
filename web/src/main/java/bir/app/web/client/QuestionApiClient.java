@@ -8,6 +8,9 @@ import bir.app.web.dto.CreateFreeSessionRequest;
 import bir.app.web.dto.CreateMockExamRequest;
 import bir.app.web.dto.CreateQuestionRequest;
 import bir.app.web.dto.DashboardStatsResponse;
+import bir.app.web.dto.DuplicatePurgeRequest;
+import bir.app.web.dto.DuplicatePurgeResponse;
+import bir.app.web.dto.DuplicateQuestionsResponse;
 import bir.app.web.dto.ExamTypeResponse;
 import bir.app.web.dto.FreeSessionResponse;
 import bir.app.web.dto.LoginRequest;
@@ -76,6 +79,14 @@ public interface QuestionApiClient {
     /** Importa el texto crudo de un fichero de preguntas (ADMIN/CREATOR). */
     @Post("/api/questions/import")
     QuestionImportResponse importQuestions(@Body QuestionImportRequest request);
+
+    /** Vista previa (solo lectura) de las preguntas duplicadas (ADMIN/CREATOR). */
+    @Get("/api/questions/duplicates{?examType}")
+    DuplicateQuestionsResponse findDuplicateQuestions(@Nullable String examType);
+
+    /** Borra una tanda de duplicadas conservando la más completa (ADMIN/CREATOR). */
+    @Post("/api/questions/duplicates/purge")
+    DuplicatePurgeResponse purgeDuplicateQuestions(@Body DuplicatePurgeRequest request);
 
     @Put("/api/questions/{id}")
     QuestionResponse updateQuestion(Long id, @Body CreateQuestionRequest request);

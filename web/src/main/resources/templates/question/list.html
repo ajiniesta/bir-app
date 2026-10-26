@@ -16,6 +16,7 @@
             <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-outline-warning">Revisiones
                 <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
             <a th:href="@{/questions/import}" class="btn btn-outline-success">Importar</a>
+            <a th:href="@{/questions/duplicates}" class="btn btn-outline-warning">Duplicadas</a>
             <a th:href="@{/questions/create}" class="btn btn-primary">+ Nueva Pregunta</a>
         </div>
     </div>

@@ -71,6 +71,14 @@ public final class WebTestSupport {
                 .header(HttpHeaders.COOKIE, cookie);
     }
 
+    /** Formulario POST cuyo consumidor espera JSON (barra de progreso). */
+    public static HttpRequest<?> postJsonForm(String uri, String cookie, String body) {
+        return HttpRequest.POST(uri, body)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .accept(MediaType.APPLICATION_JSON)
+                .header(HttpHeaders.COOKIE, cookie);
+    }
+
     public static String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }

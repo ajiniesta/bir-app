@@ -17,6 +17,12 @@ micronaut:
     folder: templates
     thymeleaf:
       enabled: true
+  http:
+    client:
+      # Las llamadas a la API se hacen por lotes (importación de 100 preguntas),
+      # así que 10 s (valor por defecto) sobra; subirlo evita cortes puntuales en
+      # servidores lentos sin volver a permitir peticiones eternas.
+      read-timeout: 60s
   security:
     enabled: true
     # Autenticación basada en sesión (cookie). El token JWT que emite la API se

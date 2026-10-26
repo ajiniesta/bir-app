@@ -26,4 +26,12 @@ public interface AnswerProposalRepository extends JpaRepository<AnswerProposal, 
     List<AnswerProposal> findOrdered();
 
     long countByStatus(ProposalStatus status);
+
+    /** Propuestas de un conjunto de preguntas (revisión de duplicados). */
+    @Query("SELECT p FROM AnswerProposal p JOIN FETCH p.proposedBy WHERE p.question.id IN (:questionIds)")
+    List<AnswerProposal> findByQuestionIdIn(Collection<Long> questionIds);
+
+    /** Ids de las preguntas (de las indicadas) con alguna propuesta. */
+    @Query("SELECT DISTINCT p.question.id FROM AnswerProposal p WHERE p.question.id IN (:questionIds)")
+    List<Long> findQuestionIdsIn(Collection<Long> questionIds);
 }
