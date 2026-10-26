@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Preguntas duplicadas - BirApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Preguntas duplicadas</h1>
+        <div class="d-flex gap-2">
+            <a th:href="@{/questions}" class="btn btn-outline-secondary">Volver</a>
+            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-outline-warning">Revisiones
+                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
+        </div>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>
+    <div th:if="${notice}" class="alert alert-info" th:text="${notice}">Elige un banco.</div>
+
+    <form th:action="@{/questions/duplicates}" method="get" class="card card-body mb-4">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+                <label for="examType" class="form-label">Banco de preguntas</label>
+                <select id="examType" name="examType" class="form-select" required>
+                    <option value="">— Elige un banco —</option>
+                    <option th:each="examType : ${examTypes}"
+                            th:value="${examType.code()}"
+                            th:text="${examType.name() + ' (' + examType.code() + ')'}"
+                            th:selected="${examType.code() == selectedExamType}">MIR</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Buscar duplicadas</button>
+                <a th:href="@{/questions}" class="btn btn-outline-secondary">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    <!-- Resumen de una limpieza terminada (respaldo sin JavaScript). -->
+    <div th:if="${summary != null}" class="alert alert-success">
+        <p class="mb-2"><strong>Limpieza terminada.</strong></p>
+        <ul class="mb-0 small">
+            <li>Preguntas borradas: <strong th:text="${summary.deleted()}">0</strong></li>
+            <li>Grupos procesados: <span th:text="${summary.groupsProcessed()}">0</span></li>
+            <li>Apariciones en simulacros re-apuntadas: <span th:text="${summary.mockExamLinksRepointed()}">0</span>
+                (retiradas por duplicado en el mismo simulacro:
+                <span th:text="${summary.mockExamLinksRemoved()}">0</span>)</li>
+            <li>Propuestas re-apuntadas: <span th:text="${summary.proposalsRepointed()}">0</span>
+                (borradas por conflicto: <span th:text="${summary.proposalsDeleted()}">0</span>)</li>
+            <li>Ítems de sesiones libres re-apuntados: <span th:text="${summary.sessionItemsRepointed()}">0</span></li>
+        </ul>
+    </div>
+
+    <div th:if="${preview != null}">
+        <div th:if="${preview.totalGroups() == 0}" class="alert alert-success">
+            No hay preguntas duplicadas en este banco.
+        </div>
+
+        <div th:if="${preview.totalGroups() > 0}">
+            <div class="card p-4 mb-4">
+                <h2 class="h5">Resumen</h2>
+                <p class="mb-2">
+                    <strong th:text="${preview.totalGroups()}">0</strong>
+                    <span th:text="${preview.totalGroups() == 1 ? 'grupo' : 'grupos'}">grupos</span>
+                    de preguntas equivalentes; se borrarían
+                    <strong th:text="${preview.totalDuplicates()}">0</strong>
+                    <span th:text="${preview.totalDuplicates() == 1 ? 'pregunta' : 'preguntas'}">preguntas</span>.
+                </p>
+                <p class="text-muted small mb-3">
+                    Se conserva en cada grupo la pregunta más completa (con explicación, luego con más opciones y,
+                    a igualdad, la más antigua). El historial de las que se borran (simulacros, propuestas y
+                    sesiones libres) se re-apunta a la conservada.
+                </p>
+                <p th:if="${preview.truncated()}" class="text-muted small mb-3">
+                    Se muestran solo los primeros grupos; la limpieza los procesa todos por tandas.
+                </p>
+
+                <div th:if="${summary == null}" id="purgePanel"
+                     th:attr="data-exam-type=${selectedExamType},
+                              data-total-groups=${preview.totalGroups()},
+                              data-total-duplicates=${preview.totalDuplicates()}">
+                    <div class="alert alert-warning">
+                        <strong>Esta acción no se puede deshacer.</strong>
+                        Se borrarán <strong th:text="${preview.totalDuplicates()}">0</strong> preguntas del banco
+                        <span th:text="${selectedExamType}">MIR</span>.
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="confirm" class="form-check-input">
+                        <label for="confirm" class="form-check-label">
+                            Entiendo que las preguntas duplicadas se eliminarán definitivamente.
+                        </label>
+                    </div>
+
+                    <button type="button" class="btn btn-danger" id="purgeButton" disabled>
+                        Borrar duplicadas
+                    </button>
+
+                    <div id="purgeProgress" class="mt-3 d-none">
+                        <div class="progress" role="progressbar" aria-label="Progreso de la limpieza"
+                             aria-valuemin="0" th:attr="aria-valuemax=${preview.totalGroups()}"
+                             aria-valuenow="0" id="purgeBarWrapper">
+                            <div id="purgeBar" class="progress-bar progress-bar-striped progress-bar-animated"
+                                 style="width: 0%">0%</div>
+                        </div>
+                        <p id="purgeStatus" class="text-muted small mt-2 mb-0"></p>
+                    </div>
+
+                    <div id="purgeDone" class="alert alert-success mt-3 d-none"></div>
+                    <div id="purgeFailed" class="alert alert-danger mt-3 d-none">
+                        <p class="mb-2" id="purgeFailedMessage">La limpieza se ha interrumpido.</p>
+                        <p class="mb-0 small">
+                            Lo que ya se ha borrado no se puede recuperar; puedes volver a intentarlo y continuará
+                            donde se quedó.
+                        </p>
+                    </div>
+
+                    <noscript>
+                        <form th:action="@{/questions/duplicates/purge}" method="post" class="mt-3">
+                            <input type="hidden" name="examType" th:value="${selectedExamType}">
+                            <button type="submit" class="btn btn-danger">Borrar duplicadas ahora</button>
+                        </form>
+                    </noscript>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header fw-semibold">Grupos de preguntas equivalentes</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width: 45%">Enunciado</th>
+                            <th>Banco</th>
+                            <th>Se conserva</th>
+                            <th>Se borraría</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="group : ${preview.groups()}">
+                            <td th:text="${group.text()}">Enunciado</td>
+                            <td th:text="${group.examTypeCode()}">MIR</td>
+                            <td>
+                                <a th:href="@{/questions/{id}(id=${group.keepId()})}"
+                                   class="badge text-bg-success text-decoration-none"
+                                   th:text="'#' + ${group.keepId()}">#1</a>
+                                <div class="text-muted small" th:text="${group.keepReason()}">Motivo</div>
+                            </td>
+                            <td>
+                                <div th:each="duplicate : ${group.duplicates()}" class="mb-1">
+                                    <a th:href="@{/questions/{id}(id=${duplicate.id()})}"
+                                       class="badge text-bg-secondary text-decoration-none"
+                                       th:text="'#' + ${duplicate.id()}">#2</a>
+                                    <span class="small text-muted">
+                                        <span th:text="${duplicate.category() != null ? duplicate.category() : 'Sin categoría'}">Sin categoría</span>
+                                        ·
+                                        <span th:text="${duplicate.tag() != null ? duplicate.tag() : 'Sin tag'}">Sin tag</span>
+                                        ·
+                                        <span th:text="${duplicate.optionCount()} + ' opciones'">4 opciones</span>
+                                        <span th:if="${duplicate.hasExplanation()}">· con explicación</span>
+                                    </span>
+                                    <span th:if="${duplicate.inMockExam()}" class="badge text-bg-info">en simulacro</span>
+                                    <span th:if="${duplicate.hasProposals()}" class="badge text-bg-warning">con propuestas</span>
+                                    <span th:if="${duplicate.inFreeSessions()}" class="badge text-bg-light">en sesiones</span>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div th:if="${not #lists.isEmpty(preview.similarGroups())}" class="alert alert-info">
+                <p class="fw-semibold mb-2">
+                    Mismo enunciado pero con opciones distintas (no se borran, revísalos a mano):
+                </p>
+                <ul class="mb-0 small">
+                    <li th:each="similar : ${preview.similarGroups()}">
+                        <span th:text="${similar.examTypeCode() + ': ' + similar.text()}">MIR: enunciado</span>
+                        <span class="text-muted">
+                            (ids
+                            <span th:each="qid, iter : ${similar.questionIds()}">
+                                <a th:href="@{/questions/{id}(id=${qid})}" th:text="${qid}">1</a><span
+                                    th:if="${!iter.last}">, </span>
+                            </span>)
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:if="${preview != null and summary == null}" th:inline="javascript">
+    (function () {
+        const panel = document.getElementById('purgePanel');
+        if (!panel) {
+            return;
+        }
+        const examType = panel.dataset.examType;
+        const totalGroups = parseInt(panel.dataset.totalGroups, 10) || 0;
+        const totalDuplicates = parseInt(panel.dataset.totalDuplicates, 10) || 0;
+        const button = document.getElementById('purgeButton');
+        const confirm = document.getElementById('confirm');
+        const progress = document.getElementById('purgeProgress');
+        const bar = document.getElementById('purgeBar');
+        const status = document.getElementById('purgeStatus');
+        const done = document.getElementById('purgeDone');
+        const failed = document.getElementById('purgeFailed');
+        const failedMessage = document.getElementById('purgeFailedMessage');
+
+        let deleted = 0;
+        let groupsProcessed = 0;
+        let mockExamLinks = 0;
+        let mockExamRemoved = 0;
+        let proposals = 0;
+        let proposalsDeleted = 0;
+        let sessionItems = 0;
+
+        confirm.addEventListener('change', function () {
+            button.disabled = !confirm.checked;
+        });
+
+        function updateProgress(remaining) {
+            const percent = totalGroups === 0 ? 100 : Math.round((groupsProcessed / totalGroups) * 100);
+            bar.style.width = percent + '%';
+            bar.textContent = percent + '%';
+            document.getElementById('purgeBarWrapper')
+                .setAttribute('aria-valuenow', String(groupsProcessed));
+            status.textContent = 'Grupos procesados: ' + groupsProcessed
+                + (remaining > 0 ? ' · quedan ' + remaining : '') + '.';
+        }
+
+        async function purgeBatch() {
+            const body = new URLSearchParams({examType: examType});
+            const response = await fetch('/questions/duplicates/purge/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Accept': 'application/json'
+                },
+                body: body.toString(),
+                credentials: 'same-origin'
+            });
+            let payload = {};
+            try {
+                payload = await response.json();
+            } catch (ignored) {
+                // respuesta sin JSON: se trata como error
+            }
+            if (!response.ok) {
+                throw new Error(payload.error || ('El servidor devolvió ' + response.status));
+            }
+            return payload;
+        }
+
+        async function run() {
+            button.disabled = true;
+            progress.classList.remove('d-none');
+            failed.classList.add('d-none');
+            done.classList.add('d-none');
+
+            let remaining = 1;
+            while (remaining > 0) {
+                const result = await purgeBatch();
+                deleted += result.deleted || 0;
+                groupsProcessed += result.groupsProcessed || 0;
+                mockExamLinks += result.mockExamLinksRepointed || 0;
+                mockExamRemoved += result.mockExamLinksRemoved || 0;
+                proposals += result.proposalsRepointed || 0;
+                proposalsDeleted += result.proposalsDeleted || 0;
+                sessionItems += result.sessionItemsRepointed || 0;
+                remaining = result.remaining || 0;
+                updateProgress(remaining);
+            }
+
+            bar.classList.remove('progress-bar-animated');
+            bar.style.width = '100%';
+            bar.textContent = '100%';
+            status.textContent = 'Limpieza terminada.';
+            done.classList.remove('d-none');
+            done.innerHTML = '<p class="mb-2"><strong>Limpieza terminada.</strong></p>'
+                + '<ul class="mb-0 small">'
+                + '<li>Preguntas borradas: <strong>' + deleted + '</strong> de ' + totalDuplicates + '</li>'
+                + '<li>Grupos procesados: ' + groupsProcessed + '</li>'
+                + '<li>Apariciones en simulacros re-apuntadas: ' + mockExamLinks
+                + ' (retiradas por duplicado en el mismo simulacro: ' + mockExamRemoved + ')</li>'
+                + '<li>Propuestas re-apuntadas: ' + proposals
+                + ' (borradas por conflicto: ' + proposalsDeleted + ')</li>'
+                + '<li>Ítems de sesiones libres re-apuntados: ' + sessionItems + '</li>'
+                + '</ul>';
+        }
+
+        button.addEventListener('click', function () {
+            run().catch(function (error) {
+                status.textContent = 'Limpieza interrumpida.';
+                failedMessage.textContent = error && error.message
+                    ? error.message
+                    : 'La limpieza se ha interrumpido.';
+                failed.classList.remove('d-none');
+                button.disabled = false;
+            });
+        });
+    })();
+</script>
+</body>
+</html>

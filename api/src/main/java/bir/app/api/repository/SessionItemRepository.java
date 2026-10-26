@@ -20,4 +20,16 @@ public interface SessionItemRepository extends JpaRepository<SessionItem, Long> 
 
     @Query("SELECT i FROM SessionItem i WHERE i.answeredAt IS NOT NULL")
     List<SessionItem> findAllAnswered();
+
+    /** Ids de las preguntas (de las indicadas) que aparecen en alguna sesión. */
+    @Query("SELECT DISTINCT i.question.id FROM SessionItem i WHERE i.question.id IN (:questionIds)")
+    List<Long> findQuestionIdsIn(java.util.Collection<Long> questionIds);
+
+    /**
+     * Re-apunta al conservado los ítems de sesiones que apuntaban a la duplicada.
+     * El ítem mantiene posición y snapshot ({@code selected_letter}/{@code is_correct}),
+     * así que las estadísticas ya jugadas no cambian.
+     */
+    @Query("UPDATE SessionItem i SET i.question.id = :keepId WHERE i.question.id = :duplicateId")
+    int rePointQuestion(Long duplicateId, Long keepId);
 }

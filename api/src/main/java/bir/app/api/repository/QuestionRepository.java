@@ -33,6 +33,22 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @EntityGraph(attributePaths = {"examType", "answerOptions"})
     List<Question> findByIdIn(java.util.Collection<Long> ids);
 
+    /**
+     * Enunciados de un banco, para detectar duplicados al importar. Se compara
+     * en memoria con el texto normalizado, así que basta con traer los textos.
+     */
+    @Query("SELECT q.text FROM Question q WHERE q.examType.id = :examTypeId AND q.text IS NOT NULL")
+    List<String> findTextsByExamTypeId(Long examTypeId);
+
+    /**
+     * Todas las preguntas con sus opciones y su banco. La usa la limpieza de
+     * duplicados, que compara enunciados y opciones en memoria.
+     */
+    @Query("SELECT DISTINCT q FROM Question q JOIN FETCH q.examType e " +
+           "LEFT JOIN FETCH q.answerOptions " +
+           "WHERE (:examType = '' OR e.code = :examType) ORDER BY q.id")
+    List<Question> findAllWithOptions(String examType);
+
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.category IS NOT NULL AND q.category <> '' ORDER BY q.category")
     List<String> findDistinctCategories();
 

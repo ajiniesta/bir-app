@@ -4,18 +4,26 @@ import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionImportResponse;
 import bir.app.api.entity.ExamType;
 import bir.app.api.repository.ExamTypeRepository;
+import bir.app.api.repository.QuestionRepository;
+import bir.app.api.support.JsonObjectSplitter;
+import bir.app.api.support.QuestionTextNormalizer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,22 +35,34 @@ import java.util.Set;
  * se parsea por separado, de modo que una pregunta con JSON inválido no impide
  * importar el resto. Las preguntas con errores de validación se descartan y se
  * informa de ellas en {@link QuestionImportResponse#errors()}.</p>
+ *
+ * <p>Las preguntas cuyo enunciado ya existe en el mismo banco (o se repite dentro
+ * del propio fichero) no se vuelven a guardar: se cuentan en
+ * {@link QuestionImportResponse#duplicates()}. Eso hace que reenviar un fichero
+ * que se cortó a medias complete lo que faltaba sin crear duplicados.</p>
  */
 @Singleton
 public class QuestionImportService {
 
+    private static final Logger LOG = LoggerFactory.getLogger(QuestionImportService.class);
+
     private static final int MAX_CATEGORY_LENGTH = 100;
     private static final int MAX_TAG_LENGTH = 100;
     private static final Set<String> ALLOWED_LETTERS = Set.of("A", "B", "C", "D");
+    /** Cada cuántas preguntas se deja una traza del avance en el log. */
+    private static final int PROGRESS_LOG_EVERY = 100;
 
     private final QuestionService questionService;
     private final ExamTypeRepository examTypeRepository;
+    private final QuestionRepository questionRepository;
     private final ObjectMapper mapper;
 
     public QuestionImportService(QuestionService questionService,
-                                 ExamTypeRepository examTypeRepository) {
+                                 ExamTypeRepository examTypeRepository,
+                                 QuestionRepository questionRepository) {
         this.questionService = questionService;
         this.examTypeRepository = examTypeRepository;
+        this.questionRepository = questionRepository;
         this.mapper = new ObjectMapper(JsonFactory.builder()
                 .enable(JsonReadFeature.ALLOW_TRAILING_COMMA)
                 .build())
@@ -50,23 +70,34 @@ public class QuestionImportService {
     }
 
     public QuestionImportResponse importQuestions(String raw) {
+        return importQuestions(raw, 0);
+    }
+
+    /**
+     * Importa un trozo del fichero. {@code startPosition} es la posición del
+     * primer objeto dentro del fichero completo (la web envía el contenido por
+     * lotes), de modo que los errores se numeran con la posición global.
+     */
+    public QuestionImportResponse importQuestions(String raw, int startPosition) {
+        int offset = Math.max(0, startPosition);
         String content = stripBom(raw);
         if (content.isBlank()) {
-            return new QuestionImportResponse(0, 0, 0, List.of("El fichero está vacío."));
+            return new QuestionImportResponse(0, 0, 0, 0, List.of("El fichero está vacío."));
         }
 
-        List<String> chunks = splitTopLevelObjects(content);
+        List<String> chunks = JsonObjectSplitter.split(content);
         if (chunks.isEmpty()) {
-            return new QuestionImportResponse(0, 0, 0,
+            return new QuestionImportResponse(0, 0, 0, 0,
                     List.of("No se ha encontrado ninguna pregunta en el fichero (¿JSON mal formado?)."));
         }
 
         int total = chunks.size();
         List<String> errors = new ArrayList<>();
         List<Candidate> candidates = new ArrayList<>();
+        Map<String, Optional<Long>> examTypeCache = new HashMap<>();
 
         for (int i = 0; i < total; i++) {
-            int position = i + 1;
+            int position = offset + i + 1;
             ImportQuestion parsed;
             try {
                 parsed = mapper.readValue(chunks.get(i), ImportQuestion.class);
@@ -80,7 +111,7 @@ public class QuestionImportService {
             }
 
             List<String> questionErrors = new ArrayList<>();
-            CreateQuestionRequest request = validate(parsed, position, questionErrors);
+            CreateQuestionRequest request = validate(parsed, position, questionErrors, examTypeCache);
             if (questionErrors.isEmpty() && request != null) {
                 candidates.add(new Candidate(position, request));
             } else {
@@ -88,21 +119,66 @@ public class QuestionImportService {
             }
         }
 
+        Map<Long, Set<String>> existingTexts = loadExistingTexts(candidates);
+
         int imported = 0;
+        int duplicates = 0;
+        int processed = 0;
+
         for (Candidate candidate : candidates) {
-            try {
-                questionService.create(candidate.request());
-                imported++;
-            } catch (Exception e) {
-                errors.add("Pregunta " + candidate.position()
-                        + ": no se pudo guardar (" + rootMessage(e) + ").");
+            Set<String> texts = existingTexts.computeIfAbsent(
+                    candidate.request().examTypeId(), id -> new HashSet<>());
+            String key = normalizeText(candidate.request().text());
+            if (texts.contains(key)) {
+                duplicates++;
+            } else {
+                texts.add(key);
+                try {
+                    questionService.create(candidate.request());
+                    imported++;
+                } catch (Exception e) {
+                    texts.remove(key);
+                    errors.add("Pregunta " + candidate.position()
+                            + ": no se pudo guardar (" + rootMessage(e) + ").");
+                }
+            }
+            processed++;
+            if (processed % PROGRESS_LOG_EVERY == 0) {
+                LOG.info("Importación de preguntas: {} de {} procesadas ({} importadas, {} duplicadas)",
+                        processed, candidates.size(), imported, duplicates);
             }
         }
 
-        return new QuestionImportResponse(total, imported, total - imported, errors);
+        int skipped = total - imported - duplicates;
+        LOG.info("Importación de preguntas terminada: {} detectadas, {} importadas, {} duplicadas, {} descartadas",
+                total, imported, duplicates, skipped);
+        return new QuestionImportResponse(total, imported, skipped, duplicates, errors);
     }
 
-    private CreateQuestionRequest validate(ImportQuestion question, int position, List<String> errors) {
+    /**
+     * Enunciados ya guardados en cada banco implicado, normalizados para poder
+     * compararlos. Se carga una sola vez por banco y llamada (no por pregunta).
+     */
+    private Map<Long, Set<String>> loadExistingTexts(List<Candidate> candidates) {
+        Set<Long> examTypeIds = new LinkedHashSet<>();
+        for (Candidate candidate : candidates) {
+            examTypeIds.add(candidate.request().examTypeId());
+        }
+        Map<Long, Set<String>> existing = new HashMap<>();
+        for (Long examTypeId : examTypeIds) {
+            Set<String> texts = new HashSet<>();
+            for (String text : questionRepository.findTextsByExamTypeId(examTypeId)) {
+                texts.add(normalizeText(text));
+            }
+            existing.put(examTypeId, texts);
+        }
+        return existing;
+    }
+
+    private CreateQuestionRequest validate(ImportQuestion question,
+                                           int position,
+                                           List<String> errors,
+                                           Map<String, Optional<Long>> examTypeCache) {
         String prefix = "Pregunta " + position + ": ";
 
         String text = trimToNull(question.text());
@@ -121,7 +197,7 @@ public class QuestionImportService {
         }
 
         String explanation = trimToNull(question.explanation());
-        Long examTypeId = resolveExamType(question.examType(), prefix, errors);
+        Long examTypeId = resolveExamType(question.examType(), prefix, errors, examTypeCache);
 
         List<ImportAnswer> answers = question.answers();
         if (answers == null || answers.isEmpty()) {
@@ -175,31 +251,38 @@ public class QuestionImportService {
 
     /**
      * Interpreta {@code exam_type}: si es numérico se busca por id ("3"); si no,
-     * por código ("BIR").
+     * por código ("BIR"). El resultado se cachea durante la importación para no
+     * repetir la consulta en cada pregunta.
      */
-    private Long resolveExamType(String value, String prefix, List<String> errors) {
+    private Long resolveExamType(String value,
+                                 String prefix,
+                                 List<String> errors,
+                                 Map<String, Optional<Long>> examTypeCache) {
         String raw = trimToNull(value);
         if (raw == null) {
             errors.add(prefix + "el campo 'exam_type' es obligatorio.");
             return null;
         }
 
-        Optional<ExamType> examType;
-        if (raw.matches("\\d+")) {
-            try {
-                examType = examTypeRepository.findById(Long.parseLong(raw));
-            } catch (NumberFormatException e) {
-                examType = Optional.empty();
+        Optional<Long> resolved = examTypeCache.computeIfAbsent(raw, key -> {
+            Optional<ExamType> examType;
+            if (key.matches("\\d+")) {
+                try {
+                    examType = examTypeRepository.findById(Long.parseLong(key));
+                } catch (NumberFormatException e) {
+                    examType = Optional.empty();
+                }
+            } else {
+                examType = examTypeRepository.findByCode(key.toUpperCase(Locale.ROOT));
             }
-        } else {
-            examType = examTypeRepository.findByCode(raw.toUpperCase(Locale.ROOT));
-        }
+            return examType.map(ExamType::getId);
+        });
 
-        if (examType.isEmpty()) {
+        if (resolved.isEmpty()) {
             errors.add(prefix + "tipo de examen no encontrado: " + raw + ".");
             return null;
         }
-        return examType.get().getId();
+        return resolved.get();
     }
 
     private static String normalizeLetter(String value) {
@@ -209,6 +292,11 @@ public class QuestionImportService {
         }
         String upper = letter.toUpperCase(Locale.ROOT);
         return ALLOWED_LETTERS.contains(upper) ? upper : null;
+    }
+
+    /** Clave de comparación de enunciados (ver {@link QuestionTextNormalizer}). */
+    private static String normalizeText(String value) {
+        return QuestionTextNormalizer.normalize(value);
     }
 
     private static String trimToNull(String value) {
@@ -227,47 +315,6 @@ public class QuestionImportService {
             content = content.substring(1);
         }
         return content.strip();
-    }
-
-    /**
-     * Trocea el contenido en los objetos JSON de primer nivel. Se ignoran los
-     * corchetes de un array contenedor y las comas que separen objetos.
-     */
-    private static List<String> splitTopLevelObjects(String content) {
-        List<String> chunks = new ArrayList<>();
-        int depth = 0;
-        boolean inString = false;
-        boolean escaped = false;
-        int start = -1;
-
-        for (int i = 0; i < content.length(); i++) {
-            char c = content.charAt(i);
-            if (inString) {
-                if (escaped) {
-                    escaped = false;
-                } else if (c == '\\') {
-                    escaped = true;
-                } else if (c == '"') {
-                    inString = false;
-                }
-                continue;
-            }
-            if (c == '"') {
-                inString = true;
-            } else if (c == '{') {
-                if (depth == 0) {
-                    start = i;
-                }
-                depth++;
-            } else if (c == '}' && depth > 0) {
-                depth--;
-                if (depth == 0 && start >= 0) {
-                    chunks.add(content.substring(start, i + 1));
-                    start = -1;
-                }
-            }
-        }
-        return chunks;
     }
 
     private static String rootMessage(Throwable throwable) {
