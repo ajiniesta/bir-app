@@ -40,15 +40,11 @@ public class HomeWebController {
     public ModelAndView<Map<String, Object>> index() {
         Map<String, Object> model = new HashMap<>();
 
+        // authenticated/isAdmin/isCreator/displayName los añade NavService.addTo,
+        // que es lo que usa la barra de navegación común.
         boolean authenticated = securityService.isAuthenticated();
-        model.put("authenticated", authenticated);
-        model.put("isAdmin", securityService.hasRole("ROLE_ADMIN"));
-        model.put("isCreator", securityService.hasRole("ROLE_CREATOR"));
-        securityService.getAuthentication().ifPresent(authentication -> {
-            model.put("username", authentication.getName());
-            Object displayName = authentication.getAttributes().get("displayName");
-            model.put("displayName", displayName != null ? displayName : authentication.getName());
-        });
+        securityService.getAuthentication()
+                .ifPresent(authentication -> model.put("username", authentication.getName()));
 
         if (authenticated) {
             try {

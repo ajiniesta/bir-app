@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+    Fragmentos compartidos por todas las vistas.
+
+    - head(title): cabecera común. Incluye el <meta name="viewport"> (sin él el
+      móvil renderiza a ~980 px y la web es inusable), el CSS de Bootstrap, el
+      bundle JS (necesario para el menú de navegación) y los ajustes móviles.
+    - nav: barra de navegación única. En móvil se pliega en un offcanvas
+      (hamburguesa); a partir de 768 px se comporta como una fila normal.
+-->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0d6efd">
+    <title th:text="${title}">BirApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <style>
+        /* ------------------------------------------------------------------
+           Ajustes móviles de BirApp
+           ------------------------------------------------------------------ */
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+
+        /* Zonas táctiles cómodas y sin el zoom automático de iOS al enfocar */
+        @media (max-width: 575.98px) {
+            .btn {
+                padding: .5rem .75rem;
+            }
+
+            .form-control-sm,
+            .form-select-sm {
+                font-size: 16px;
+            }
+
+            .question-text {
+                font-size: 1.15rem;
+                line-height: 1.45;
+            }
+        }
+
+        /* Menú de navegación: offcanvas en móvil, fila normal desde 768 px */
+        @media (min-width: 768px) {
+            .nav-inline.offcanvas {
+                position: static;
+                visibility: visible !important;
+                transform: none !important;
+                width: auto;
+                height: auto;
+                background: transparent;
+                border: 0;
+                box-shadow: none;
+            }
+
+            .nav-inline .offcanvas-header,
+            .nav-inline .offcanvas-body {
+                padding: 0;
+            }
+
+            .nav-inline .offcanvas-header {
+                display: none;
+            }
+
+            .nav-inline .offcanvas-body {
+                overflow: visible;
+            }
+        }
+
+        /* Opciones de respuesta: toda la fila es zona de toque */
+        .answer-option {
+            gap: .5rem;
+            cursor: pointer;
+        }
+
+        .answer-option .form-check-input {
+            flex: 0 0 auto;
+            width: 1.25rem;
+            height: 1.25rem;
+            margin: 0;
+        }
+
+        .answer-option .answer-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        /* Barra de acciones de las pantallas de partida: fila normal en
+           escritorio y anclada al pie en móvil. Se marca el <body> con
+           .has-action-bar para dejar hueco debajo de la barra fija. */
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 767.98px) {
+            .action-bar {
+                position: fixed;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                z-index: 1030;
+                margin-top: 0;
+                background: var(--bs-body-bg);
+                border-top: 1px solid var(--bs-border-color);
+                padding: .6rem .9rem calc(.6rem + env(safe-area-inset-bottom));
+            }
+
+            .action-bar .btn {
+                flex: 1 1 auto;
+            }
+
+            body.has-action-bar {
+                padding-bottom: 6rem;
+            }
+        }
+
+        /* Selector de tags del formulario de simulacros: ancho fijo en
+           escritorio y a todo el ancho en móvil. */
+        .tag-select {
+            min-width: 220px;
+        }
+
+        @media (max-width: 575.98px) {
+            .tag-select {
+                min-width: 0;
+                width: 100%;
+            }
+        }
+
+        /* Navegador de preguntas del simulacro: plegable en móvil */
+        .question-nav {
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-light bg-white border-bottom sticky-top" th:fragment="nav">
+    <div class="container flex-nowrap gap-2">
+        <a class="navbar-brand fw-semibold mb-0" th:href="@{/}">BirApp</a>
+
+        <button class="navbar-toggler d-md-none ms-auto" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#mainMenu"
+                aria-controls="mainMenu" aria-expanded="false" aria-label="Abrir menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div id="mainMenu" class="offcanvas offcanvas-end nav-inline">
+            <div class="offcanvas-header">
+                <h2 class="offcanvas-title h5 mb-0">BirApp</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar menú"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column flex-md-row align-items-stretch align-items-md-center gap-2 ms-md-auto">
+                <th:block th:if="${authenticated}">
+                    <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
+                    <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
+                    <a th:if="${isAdmin or isCreator}" th:href="@{/questions}"
+                       class="btn btn-sm btn-outline-secondary">Preguntas</a>
+                    <a th:if="${isAdmin}" th:href="@{/admin/users}"
+                       class="btn btn-sm btn-outline-secondary">Administración</a>
+                    <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
+                        <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1"
+                              th:text="${pendingProposals}">0</span></a>
+                    <span class="text-muted small d-none d-md-inline ms-1" th:text="${displayName}">Usuario</span>
+                    <form th:action="@{/logout}" method="post" class="d-grid d-md-block m-0">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Salir</button>
+                    </form>
+                </th:block>
+                <th:block th:unless="${authenticated}">
+                    <a th:href="@{/login}" class="btn btn-sm btn-outline-secondary">Iniciar sesión</a>
+                    <a th:href="@{/register}" class="btn btn-sm btn-primary">Crear cuenta</a>
+                </th:block>
+            </div>
+        </div>
+    </div>
+</nav>
+
+</body>
+</html>

@@ -1,35 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>BirApp - Banco de preguntas de exámenes</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
+<head th:replace="~{fragments/layout :: head('BirApp - Banco de preguntas de exámenes')}"></head>
 <body class="bg-light">
-
-<nav class="navbar navbar-expand bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand fw-semibold" th:href="@{/}">BirApp</a>
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <th:block th:if="${authenticated}">
-                <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
-                <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
-                <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-sm btn-outline-secondary">Preguntas</a>
-                <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-sm btn-outline-secondary">Administración</a>
-                <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
-                    <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
-                <span class="text-muted small d-none d-md-inline" th:text="${displayName}">Usuario</span>
-                <form th:action="@{/logout}" method="post" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-outline-secondary">Salir</button>
-                </form>
-            </th:block>
-            <th:block th:unless="${authenticated}">
-                <a th:href="@{/login}" class="btn btn-sm btn-outline-secondary">Iniciar sesión</a>
-                <a th:href="@{/register}" class="btn btn-sm btn-primary">Crear cuenta</a>
-            </th:block>
-        </div>
-    </div>
-</nav>
+<nav th:replace="~{fragments/layout :: nav}"></nav>
 
 <div class="container py-4">
 
@@ -101,6 +74,7 @@
             <div th:if="${!#lists.isEmpty(quizStats.mine().byExamType())}" class="card mb-5">
                 <div class="card-body">
                     <h3 class="h6 text-muted text-uppercase mb-3">Tus resultados por tipo de examen</h3>
+                    <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
                         <thead>
                         <tr>
@@ -120,6 +94,7 @@
                         </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
@@ -177,6 +152,7 @@
 
         <div th:if="${!#lists.isEmpty(mockExamStats.byMockExam())}" class="card">
             <div class="card-body">
+                <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
                     <thead>
                     <tr>
@@ -199,6 +175,7 @@
                     </tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>

@@ -1,46 +1,38 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title>Simulacro en curso - BirApp</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<nav class="navbar navbar-expand bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand fw-semibold" th:href="@{/}">BirApp</a>
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <span class="text-muted small d-none d-md-inline" th:text="${attempt.mockExamTitle()}">Simulacro</span>
-            <a th:if="${canReview}" th:href="@{/revisiones}" class="btn btn-sm btn-outline-warning">Revisiones
-                <span th:if="${pendingProposals > 0}" class="badge bg-danger ms-1" th:text="${pendingProposals}">0</span></a>
-            <a th:href="@{/simulacros/{id}(id=${mockExamId})}" class="btn btn-sm btn-outline-secondary">Salir</a>
-        </div>
-    </div>
-</nav>
+<head th:replace="~{fragments/layout :: head('Simulacro en curso - BirApp')}"></head>
+<body class="bg-light has-action-bar">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
 
 <div class="container py-4" style="max-width: 860px">
 
     <div th:if="${saved}" class="alert alert-success py-2">Respuesta guardada.</div>
 
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
         <span class="text-muted small"
               th:text="'Pregunta ' + ${currentPosition} + ' de ' + ${attempt.totalQuestions()}">Pregunta 1</span>
-        <span class="text-muted small"
-              th:text="'Respondidas: ' + ${attempt.answeredCount()} + ' / ' + ${attempt.totalQuestions()}">0</span>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted small"
+                  th:text="'Respondidas: ' + ${attempt.answeredCount()} + ' / ' + ${attempt.totalQuestions()}">0</span>
+            <a th:href="@{/simulacros/{id}(id=${mockExamId})}" class="btn btn-sm btn-outline-secondary">Salir</a>
+        </div>
     </div>
     <div class="progress mb-4" style="height: 6px">
         <div class="progress-bar" role="progressbar"
              th:style="'width: ' + ${attempt.totalQuestions() > 0 ? (attempt.answeredCount() * 100 / attempt.totalQuestions()) : 0} + '%'"></div>
     </div>
 
-    <!-- Navegador de preguntas -->
-    <div class="d-flex flex-wrap gap-1 mb-4">
-        <a th:each="item : ${attempt.items()}"
-           th:href="@{/simulacros/{id}/attempts/{aid}(id=${mockExamId},aid=${attempt.id()},position=${item.position()})}"
-           class="btn btn-sm"
-           th:classappend="${item.position() == currentPosition} ? 'btn-dark' : (${item.answered()} ? 'btn-outline-success' : 'btn-outline-secondary')"
-           th:text="${item.position()}">1</a>
-    </div>
+    <!-- Navegador de preguntas: en móvil se pliega para no comerse la pantalla -->
+    <details class="mb-4" id="questionNavigator">
+        <summary class="btn btn-sm btn-outline-secondary d-md-none">Ir a la pregunta</summary>
+        <div class="d-flex flex-wrap gap-1 mt-2 mt-md-0 question-nav">
+            <a th:each="item : ${attempt.items()}"
+               th:href="@{/simulacros/{id}/attempts/{aid}(id=${mockExamId},aid=${attempt.id()},position=${item.position()})}"
+               class="btn btn-sm"
+               th:classappend="${item.position() == currentPosition} ? 'btn-dark' : (${item.answered()} ? 'btn-outline-success' : 'btn-outline-secondary')"
+               th:text="${item.position()}">1</a>
+        </div>
+    </details>
 
     <div class="card mb-3" th:if="${current != null}">
         <div class="card-body">
@@ -51,7 +43,7 @@
                 <span class="badge bg-warning text-dark ms-1" th:if="${current.tag() != null}"
                       th:text="'#' + ${current.tag()}">#tag</span>
             </div>
-            <p class="card-text fs-5 mb-0" th:text="${current.questionText()}">Enunciado</p>
+            <p class="card-text fs-5 question-text mb-0" th:text="${current.questionText()}">Enunciado</p>
         </div>
     </div>
 
@@ -62,16 +54,18 @@
 
         <div class="list-group mb-3">
             <label th:each="opt : ${current.options()}"
-                   class="list-group-item d-flex align-items-center" style="cursor: pointer">
-                <input class="form-check-input me-3" type="radio" name="letter"
+                   class="list-group-item d-flex align-items-center answer-option">
+                <input class="form-check-input" type="radio" name="letter"
                        th:value="${opt.letter()}"
                        th:checked="${opt.letter() == current.selectedLetter()}">
-                <span class="badge bg-secondary me-2" th:text="${opt.letter()}">A</span>
-                <span th:text="${opt.text()}">Texto</span>
+                <span class="answer-text">
+                    <span class="badge bg-secondary me-2" th:text="${opt.letter()}">A</span>
+                    <span th:text="${opt.text()}">Texto</span>
+                </span>
             </label>
         </div>
 
-        <div class="d-flex flex-wrap gap-2">
+        <div class="action-bar">
             <button type="submit" name="action" value="save" class="btn btn-outline-primary">Guardar respuesta</button>
             <button type="submit" name="action" value="next" class="btn btn-primary">Guardar y siguiente</button>
         </div>
@@ -93,5 +87,21 @@
         </form>
     </div>
 </div>
+
+<script>
+    // El navegador de preguntas se pliega en móvil y se abre siempre en escritorio.
+    (function () {
+        var navigator = document.getElementById('questionNavigator');
+        if (!navigator) {
+            return;
+        }
+        var desktop = window.matchMedia('(min-width: 768px)');
+        var sync = function () {
+            navigator.open = desktop.matches;
+        };
+        sync();
+        desktop.addEventListener('change', sync);
+    })();
+</script>
 </body>
 </html>
