@@ -71,13 +71,10 @@ services:
 
   web:
     image: ghcr.io/ajiniesta/bir-app/web:latest
-    build:
-      context: ..
-      dockerfile: ../web/Dockerfile
     environment:
       API_BASE_URL: http://api:18080
     ports:
-      - "8081:8081"
+      - "8082:8081"
     depends_on:
       api:
         condition: service_healthy
