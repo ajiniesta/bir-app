@@ -153,6 +153,22 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 
 Thymeleaf views live in `web/src/main/resources/templates/` (non-default location, configured via `micronaut.views.folder: templates`).
 
+### Shared layout (mobile-first)
+
+Every view starts with the two fragments in `templates/fragments/layout.html`:
+
+```html
+<head th:replace="~{fragments/layout :: head('Título - BirApp')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+```
+
+- `head(title)` carries the **`<meta name="viewport">`** (without it a phone renders at ~980 px), the Bootstrap CSS **and the JS bundle** (needed for the collapsible menu), and the inline mobile CSS. Do not add per-page `<head>` blocks; pass the title as the fragment argument (the value can be an expression).
+- `nav` is the only navigation bar: a hamburger **offcanvas** below 768 px and a normal row above it (`.nav-inline` CSS). It reads `authenticated`, `isAdmin`, `isCreator`, `displayName`, `canReview` and `pendingProposals` from the model; **all of them are put there by `NavService.addTo`**, which every controller already calls. Add a new global link in the fragment, not per page.
+- Login/register use only `head` (no `nav`, they are public).
+- Mobile helpers in the same `<style>`: `.answer-option`/`.answer-text` (whole row tappable), `.question-text` (bigger statement), `.action-bar` (primary buttons: normal row on desktop, fixed to the bottom on mobile — add `has-action-bar` to `<body>`), `.tag-select` and `.question-nav` (collapsible question navigator in an attempt).
+- Because the layout is a fragment, changing a navbar link or a media query is a one-file change; a page that forges its own `<nav>` will drift.
+
 ## Key conventions
 
 - **One correct answer per question** — validated in `QuestionService` (create/update reject != 1 correct option).
