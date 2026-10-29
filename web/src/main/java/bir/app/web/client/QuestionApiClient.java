@@ -29,6 +29,7 @@ import bir.app.web.dto.QuestionResponse;
 import bir.app.web.dto.QuizStatsResponse;
 import bir.app.web.dto.RegisterRequest;
 import bir.app.web.dto.ReviewProposalRequest;
+import bir.app.web.dto.StatsOverviewResponse;
 import bir.app.web.dto.UpdateBanksRequest;
 import bir.app.web.dto.UpdateRoleRequest;
 import bir.app.web.dto.UserResponse;
@@ -108,6 +109,10 @@ public interface QuestionApiClient {
 
     @Get("/api/stats/quiz")
     QuizStatsResponse quizStats();
+
+    /** Estadísticas combinadas por categoría; el bloque global solo para ADMIN/CREATOR. */
+    @Get("/api/stats/overview")
+    StatsOverviewResponse statsOverview();
 
     /** Estadísticas de simulacros del usuario autenticado. */
     @Get("/api/stats/mock-exams")

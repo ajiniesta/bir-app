@@ -160,6 +160,7 @@
                 <th:block th:if="${authenticated}">
                     <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
                     <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
+                    <a th:href="@{/estadisticas}" class="btn btn-sm btn-outline-primary">Estadísticas</a>
                     <a th:if="${isAdmin or isCreator}" th:href="@{/questions}"
                        class="btn btn-sm btn-outline-secondary">Preguntas</a>
                     <a th:if="${isAdmin}" th:href="@{/admin/users}"

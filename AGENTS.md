@@ -69,7 +69,8 @@ Notes:
 | POST | `/api/auth/register` | anonymous | Create user (always role USER) |
 | GET | `/api/stats` | anonymous | `DashboardStatsResponse` (all question counters) |
 | GET | `/api/stats/banks` | authenticated | Same, limited to the user's allowed banks (all for ADMIN/CREATOR) |
-| GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user + global) |
+| GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user; global block only for ADMIN/CREATOR) |
+| GET | `/api/stats/overview` | authenticated | `StatsOverviewResponse` (free + mock stats by category; `global` only for ADMIN/CREATOR) |
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
 | GET | `/api/questions/page{?page,size,q,examType,category,tag}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank, category and tag; `__NONE__` = without category/tag |
@@ -133,6 +134,7 @@ Errors are mapped by `GlobalExceptionHandler` (`api/exception`): `NoSuchElementE
 | POST | `/free/{id}/answer` | — | |
 | POST | `/free/{id}/proposals` | — | Propose an alternative answer from the feedback screen |
 | GET | `/free/{id}/result` | `free/result` | |
+| GET | `/estadisticas` | `stats/index` | Personal stats by category (free + mock); global section for ADMIN/CREATOR |
 | GET | `/simulacros` | `simulacro/list` | Mock exams visible to the user |
 | GET | `/simulacros/{id}` | `simulacro/detail` | Detail + attempt history |
 | GET | `/simulacros/{id}/pdf` | — | Printable PDF of the whole mock exam (questions + options, no correct answers, with an answer sheet) |
@@ -226,7 +228,7 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 - Start a session (`POST /api/free-sessions`): filter by exam type + category + tag + count, questions picked at random. The selected tag is stored in `free_session.tag` and shown on the result page. A `USER` can only pick among its assigned banks (and gets a 403 if it has none); ADMIN/CREATOR use every bank.
 - Answer one at a time (`POST /api/free-sessions/{id}/answers`); the API records correctness immediately and marks the session finished when all items are answered.
 - The API never reveals the correct option of unanswered items (only `correctLetter` of answered ones), nor the **explanation** (`question.explanation`): it is sent only once the item is answered.
-- Statistics: `GET /api/stats` (public counters), `GET /api/stats/banks` (counters for the user's allowed banks) and `GET /api/stats/quiz` (current user's results plus an app-wide summary). The dashboard (`HomeWebController`) uses `banks` + `quiz` when logged in.
+- Statistics: `GET /api/stats` (public counters), `GET /api/stats/banks` (counters for the user's allowed banks), `GET /api/stats/quiz` (current user's free-mode results; the app-wide summary is only filled for ADMIN/CREATOR) and `GET /api/stats/overview` (combined free + mock stats by category). The dashboard (`HomeWebController`) uses `banks` + `quiz` when logged in.
 - In the web app the flow is `/free` (configure) → `/free/{id}` (answer) → `/free/{id}/result`. The **explanation** is shown on the feedback screen after answering (`free/question.html`) and again per question in the result (`free/result.html`).
 
 ## Mock exams (simulacros)
@@ -239,6 +241,16 @@ answer_proposal (id, question_id, proposed_by, proposed_letter, proposed_text, c
 - In the web app the flow is `/simulacros` (list) → `/simulacros/{id}` (detail + history) → `/simulacros/{id}/attempts/{attemptId}` (answer) → `/simulacros/{id}/attempts/{attemptId}/result`.
 - **Printable PDF**: each mock exam can be downloaded as a PDF from the list and the detail (`/simulacros/{id}/pdf`, `target="_blank"`). It is generated server-side by the `web` module with **OpenHTMLtoPDF** (`bir.app.web.support.MockExamPdfService`), which renders an XHTML document to `application/pdf` (`Content-Disposition: inline`). It contains every question with its options (letter + text, **never** the correct answer) and its **explanation** when present, an instructions header and a final **answer sheet** grid to mark A/B/C/D by hand. Access matches the detail page: it reuses `client.getMockExam(id)`, so `USER` only gets PDFs for its assigned banks (otherwise `404`) and anonymous requests are rejected (`401`).
 - Deleting a question that belongs to a mock exam is rejected (`400`); remove it from the mock exam first.
+
+## Statistics by category (estadísticas por categoría)
+
+- `GET /api/stats/overview` returns `StatsOverviewResponse` combining answered questions from **free sessions** and **finished mock-exam attempts** (open attempts do not count). Each side is keyed by its own category: the live `question.category` for free mode and the snapshot `mock_exam_attempt_item.category` for mock exams.
+- `mine.byCategory` includes **every category of the user's question banks** (all banks for ADMIN/CREATOR), even with 0 answers, so the user can see what is still unpracticed. A `USER` only gets the categories of its assigned banks, plus any historical category it already answered. Questions without category are grouped in the **"Sin categoría"** bucket, always sorted last.
+- Categories are merged case- and accent-insensitively with `QuestionTextNormalizer`; the first spelling found is displayed. Accuracy uses the same one-decimal rounding as the rest of the stats.
+- `mine` also carries `freeSessions`, `mockAttempts` (finished), `answered`, `correct` and `accuracy`.
+- The `global` block (`users` with activity, totals, `byCategory` and `byUser`) is **only calculated for ADMIN/CREATOR**; for a `USER` it is `null`. The `global` block of `GET /api/stats/quiz` is gated the same way, so a `USER` never receives other users' activity.
+- The web page `/estadisticas` (`templates/stats/index.html`) renders KPI cards, a horizontal **Chart.js** bar chart (CDN, pinned version) and the full category table. The chart reads the `data-*` attributes of the table rows, so the table remains the source of truth and still works without JavaScript. ADMIN/CREATOR also see the global KPIs, the global category chart and the per-user table.
+- The computation loads the answered items and aggregates in memory, like the existing quiz stats. No Liquibase changes are needed.
 
 ## Answer proposals & review mode
 
@@ -315,10 +327,10 @@ Notes:
 
 ## Tests
 
-- **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService`, `QuestionDuplicatesService`, `JsonObjectSplitter`, `QuestionTextNormalizer` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
+- **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService`, `QuestionDuplicatesService`, `StatisticsService`, `JsonObjectSplitter`, `QuestionTextNormalizer` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
 - **`web`** — two layers:
   - Unit tests with Mockito: forms (`QuestionForm`, `MockExamForm`), `MockExamPdfService` (renders a PDF and extracts its text with PDFBox), `ApiAuthenticationProvider`, `ApiTokenFilter`, `NavService`, `JsonObjectSplitter`, `QuestionImportJob`.
-  - `@MicronautTest` HTTP tests (`QuestionWebController`, `DuplicateQuestionsWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
+  - `@MicronautTest` HTTP tests (`QuestionWebController`, `DuplicateQuestionsWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`, `StatsWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
   - `web/src/test/resources/application-test.yml` sets `micronaut.server.port: -1` and `micronaut.http.client.follow-redirects: false` so tests assert `303` + `Location` instead of the final page.
   - Regression coverage: creating a mock exam with **210 `questionIds`** (the `form-max-fields: 512` fix) and the 211-question rejection.
 - Names in English and `@DisplayName` in Spanish, like the rest of the docs.

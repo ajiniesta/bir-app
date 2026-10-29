@@ -52,6 +52,12 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("SELECT DISTINCT q.category FROM Question q WHERE q.category IS NOT NULL AND q.category <> '' ORDER BY q.category")
     List<String> findDistinctCategories();
 
+    /** Categorías existentes en un conjunto de bancos (las visibles para un USER). */
+    @Query("SELECT DISTINCT q.category FROM Question q " +
+           "WHERE q.category IS NOT NULL AND q.category <> '' AND q.examType.code IN (:examTypeCodes) " +
+           "ORDER BY q.category")
+    List<String> findDistinctCategoriesByExamTypeCodeIn(java.util.Collection<String> examTypeCodes);
+
     @Query("SELECT DISTINCT q.tag FROM Question q WHERE q.tag IS NOT NULL AND q.tag <> '' ORDER BY q.tag")
     List<String> findDistinctTags();
 

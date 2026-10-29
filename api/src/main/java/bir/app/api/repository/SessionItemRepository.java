@@ -15,10 +15,16 @@ public interface SessionItemRepository extends JpaRepository<SessionItem, Long> 
      * agregación por tipo de examen se hace en el servicio (evita JPQL con
      * parámetros nulos y proyecciones complejas).
      */
-    @Query("SELECT i FROM SessionItem i WHERE i.session.user.username = :username AND i.answeredAt IS NOT NULL")
+    @Query("SELECT i FROM SessionItem i " +
+           "JOIN FETCH i.question q JOIN FETCH q.examType " +
+           "JOIN FETCH i.session s JOIN FETCH s.user " +
+           "WHERE s.user.username = :username AND i.answeredAt IS NOT NULL")
     List<SessionItem> findAnsweredByUsername(String username);
 
-    @Query("SELECT i FROM SessionItem i WHERE i.answeredAt IS NOT NULL")
+    @Query("SELECT i FROM SessionItem i " +
+           "JOIN FETCH i.question q JOIN FETCH q.examType " +
+           "JOIN FETCH i.session s JOIN FETCH s.user " +
+           "WHERE i.answeredAt IS NOT NULL")
     List<SessionItem> findAllAnswered();
 
     /** Ids de las preguntas (de las indicadas) que aparecen en alguna sesión. */
