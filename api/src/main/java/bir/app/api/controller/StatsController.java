@@ -3,9 +3,11 @@ package bir.app.api.controller;
 import bir.app.api.dto.DashboardStatsResponse;
 import bir.app.api.dto.MockExamStatsResponse;
 import bir.app.api.dto.QuizStatsResponse;
+import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.service.FreeSessionService;
 import bir.app.api.service.MockExamAttemptService;
 import bir.app.api.service.QuestionService;
+import bir.app.api.service.StatisticsService;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
 import io.micronaut.security.annotation.Secured;
@@ -19,13 +21,16 @@ public class StatsController {
     private final QuestionService questionService;
     private final FreeSessionService freeSessionService;
     private final MockExamAttemptService mockExamAttemptService;
+    private final StatisticsService statisticsService;
 
     public StatsController(QuestionService questionService,
                            FreeSessionService freeSessionService,
-                           MockExamAttemptService mockExamAttemptService) {
+                           MockExamAttemptService mockExamAttemptService,
+                           StatisticsService statisticsService) {
         this.questionService = questionService;
         this.freeSessionService = freeSessionService;
         this.mockExamAttemptService = mockExamAttemptService;
+        this.statisticsService = statisticsService;
     }
 
     /** Contadores del banco de preguntas: públicos (los usa la landing). */
@@ -45,6 +50,15 @@ public class StatsController {
     @Get("/quiz")
     public QuizStatsResponse quizStats(Authentication authentication) {
         return freeSessionService.stats(authentication.getName());
+    }
+
+    /**
+     * Estadísticas combinadas (modo libre + simulacros entregados) por categoría.
+     * El bloque global solo viene informado para ADMIN/CREATOR.
+     */
+    @Get("/overview")
+    public StatsOverviewResponse overview(Authentication authentication) {
+        return statisticsService.overview(authentication.getName());
     }
 
     /** Estadísticas de simulacros del usuario autenticado. */

@@ -121,14 +121,18 @@ public class FreeSessionService {
                 sessions, mineAnsweredCount, mineCorrect,
                 pct(mineCorrect, mineAnsweredCount), byExamType(mineAnswered));
 
-        long users = freeSessionRepository.countDistinctUsers();
-        long globalSessions = freeSessionRepository.count();
-        List<SessionItem> allAnswered = sessionItemRepository.findAllAnswered();
-        long globalAnswered = allAnswered.size();
-        long globalCorrect = countCorrect(allAnswered);
-        QuizStatsResponse.Global global = new QuizStatsResponse.Global(
-                users, globalSessions, globalAnswered, globalCorrect,
-                pct(globalCorrect, globalAnswered), byExamType(allAnswered));
+        // La actividad del resto de usuarios solo la ve ADMIN/CREATOR.
+        QuizStatsResponse.Global global = null;
+        if (accessControlService.hasGlobalBankAccess(username)) {
+            long users = freeSessionRepository.countDistinctUsers();
+            long globalSessions = freeSessionRepository.count();
+            List<SessionItem> allAnswered = sessionItemRepository.findAllAnswered();
+            long globalAnswered = allAnswered.size();
+            long globalCorrect = countCorrect(allAnswered);
+            global = new QuizStatsResponse.Global(
+                    users, globalSessions, globalAnswered, globalCorrect,
+                    pct(globalCorrect, globalAnswered), byExamType(allAnswered));
+        }
 
         return new QuizStatsResponse(mine, global);
     }

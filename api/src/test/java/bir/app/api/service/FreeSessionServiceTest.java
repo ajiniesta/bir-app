@@ -319,6 +319,7 @@ class FreeSessionServiceTest {
 
         when(freeSessionRepository.countByUserUsername("demo")).thenReturn(2L);
         when(sessionItemRepository.findAnsweredByUsername("demo")).thenReturn(answered);
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
         when(freeSessionRepository.countDistinctUsers()).thenReturn(3L);
         when(freeSessionRepository.count()).thenReturn(5L);
         when(sessionItemRepository.findAllAnswered()).thenReturn(answered);
@@ -338,5 +339,26 @@ class FreeSessionServiceTest {
             assertThat(stats.correct()).isEqualTo(1);
             assertThat(stats.accuracy()).isEqualTo(50d);
         });
+    }
+
+    @Test
+    @DisplayName("un USER no recibe el resumen global")
+    void userDoesNotReceiveGlobalStats() {
+        ExamType examType = TestData.examType(1L, "EIT", "EIR");
+        SessionItem item = new SessionItem();
+        item.setQuestion(question(1L, examType, null, null));
+        item.setPosition(1);
+        item.setAnsweredAt(LocalDateTime.now());
+        item.setIsCorrect(true);
+
+        when(freeSessionRepository.countByUserUsername("demo")).thenReturn(1L);
+        when(sessionItemRepository.findAnsweredByUsername("demo")).thenReturn(List.of(item));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(false);
+
+        QuizStatsResponse response = service.stats("demo");
+
+        assertThat(response.mine().answered()).isEqualTo(1);
+        assertThat(response.global()).isNull();
+        verify(sessionItemRepository, never()).findAllAnswered();
     }
 }

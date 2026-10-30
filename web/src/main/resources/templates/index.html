@@ -14,6 +14,7 @@
         <div class="d-flex flex-wrap gap-2" th:if="${authenticated}">
             <a th:href="@{/free}" class="btn btn-primary">Empezar modo libre</a>
             <a th:href="@{/simulacros}" class="btn btn-primary">Ver simulacros</a>
+            <a th:href="@{/estadisticas}" class="btn btn-outline-primary">Mis estadísticas</a>
             <a th:if="${isAdmin or isCreator}" th:href="@{/questions}" class="btn btn-outline-primary">Ver todas las preguntas</a>
             <a th:if="${isAdmin or isCreator}" th:href="@{/questions/create}" class="btn btn-outline-secondary">+ Nueva pregunta</a>
             <a th:if="${isAdmin}" th:href="@{/admin/users}" class="btn btn-outline-secondary">Administración</a>
@@ -214,8 +215,8 @@
         </div>
     </div>
 
-    <!-- Resumen global -->
-    <div th:if="${authenticated and quizStats != null}" class="mt-5">
+    <!-- Resumen global (solo ADMIN/CREATOR) -->
+    <div th:if="${authenticated and quizStats != null and quizStats.global() != null}" class="mt-5">
         <h2 class="h5 mb-3">Resumen global</h2>
         <div class="card">
             <div class="card-body d-flex flex-wrap gap-4">

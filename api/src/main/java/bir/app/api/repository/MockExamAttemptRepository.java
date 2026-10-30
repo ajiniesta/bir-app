@@ -25,4 +25,13 @@ public interface MockExamAttemptRepository extends JpaRepository<MockExamAttempt
 
     @Query("SELECT COUNT(a) FROM MockExamAttempt a WHERE a.mockExam.id = :mockExamId")
     long countByMockExam(Long mockExamId);
+
+    /** Intentos entregados por un usuario (estadísticas personales). */
+    @Query("SELECT COUNT(a) FROM MockExamAttempt a " +
+           "WHERE a.user.username = :username AND a.finishedAt IS NOT NULL")
+    long countFinishedByUsername(String username);
+
+    /** Intentos entregados de toda la aplicación (estadísticas globales). */
+    @Query("SELECT COUNT(a) FROM MockExamAttempt a WHERE a.finishedAt IS NOT NULL")
+    long countFinished();
 }

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Estadísticas - BirApp')}"></head>
+<body class="bg-light">
+<nav th:replace="~{fragments/layout :: nav}"></nav>
+
+<div class="container py-4">
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">Estadísticas</h1>
+            <p class="text-muted mb-0">
+                Tu progreso por categoría, sumando modo libre y simulacros entregados.
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a th:href="@{/free}" class="btn btn-sm btn-primary">Modo libre</a>
+            <a th:href="@{/simulacros}" class="btn btn-sm btn-outline-primary">Simulacros</a>
+        </div>
+    </div>
+
+    <div th:if="${error}" class="alert alert-danger" th:text="${error}">Error</div>
+
+    <div th:if="${overview != null}">
+
+        <!-- Mis resultados -->
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-3 mb-4">
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Partidas</div>
+                        <div class="fs-3 fw-semibold" th:text="${overview.mine().freeSessions()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Simulacros</div>
+                        <div class="fs-3 fw-semibold" th:text="${overview.mine().mockAttempts()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Respondidas</div>
+                        <div class="fs-3 fw-semibold" th:text="${overview.mine().answered()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">Acertadas</div>
+                        <div class="fs-3 fw-semibold text-success" th:text="${overview.mine().correct()}">0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100 text-center">
+                    <div class="card-body">
+                        <div class="text-muted small text-uppercase">% acierto</div>
+                        <div class="fs-3 fw-semibold"
+                             th:text="${#numbers.formatDecimal(overview.mine().accuracy(), 1, 1)} + '%'">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-5">
+            <div class="card-body">
+                <h2 class="h5 mb-1">Tus resultados por categoría</h2>
+                <p class="text-muted small mb-3">
+                    Se incluyen todas las categorías de tus bancos, aunque todavía no hayas respondido
+                    ninguna pregunta en ellas.
+                </p>
+
+                <th:block th:if="${!#lists.isEmpty(overview.mine().byCategory())}">
+                    <div class="position-relative mb-4" style="height: 260px">
+                        <canvas id="mineCategoryChart" role="img"
+                                aria-label="Gráfico de barras de preguntas respondidas y acertadas por categoría"></canvas>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Categoría</th>
+                                <th class="text-end">Respondidas</th>
+                                <th class="text-end">Acertadas</th>
+                                <th class="text-end">% acierto</th>
+                            </tr>
+                            </thead>
+                            <tbody id="mineCategoryRows">
+                            <tr th:each="c : ${overview.mine().byCategory()}"
+                                th:attr="data-category=${c.category()},data-answered=${c.answered()},data-correct=${c.correct()}">
+                                <td th:text="${c.category()}">Categoría</td>
+                                <td class="text-end" th:text="${c.answered()}">0</td>
+                                <td class="text-end text-success" th:text="${c.correct()}">0</td>
+                                <td class="text-end"
+                                    th:text="${#numbers.formatDecimal(c.accuracy(), 1, 1)} + '%'">0%</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </th:block>
+
+                <div th:if="${#lists.isEmpty(overview.mine().byCategory())}" class="text-muted">
+                    Todavía no hay categorías ni respuestas registradas.
+                    <a th:href="@{/free}">Empieza una partida</a>.
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista global (solo ADMIN/CREATOR) -->
+        <th:block th:if="${overview.global() != null}">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h2 class="h5 mb-0">Estadísticas globales</h2>
+                    <p class="text-muted small mb-0">
+                        Actividad de todos los usuarios. Visible solo para administradores y creadores.
+                    </p>
+                </div>
+            </div>
+
+            <div class="row row-cols-2 row-cols-md-3 row-cols-xl-6 g-3 mb-4">
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">Usuarios activos</div>
+                            <div class="fs-3 fw-semibold" th:text="${overview.global().users()}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">Partidas</div>
+                            <div class="fs-3 fw-semibold" th:text="${overview.global().freeSessions()}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">Simulacros</div>
+                            <div class="fs-3 fw-semibold" th:text="${overview.global().mockAttempts()}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">Respondidas</div>
+                            <div class="fs-3 fw-semibold" th:text="${overview.global().answered()}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">Acertadas</div>
+                            <div class="fs-3 fw-semibold text-success" th:text="${overview.global().correct()}">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card h-100 text-center">
+                        <div class="card-body">
+                            <div class="text-muted small text-uppercase">% acierto</div>
+                            <div class="fs-3 fw-semibold"
+                                 th:text="${#numbers.formatDecimal(overview.global().accuracy(), 1, 1)} + '%'">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="h6 text-muted text-uppercase mb-3">Resultados globales por categoría</h3>
+
+                    <th:block th:if="${!#lists.isEmpty(overview.global().byCategory())}">
+                        <div class="position-relative mb-4" style="height: 260px">
+                            <canvas id="globalCategoryChart" role="img"
+                                    aria-label="Gráfico de barras global de preguntas respondidas y acertadas por categoría"></canvas>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th class="text-end">Respondidas</th>
+                                    <th class="text-end">Acertadas</th>
+                                    <th class="text-end">% acierto</th>
+                                </tr>
+                                </thead>
+                                <tbody id="globalCategoryRows">
+                                <tr th:each="c : ${overview.global().byCategory()}"
+                                    th:attr="data-category=${c.category()},data-answered=${c.answered()},data-correct=${c.correct()}">
+                                    <td th:text="${c.category()}">Categoría</td>
+                                    <td class="text-end" th:text="${c.answered()}">0</td>
+                                    <td class="text-end text-success" th:text="${c.correct()}">0</td>
+                                    <td class="text-end"
+                                        th:text="${#numbers.formatDecimal(c.accuracy(), 1, 1)} + '%'">0%</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </th:block>
+
+                    <div th:if="${#lists.isEmpty(overview.global().byCategory())}" class="text-muted">
+                        No hay categorías registradas en el banco de preguntas.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="h6 text-muted text-uppercase mb-3">Resultados por usuario</h3>
+
+                    <div th:if="${#lists.isEmpty(overview.global().byUser())}" class="text-muted">
+                        Todavía no hay actividad registrada.
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(overview.global().byUser())}" class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                            <tr>
+                                <th>Usuario</th>
+                                <th class="text-end">Respondidas</th>
+                                <th class="text-end">Acertadas</th>
+                                <th class="text-end">% acierto</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="u : ${overview.global().byUser()}">
+                                <td>
+                                    <span class="fw-semibold" th:text="${u.displayName()}">Nombre</span>
+                                    <span class="text-muted small"
+                                          th:text="'(' + ${u.username()} + ')'">(usuario)</span>
+                                </td>
+                                <td class="text-end" th:text="${u.answered()}">0</td>
+                                <td class="text-end text-success" th:text="${u.correct()}">0</td>
+                                <td class="text-end"
+                                    th:text="${#numbers.formatDecimal(u.accuracy(), 1, 1)} + '%'">0%</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </th:block>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        if (typeof Chart === 'undefined') {
+            return; // sin CDN la tabla sigue mostrando todos los datos
+        }
+
+        function buildCategoryChart(canvasId, rowsId) {
+            var canvas = document.getElementById(canvasId);
+            var rows = document.querySelectorAll('#' + rowsId + ' tr[data-category]');
+            if (!canvas || rows.length === 0) {
+                return;
+            }
+
+            var labels = [];
+            var answered = [];
+            var correct = [];
+            Array.prototype.forEach.call(rows, function (row) {
+                labels.push(row.getAttribute('data-category'));
+                answered.push(Number(row.getAttribute('data-answered')));
+                correct.push(Number(row.getAttribute('data-correct')));
+            });
+
+            // Una barra horizontal necesita altura: 34 px por categoría, mínimo 260 px.
+            var wrapper = canvas.parentElement;
+            wrapper.style.height = Math.max(260, labels.length * 34) + 'px';
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Respondidas', data: answered, backgroundColor: '#0d6efd' },
+                        { label: 'Acertadas', data: correct, backgroundColor: '#198754' }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, ticks: { precision: 0 } },
+                        y: { ticks: { autoSkip: false } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        buildCategoryChart('mineCategoryChart', 'mineCategoryRows');
+        buildCategoryChart('globalCategoryChart', 'globalCategoryRows');
+    })();
+</script>
+</body>
+</html>

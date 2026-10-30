@@ -59,7 +59,10 @@ categoría, tag y explicación opcional.
   equipo. Se responden en modo examen (sin pistas), se pueden cambiar respuestas, guardar
   progreso y entregar cuando quieras. Intentos ilimitados, con historial y comparativa de notas.
 - **Estadísticas**: partidas, preguntas respondidas, acertadas, porcentaje de acierto y desglose
-  por tipo de examen; en simulacros, nota media, mejor nota e historial por simulacro.
+  por tipo de examen; gráfico de barras y tabla por categoría (modo libre + simulacros entregados),
+  incluyendo las categorías que aún no has practicado. Los administradores y creadores ven además
+  las estadísticas globales de todos los usuarios. En simulacros: nota media, mejor nota e
+  historial por simulacro.
 - **PDF de simulacros**: cada simulacro se puede descargar en PDF (preguntas, opciones, hoja de
   respuestas) para practicar en papel.
 - **Propuestas de respuesta**: si crees que una pregunta está mal, puedes proponer otra opción
@@ -306,7 +309,7 @@ La API expone JSON en `http://localhost:18080`. Los grupos principales:
 | `/api/free-sessions` | Modo libre |
 | `/api/mock-exams`, `/api/mock-exam-attempts` | Simulacros e intentos |
 | `/api/proposals` | Propuestas de respuesta y revisión |
-| `/api/stats` | Estadísticas públicas y personales |
+| `/api/stats` | Estadísticas públicas, personales y globales (ADMIN/CREATOR) |
 | `/api/admin/users` | Usuarios, roles y bancos asignados |
 
 Todo está autenticado por defecto salvo `POST /login`, `POST /api/auth/register` y
@@ -328,7 +331,6 @@ trabajos:
 
 Ideas apuntadas para seguir mejorando la app:
 
-- Gráfico de aciertos por categoría en el panel de estadísticas.
 - Puntuación de simulacro estilo oposición (1 punto por acierto, −1/3 por fallo).
 - Explorar un frontend más reactivo manteniendo la API actual.
 
