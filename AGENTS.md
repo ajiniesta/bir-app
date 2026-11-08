@@ -2,6 +2,50 @@
 
 Multi-module Maven project (Micronaut 4.7.4, Java 21) — Q&A platform for BIR/MIR/EIR and related residency exams. Seeded exam types (`exam_type`): **MIR, EIR, BIR, FIR, PIR, QIR, RFIR**.
 
+---
+
+## 🤖 AI Software Factory (Antigravity TDD Workflow)
+
+This repository is currently undergoing an architectural migration from a Server-Side Rendered frontend (Micronaut + Thymeleaf) to a Headless architecture (Micronaut REST API + Next.js App Router frontend).
+
+The development follows a **Strict Test-Driven Development (TDD)** pipeline orchestrated by AI agents.
+
+### Agent Roles & Constraints
+
+1. **🏛️ [Agent 1] Arquitecto de Contratos (analyst)**
+   * **Model:** `gemini-4-argon` (or `gemini-1.5-pro`)
+   * **Role:** Analyzes legacy Thymeleaf `.html` views and Micronaut controllers.
+   * **Task:** Defines the strict JSON contract (OpenAPI) the new backend must output and the React component hierarchy required. 
+   * **Constraint:** NO implementation code. Outputs ONLY Markdown specifications.
+
+2. **🧪 [Agent 2] Ingeniero TDD / SDET (tester)**
+   * **Model:** `gemini-4-argon` (or `gemini-1.5-pro`)
+   * **Role:** Relentless automation engineer (Red Phase).
+   * **Task:** Translates the Architect's contract into failing tests: `Vitest/React Testing Library` for Next.js and `JUnit 5/@MicronautTest` for the Java API.
+   * **Constraint:** STRICTLY FORBIDDEN to write implementation code. Outputs ONLY test files (`.test.tsx` and `*ControllerTest.java`).
+
+3. **⚛️ [Agent 3] Desarrollador Frontend Next.js (frontend_dev)**
+   * **Model:** `gemini-4-argon` (or `gemini-1.5-pro`)
+   * **Role:** React/Next.js/Tailwind/Zustand expert (Green Phase).
+   * **Task:** Writes the exact Next.js code required to make the Tester's frontend tests pass.
+   * **Constraint:** Cannot invent features not covered by the tests. Default to Server Components unless interactivity requires `"use client"`.
+
+4. **☕ [Agent 4] Desarrollador Backend Micronaut (backend_dev)**
+   * **Model:** `gemini-1.5-flash`
+   * **Role:** Java backend refactorer (Green Phase).
+   * **Task:** Strips Thymeleaf dependencies from controllers and makes them return `@Produces(MediaType.APPLICATION_JSON)` to pass the Tester's API tests.
+   * **Constraint:** Must not break the underlying service/repository layers.
+
+5. **🕵️ [Agent 5] Integrador y Revisor (reviewer)**
+   * **Model:** `gemini-4-argon` (or `gemini-1.5-pro`)
+   * **Role:** Tech Lead (Refactor Phase).
+   * **Task:** Ingests all generated code and tests. Validates adherence to the original contract. Refactors messy code while ensuring tests remain green. Issues the final `MERGE_READY` verdict.
+
+### Execution Pipeline (The Golden Rule)
+No developer agent (3 or 4) is allowed to generate functional code without receiving a **failing test** first. The sequence is strictly: **Analyst -> Tester -> Frontend/Backend Devs -> Reviewer**.
+
+---
+
 ## Modules
 
 | Module | Purpose | Port |
