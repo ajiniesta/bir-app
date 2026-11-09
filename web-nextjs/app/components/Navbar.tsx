@@ -32,6 +32,10 @@ export default function Navbar({
   const isAdmin =
     activeSession?.user?.role === "ADMIN" ||
     Boolean(activeSession?.user?.roles?.includes("ROLE_ADMIN"));
+  const isCreator =
+    activeSession?.user?.role === "CREATOR" ||
+    Boolean(activeSession?.user?.roles?.includes("ROLE_CREATOR"));
+  const canManageQuestions = isAdmin || isCreator;
 
   if (onlyWhenAuthenticated && !isAuthenticated) {
     return null;
@@ -55,6 +59,14 @@ export default function Navbar({
               >
                 Mis estadísticas
               </Link>
+              {canManageQuestions && (
+                <Link
+                  href="/questions"
+                  className="text-sm font-medium text-gray-700 hover:text-blue-600"
+                >
+                  Preguntas
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   href="/admin/users"

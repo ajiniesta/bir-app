@@ -71,4 +71,50 @@ describe('Navbar (shared across all views)', () => {
     expect(adminLink).toBeInTheDocument();
     expect(adminLink).toHaveAttribute('href', '/admin/users');
   });
+
+  it('renders Preguntas link (/questions) when logged-in user is ADMIN or CREATOR', () => {
+    const { unmount } = render(
+      <Navbar
+        session={{
+          user: { name: 'creator', role: 'CREATOR' },
+          expires: '2099-01-01T00:00:00.000Z',
+        }}
+      />
+    );
+
+    const questionsLink = screen.getByRole('link', { name: /preguntas/i });
+    expect(questionsLink).toBeInTheDocument();
+    expect(questionsLink).toHaveAttribute('href', '/questions');
+
+    unmount();
+
+    render(
+      <Navbar
+        session={{
+          user: { name: 'admin', role: 'ADMIN' },
+          expires: '2099-01-01T00:00:00.000Z',
+        }}
+      />
+    );
+
+    expect(screen.getByRole('link', { name: /preguntas/i })).toBeInTheDocument();
+  });
+
+  it('does NOT render Preguntas link when user is USER or unauthenticated', () => {
+    const { unmount } = render(
+      <Navbar
+        session={{
+          user: { name: 'student', role: 'USER' },
+          expires: '2099-01-01T00:00:00.000Z',
+        }}
+      />
+    );
+
+    expect(screen.queryByRole('link', { name: /preguntas/i })).not.toBeInTheDocument();
+
+    unmount();
+
+    render(<Navbar session={null} />);
+    expect(screen.queryByRole('link', { name: /preguntas/i })).not.toBeInTheDocument();
+  });
 });
