@@ -1,67 +1,79 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import Navbar from "./components/Navbar";
 
 export const instant = false;
 
-interface ExamTypeInfo {
+interface ExamTypeStats {
   code: string;
   name: string;
-  description: string;
+  total?: number;
 }
 
-const EXAM_TYPES: ExamTypeInfo[] = [
-  { code: "MIR", name: "Médico Interno Residente", description: "Medicina" },
-  { code: "EIR", name: "Enfermero Interno Residente", description: "Enfermería" },
-  { code: "BIR", name: "Biólogo Interno Residente", description: "Biología y Bioquímica" },
-  { code: "FIR", name: "Farmacéutico Interno Residente", description: "Farmacia" },
-  { code: "PIR", name: "Psicólogo Interno Residente", description: "Psicología" },
-  { code: "QIR", name: "Químico Interno Residente", description: "Química" },
-  { code: "RFIR", name: "Radiofísico Interno Residente", description: "Radiofísica Hospitalaria" },
-];
+interface DashboardStatsResponse {
+  totalQuestions: number;
+  byExamType: ExamTypeStats[];
+}
+
+const EXAM_DESCRIPTIONS: Record<string, string> = {
+  MIR: "Medicina",
+  EIR: "Enfermería",
+  BIR: "Biología y Bioquímica",
+  FIR: "Farmacia",
+  PIR: "Psicología",
+  QIR: "Química",
+  RFIR: "Radiofísica Hospitalaria",
+};
+
+async function fetchPermittedBanks(accessToken?: string): Promise<DashboardStatsResponse> {
+  if (!accessToken) {
+    return { totalQuestions: 0, byExamType: [] };
+  }
+
+  const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:18080";
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/stats/banks`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return { totalQuestions: 0, byExamType: [] };
+    }
+
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      return {
+        totalQuestions: 0,
+        byExamType: data,
+      };
+    }
+
+    return {
+      totalQuestions: typeof data?.totalQuestions === "number" ? data.totalQuestions : 0,
+      byExamType: Array.isArray(data?.byExamType) ? data.byExamType : [],
+    };
+  } catch {
+    return { totalQuestions: 0, byExamType: [] };
+  }
+}
 
 export default async function LandingPage() {
   const session = await auth();
   const isAuthenticated = Boolean(session?.user);
+  const accessToken = (session?.user as { accessToken?: string } | undefined)?.accessToken;
+
+  const bankStats = isAuthenticated
+    ? await fetchPermittedBanks(accessToken)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-blue-600">
-            BirApp
-          </Link>
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <>
-                <span className="text-sm text-gray-600">
-                  {session?.user?.name}
-                </span>
-                <Link
-                  href="/estadisticas"
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Mis estadísticas
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/register"
-                  className="text-sm font-medium rounded-md bg-blue-600 px-3 py-1.5 text-white hover:bg-blue-700"
-                >
-                  Registrarse
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <Navbar session={session} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         {/* Hero Section */}
@@ -114,36 +126,56 @@ export default async function LandingPage() {
           </div>
         </section>
 
-        {/* Question Banks Section */}
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Banco de preguntas</h2>
-            <span className="text-sm text-gray-500">
-              7 especialidades oficiales
-            </span>
-          </div>
+        {/* Question Banks Section (only visible for authenticated users) */}
+        {isAuthenticated && bankStats && (
+          <section>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Banco de preguntas</h2>
+              <span className="text-sm text-gray-500">
+                {bankStats.totalQuestions} preguntas · {bankStats.byExamType.length} tipos de examen
+              </span>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {EXAM_TYPES.map((et) => (
-              <div
-                key={et.code}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col justify-between hover:shadow-md transition-shadow"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-800">
-                      {et.code}
-                    </span>
+            {bankStats.byExamType.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {bankStats.byExamType.map((et) => (
+                  <div
+                    key={et.code}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col justify-between hover:shadow-md transition-shadow"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-800">
+                          {et.code}
+                        </span>
+                        {typeof et.total === "number" && (
+                          <span className="text-2xl font-semibold text-gray-900">
+                            {et.total}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        {et.name}
+                      </h3>
+                      {EXAM_DESCRIPTIONS[et.code] && (
+                        <p className="text-sm text-gray-500">
+                          {EXAM_DESCRIPTIONS[et.code]}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                    {et.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">{et.description}</p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            ) : (
+              <div
+                role="status"
+                className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800"
+              >
+                No tienes bancos de preguntas asignados. Pide a un administrador que te asigne uno.
+              </div>
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

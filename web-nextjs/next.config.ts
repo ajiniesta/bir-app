@@ -20,7 +20,11 @@ const nextConfig: NextConfig = {
         destination: `${apiBaseUrl}/login`,
       },
       {
-        source: "/api/:path*",
+        source: "/api/auth/register",
+        destination: `${apiBaseUrl}/api/auth/register`,
+      },
+      {
+        source: "/api/:path((?!auth/).*)",
         destination: `${apiBaseUrl}/api/:path*`,
       },
     ];

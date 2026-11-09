@@ -4,16 +4,26 @@ import RegisterPage from '@/app/register/page';
 
 // Mock next/navigation
 const mockPush = jest.fn();
+const mockRefresh = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    refresh: mockRefresh,
   }),
+}));
+
+const mockUseSession = jest.fn();
+const mockSignOut = jest.fn();
+jest.mock('next-auth/react', () => ({
+  useSession: () => mockUseSession(),
+  signOut: (...args: unknown[]) => mockSignOut(...args),
 }));
 
 describe('RegisterPage (/register)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
+    mockUseSession.mockReturnValue({ data: null, status: 'unauthenticated' });
   });
 
   it('renders heading "Crear cuenta" and subtitle', () => {
@@ -113,5 +123,16 @@ describe('RegisterPage (/register)', () => {
     await waitFor(() => {
       expect(screen.getByText(/El nombre de usuario ya está en uso/i)).toBeInTheDocument();
     });
+  });
+
+  it('renders Logout option when a logged-in user visits the view', () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { name: 'testuser' } },
+      status: 'authenticated',
+    });
+
+    render(<RegisterPage />);
+
+    expect(screen.getByRole('button', { name: /cerrar sesión/i })).toBeInTheDocument();
   });
 });

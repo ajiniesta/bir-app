@@ -80,7 +80,7 @@ public class AppUserService {
 
     @Transactional
     public List<AdminUserResponse> listUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllWithBanks().stream()
                 .map(AdminUserResponse::from)
                 .toList();
     }
