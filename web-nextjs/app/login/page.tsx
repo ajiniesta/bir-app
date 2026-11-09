@@ -1,6 +1,19 @@
-import Link from 'next/link';
+import Link from "next/link";
 
-export default function LoginPage() {
+export const instant = false;
+
+interface LoginPageProps {
+  searchParams?: Promise<{
+    registered?: string;
+    error?: string;
+  }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const isRegistered = resolvedParams.registered === "true";
+  const hasError = Boolean(resolvedParams.error);
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-md bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -10,6 +23,24 @@ export default function LoginPage() {
             Entra para practicar en modo libre
           </p>
         </div>
+
+        {isRegistered && (
+          <div
+            role="status"
+            className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700 border border-green-200"
+          >
+            Cuenta creada correctamente. Inicia sesión.
+          </div>
+        )}
+
+        {hasError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+          >
+            Usuario o contraseña incorrectos
+          </div>
+        )}
 
         <form action="/api/auth/login" method="POST" className="space-y-4">
           <div>
@@ -57,8 +88,11 @@ export default function LoginPage() {
 
         <div className="text-center text-sm text-gray-600 space-y-2">
           <p>
-            ¿No tienes cuenta?{' '}
-            <Link href="/register" className="text-blue-600 hover:underline font-medium">
+            ¿No tienes cuenta?{" "}
+            <Link
+              href="/register"
+              className="text-blue-600 hover:underline font-medium"
+            >
               Regístrate
             </Link>
           </p>
