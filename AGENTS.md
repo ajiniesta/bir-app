@@ -44,6 +44,11 @@ The development follows a **Strict Test-Driven Development (TDD)** pipeline orch
 ### Execution Pipeline (The Golden Rule)
 No developer agent (3 or 4) is allowed to generate functional code without receiving a **failing test** first. The sequence is strictly: **Analyst -> Tester -> Frontend/Backend Devs -> Reviewer**.
 
+### 📂 Arquitectura de Carpetas y Convivencia
+La migración no es destructiva. El código legacy se mantiene vivo mientras se desarrolla el nuevo.
+- **Backend Activo:** `api/` (Micronaut, puerto 18080). Los agentes backend solo modificarán esto para exponer JSON.
+- **Frontend Legacy (Solo lectura):** `web/` (Thymeleaf, puerto 8081). Los agentes frontend leerán de aquí, pero NO modificarán ni borrarán archivos.
+- **Nuevo Frontend:** El nuevo código de Next.js se escribirá exclusivamente en un nuevo directorio raíz (`web-nextjs/`). El Tester y el Frontend Dev crearán y modificarán archivos SOLO en esta nueva ruta.
 ---
 
 ## Modules
