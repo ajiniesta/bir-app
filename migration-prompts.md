@@ -68,16 +68,17 @@ Ejecuta el pipeline TDD.
 
 
 
+# Modo Libre
+## Configurción y Resultados
 
-Iniciamos la Fase 2: Modo Libre (Configuración y Resultados).
+Iniciamos la siguiente fase: Modo Libre (Configuración y Resultados).
 
 Contexto Legacy (Solo lectura):
-
 Vistas Thymeleaf: web/src/main/resources/templates/free/config.html y free/result.html.
 Endpoint Backend: POST /api/free-sessions y GET /api/free-sessions/{id}.
 
 Objetivo del Sprint TDD:
-ARQUITECTO: Mapear los campos del formulario de configuración y la tabla de resultados. Definir las rutas en Next.js.
+ARQUITECTO: Mapear los campos del formulario de configuración y la tabla de resultados. Definir las rutas en Next.js (ej. app/free/page.tsx).
 TESTER: Escribir tests que validen que el formulario de configuración valida los campos antes de enviarlos.
 FRONTEND DEV: Implementar las vistas en el nuevo proyecto bir-app-nextjs, asegurando que la tabla de resultados se renderiza desde el servidor (Server Component) por rendimiento.
 Ejecuta el pipeline TDD.

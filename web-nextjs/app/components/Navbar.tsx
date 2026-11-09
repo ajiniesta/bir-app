@@ -54,6 +54,12 @@ export default function Navbar({
                 {activeSession?.user?.name}
               </span>
               <Link
+                href="/free"
+                className="text-sm font-medium text-gray-700 hover:text-blue-600"
+              >
+                Modo libre
+              </Link>
+              <Link
                 href="/estadisticas"
                 className="text-sm font-medium text-gray-700 hover:text-blue-600"
               >
