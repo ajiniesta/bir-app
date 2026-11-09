@@ -21,7 +21,7 @@ The development follows a **Strict Test-Driven Development (TDD)** pipeline orch
 2. **🧪 [Agent 2] Ingeniero TDD / SDET (tester)**
    * **Model:** `gemini-4-argon` (or `gemini-1.5-pro`)
    * **Role:** Relentless automation engineer (Red Phase).
-   * **Task:** Translates the Architect's contract into failing tests: `Vitest/React Testing Library` for Next.js and `JUnit 5/@MicronautTest` for the Java API.
+   * **Task:** Translates the Architect's contract into failing tests: `Jest / React Testing Library` (or `Vitest`) for Next.js and `JUnit 5/@MicronautTest` for the Java API.
    * **Constraint:** STRICTLY FORBIDDEN to write implementation code. Outputs ONLY test files (`.test.tsx` and `*ControllerTest.java`).
 
 3. **⚛️ [Agent 3] Desarrollador Frontend Next.js (frontend_dev)**
@@ -48,7 +48,9 @@ No developer agent (3 or 4) is allowed to generate functional code without recei
 La migración no es destructiva. El código legacy se mantiene vivo mientras se desarrolla el nuevo.
 - **Backend Activo:** `api/` (Micronaut, puerto 18080). Los agentes backend solo modificarán esto para exponer JSON.
 - **Frontend Legacy (Solo lectura):** `web/` (Thymeleaf, puerto 8081). Los agentes frontend leerán de aquí, pero NO modificarán ni borrarán archivos.
-- **Nuevo Frontend:** El nuevo código de Next.js se escribirá exclusivamente en un nuevo directorio raíz (`web-nextjs/`). El Tester y el Frontend Dev crearán y modificarán archivos SOLO en esta nueva ruta.
+- **Nuevo Frontend:** El nuevo código de Next.js se escribirá exclusivamente en un nuevo directorio raíz (`web-nextjs/`, puerto 3000). El Tester y el Frontend Dev crearán y modificarán archivos SOLO en esta nueva ruta.
+- **Prompts de Migración:** `migration-prompts.md` en la raíz documenta las iteraciones e instrucciones por fase para los agentes.
+
 ---
 
 ## Modules
@@ -56,7 +58,8 @@ La migración no es destructiva. El código legacy se mantiene vivo mientras se 
 | Module | Purpose | Port |
 |--------|---------|------|
 | `api` | Micronaut REST backend — JPA entities, repositories, services, REST controllers | 18080 |
-| `web` | Micronaut frontend — Thymeleaf views, calls `api` via HTTP client | 8081 |
+| `web` | Micronaut legacy frontend — Thymeleaf views, calls `api` via HTTP client | 8081 |
+| `web-nextjs` | Next.js 16 App Router frontend (in migration, standalone npm project, proxies to `api`) | 3000 |
 | `db-migrations` | Liquibase changelogs only (not a runnable app) | — |
 
 ## Quick start
@@ -65,29 +68,44 @@ La migración no es destructiva. El código legacy se mantiene vivo mientras se 
 docker compose up -d                    # start PostgreSQL (host port 5434 → 5432)
 mvn liquibase:update -pl db-migrations -Dliquibase.contexts=seed   # apply migrations + seed
 
-mvn compile                              # full build
+mvn compile                              # full Maven build
 
 # Run each app separately (requires DB running):
 mvn mn:run -pl api                       # API on :18080
-mvn mn:run -pl web                       # Web on :8081
+mvn mn:run -pl web                       # Legacy Web (Thymeleaf) on :8081
+
+# Run Next.js frontend (in a separate terminal):
+cd web-nextjs && npm install && npm run dev   # Next.js on :3000
 ```
 
-Open http://localhost:8081/ — landing page (public). Seeded users (context `seed`):
+Open http://localhost:8081/ (legacy Thymeleaf landing page) or http://localhost:3000/ (Next.js frontend). Seeded users (context `seed`):
 **admin / admin1234** (ADMIN), **demo / demo1234** (CREATOR).
 
 The Postgres container exposes host port **5434** (`5434:5432`); both `api`'s datasource and `db-migrations/liquibase.properties` point at `jdbc:postgresql://localhost:5434/bir_app`.
 
 ### Whole stack with Docker (no local Maven)
 
-`docker-compose.full.yml` brings up **PostgreSQL + migrations + API + web** (builds the images from the Dockerfiles):
+There are three Compose files depending on the use case:
+
+| File | Purpose | Web Host Port | Command |
+|------|---------|---------------|---------|
+| `docker-compose.yml` | Only **PostgreSQL** (`5434:5432`, volume `pgdata`) for local dev | — | `docker compose up -d` |
+| `docker-compose.full.yml` | Full stack (`postgres` + `migrations` + `api` + `web`) **building images locally** from the Dockerfiles | `8081` (`8081:8081`) | `docker compose -f docker-compose.full.yml up -d --build` |
+| `docker/docker-compose.yml` | Full stack using the **published GHCR images** (`ghcr.io/ajiniesta/bir-app/api:latest` & `web:latest`) without compiling | `8082` (`8082:8081`) | `docker compose -f docker/docker-compose.yml up -d` |
 
 ```bash
+# Build & run locally:
 docker compose -f docker-compose.full.yml up -d --build   # web → http://localhost:8081
 docker compose -f docker-compose.full.yml logs -f web
 docker compose -f docker-compose.full.yml down -v         # -v also drops pgdata-full
+
+# Or run from published GHCR images (no build):
+docker compose -f docker/docker-compose.yml pull
+docker compose -f docker/docker-compose.yml up -d         # web → http://localhost:8082
+docker compose -f docker/docker-compose.yml down -v
 ```
 
-It uses its own project name (`bir-app-full`) and volume (`pgdata-full`), so it does not clash with the dev `docker-compose.yml`. Optional overrides: `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`. See **Docker images & CI** below.
+Both full-stack files use the project name `bir-app-full` and volume `pgdata-full` (they are alternative ways to run the full deployment, not meant to run simultaneously), so they do not clash with the dev `docker-compose.yml`. Optional overrides (via env vars or `docker/.env`): `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`. See **Docker images & CI** below.
 
 ## Authentication
 
@@ -220,6 +238,18 @@ Every view starts with the two fragments in `templates/fragments/layout.html`:
 - Mobile helpers in the same `<style>`: `.answer-option`/`.answer-text` (whole row tappable), `.question-text` (bigger statement), `.action-bar` (primary buttons: normal row on desktop, fixed to the bottom on mobile — add `has-action-bar` to `<body>`), `.tag-select` and `.question-nav` (collapsible question navigator in an attempt).
 - Because the layout is a fragment, changing a navbar link or a media query is a one-file change; a page that forges its own `<nav>` will drift.
 
+## Next.js Frontend (`web-nextjs`, port 3000)
+
+The new headless frontend lives in `web-nextjs/` as a standalone Node/npm application alongside the legacy `web/` module:
+
+- **Stack**: Next.js `16.4.5` (App Router, Turbopack, `cacheComponents: true`, `partialPrefetching: true`), React `19.3.0`, TypeScript `5`, Tailwind CSS `v4` (`@tailwindcss/turbopack`).
+- **API Proxy (`next.config.ts`)**: Reads `process.env.API_BASE_URL || "http://localhost:18080"` (also set in `web-nextjs/.env.local` along with `NEXT_PUBLIC_API_BASE_URL`) and defines Next.js `rewrites()`:
+  - `/api/auth/login` → `${apiBaseUrl}/login`
+  - `/api/:path*` → `${apiBaseUrl}/api/:path*`
+- **Next.js 16 Agent Rules**: `web-nextjs/AGENTS.md` is auto-generated/maintained by `next dev` and points to `web-nextjs/node_modules/next/dist/docs/` for Next.js 16 breaking changes. Do not delete that block.
+- **Migrated views so far**:
+  - `/login` (`web-nextjs/app/login/page.tsx`) — login form posting to `/api/auth/login` with links to `/register` and `/`, covered by `web-nextjs/__tests__/login/page.test.tsx`.
+
 ## Key conventions
 
 - **One correct answer per question** — validated in `QuestionService` (create/update reject != 1 correct option).
@@ -228,6 +258,8 @@ Every view starts with the two fragments in `templates/fragments/layout.html`:
 - **api base URL** configured in `web/src/main/resources/application.yml` via `api.base-url` property.
 - **exam_type seed data** uses Liquibase context `seed` — run with `mvn liquibase:update -pl db-migrations -Dliquibase.contexts=seed`.
 - **Every form `@Post` in `web` must declare `@Consumes(MediaType.APPLICATION_FORM_URLENCODED)`.** Micronaut defaults `@Post` routes to consuming `application/json`; a browser form sends `application/x-www-form-urlencoded`, so without the annotation the route does not match and the request falls through to `/login` (the security filter turns the unmatched route into a 401). `@Consumes` alone is enough — no `@Body` parameter is required if the handler ignores the body.
+- **`POST /login` in `web` requires `Accept: text/html` for non-browser HTTP clients.** `LoginWebController` declares `@Produces(MediaType.TEXT_HTML)` so it does not collide with `micronaut-security`'s built-in JSON `/login` endpoint; without an `Accept: text/html` header, Micronaut returns `400 More than 1 route matched`.
+- **50 MB upload limit** — both `api` and `web` configure `micronaut.server.max-request-size: 50MB` and `micronaut.server.multipart.max-file-size: 50MB` to support large JSON question imports.
 
 ## Entity model
 
@@ -338,10 +370,15 @@ Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`
 
 ## Build
 
-- `mvn compile` builds all modules.
-- `mvn mn:run -pl <module>` runs a module with the Micronaut Maven plugin.
-- `mvn test` runs the whole suite; `mvn -pl api test` / `mvn -pl web test` run one module. Tests use **JUnit 5 + Mockito + AssertJ** (versions from the Micronaut platform BOM) and **never touch the development database**.
+- `mvn compile` builds all Maven modules (`api`, `web`, `db-migrations`).
+- `mvn mn:run -pl <module>` runs a Micronaut module (`api` or `web`) with the Micronaut Maven plugin.
+- `mvn test` runs the whole Java test suite; `mvn -pl api test` / `mvn -pl web test` run one module. Tests use **JUnit 5 + Mockito + AssertJ** (versions from the Micronaut platform BOM) and **never touch the development database**.
 - `mvn verify` is what CI runs (same tests, no extra integration phase).
+- For **`web-nextjs`** (run inside `web-nextjs/`):
+  - `npm run dev` — starts the Next.js development server on port `3000`.
+  - `npm test` — runs the Jest test suite.
+  - `npm run build` / `npm run start` — builds and starts the production Next.js bundle.
+  - `npm run lint` — runs ESLint (`eslint-config-next`).
 
 ## Docker images & CI
 
@@ -358,8 +395,9 @@ Notes:
 
 - There is no fat-jar plugin, so the image ships `target/classes` plus `dependency:copy-dependencies` output (`target/dependency`).
 - The `web` runtime installs `fontconfig` + `ttf-dejavu`; without them OpenHTMLtoPDF renders PDFs with no text.
-- `.dockerignore` drops `.git`, `**/target`, `oficiales/` and `to_import_sample_data/` (>200 MB of sample data).
+- `.dockerignore` drops `.git`, `.github`, `.idea`, `**/target`, `*.md`, `sample.json`, `docker-compose*.yml`, `oficiales/` and `to_import_sample_data/` (>200 MB of sample data; `.gitignore` also ignores `*.orig` directories).
 - Configuration is env-driven: `api` reads `${DB_URL:...}` / `DB_USERNAME` / `DB_PASSWORD` / `JWT_SECRET`, `web` reads `${API_BASE_URL:http://localhost:18080}`.
+- Published GHCR images (`ghcr.io/ajiniesta/bir-app/api:latest` and `ghcr.io/ajiniesta/bir-app/web:latest`) can be run directly without building via `docker/docker-compose.yml` (which exposes `web` on host port `8082` and `api` on `18080`).
 
 ### Pipeline (`.github/workflows/ci.yml`)
 
@@ -367,7 +405,7 @@ Notes:
 |-----|------|--------------|
 | `build-test` | every push and PR | `mvn -B -ntp verify`; uploads `surefire-reports` as an artifact on failure |
 | `docker` (matrix `api`, `web`) | pushes to `main` only | Buildx build + push to GHCR |
-| `smoke` | pushes to `main` only | `docker compose -f docker-compose.full.yml up -d --build`, then asserts `GET /api/stats` contains `totalQuestions` and that a real form login (`admin/admin1234`) returns `303`; dumps logs on failure and always runs `down -v` |
+| `smoke` | pushes to `main` only | `docker compose -f docker-compose.full.yml up -d --build`, then asserts `GET /api/stats` contains `totalQuestions` and that a real form login (`admin/admin1234`, with `Accept: text/html`) returns `303`; dumps logs on failure and always runs `down -v` |
 
 - Registry auth uses the built-in `GITHUB_TOKEN` (`permissions: packages: write`), no extra secrets.
 - Image names: `ghcr.io/<owner>/<repo>/api` and `ghcr.io/<owner>/<repo>/web` (lowercased with `${GITHUB_REPOSITORY,,}`, which GHCR requires).
@@ -379,14 +417,16 @@ Notes:
 - **`api`** — plain Mockito unit tests (no Micronaut context, no DB): `QuestionService`, `MockExamService`, `FreeSessionService`, `AnswerProposalService`, `QuestionImportService`, `QuestionDuplicatesService`, `StatisticsService`, `JsonObjectSplitter`, `QuestionTextNormalizer` and `GlobalExceptionHandler`. Entity fixtures live in `api/src/test/java/bir/app/api/support/TestData.java`.
 - **`web`** — two layers:
   - Unit tests with Mockito: forms (`QuestionForm`, `MockExamForm`), `MockExamPdfService` (renders a PDF and extracts its text with PDFBox), `ApiAuthenticationProvider`, `ApiTokenFilter`, `NavService`, `JsonObjectSplitter`, `QuestionImportJob`.
-  - `@MicronautTest` HTTP tests (`QuestionWebController`, `DuplicateQuestionsWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`, `StatsWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
+  - `@MicronautTest` HTTP tests (`HomeWebController`, `MobileViewsWebController`, `QuestionWebController`, `DuplicateQuestionsWebController`, `MockExamWebController`, `FreeSessionWebController`, `ReviewWebController`, `StatsWebController`) that exchange real requests against the app on a random port. `QuestionApiClient` is replaced with a Mockito mock through a `@MockBean` **method** returning the mock (field-level `@MockBean` is not populated in JUnit, only read as a bean factory). The helper `WebTestSupport` performs a real form login and reuses the `SESSION` cookie.
   - `web/src/test/resources/application-test.yml` sets `micronaut.server.port: -1` and `micronaut.http.client.follow-redirects: false` so tests assert `303` + `Location` instead of the final page.
   - Regression coverage: creating a mock exam with **210 `questionIds`** (the `form-max-fields: 512` fix) and the 211-question rejection.
-- Names in English and `@DisplayName` in Spanish, like the rest of the docs.
+  - Names in English and `@DisplayName` in Spanish, like the rest of the docs.
+- **`web-nextjs`** — component and page tests using **Jest 30** (`jest-environment-jsdom`, configured via `next/jest.js` in `web-nextjs/jest.config.ts` and `web-nextjs/jest.setup.ts`) and **React Testing Library** (`@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`). Test files live under `web-nextjs/__tests__/` (e.g. `__tests__/login/page.test.tsx`).
 
 ## Running from IDE
 
-Each module has its own `Application.main()`. Run them as separate processes:
-1. Start `api` module (port 18080)
-2. Start `web` module (port 8081)
-3. Open http://localhost:8081/ (landing, public)
+Each Micronaut module has its own main class (`BirAppApi` and `BirAppWeb`). Run them as separate processes:
+1. Start `api` module (`bir.app.api.BirAppApi.main()`, port 18080)
+2. Start `web` module (`bir.app.web.BirAppWeb.main()`, port 8081)
+3. (Optional) Start `web-nextjs` (`cd web-nextjs && npm run dev`, port 3000)
+4. Open http://localhost:8081/ (legacy Thymeleaf landing, public) or http://localhost:3000/ (Next.js frontend)
