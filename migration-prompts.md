@@ -117,3 +117,27 @@ Migrar la sección de estadísticas de web a web-nextjs. Paso la ruta de la apli
 Contexto Legacy:
 | GET | `/estadisticas` | `stats/index` | Personal stats by category (free + mock); global section for ADMIN/CREATOR |
 Ejecuta el pipeline TDD.
+
+# Import
+Crear una vista para la importación de preguntas, que estará en la sección de preguntas, llamando al siguiente endpoint del API:
+| POST | `/api/questions/import` | ADMIN/CREATOR | Bulk import of **one batch** (`{content}` carries the raw text); valid questions are saved, faulty ones skipped, already-existing ones counted as `duplicates` |
+
+El fichero a importar puede ser de hasta 10 MB.
+La vista tiene que mostrar un progress para que vaya mostrando poco a poco y no bloquee la vista con el fichero cargado.
+Debe mostrar una muestra de fichero a importar como este:
+```json
+{
+  "exam_type": "3",
+  "category": "Fisiología",
+  "tag": "Tema 1",
+  "text": "Esta es la pregunta",
+  "explanation": "Esta es la explicación",
+  "answers": [
+    {"letter": "A", "text": "respuesta 1", "is_correct": true},
+    {"letter": "B", "text": "respuesta 2", "is_correct": false},
+    {"letter": "C", "text": "respuesta 3", "is_correct": false},
+    {"letter": "D", "text": "respuesta 4", "is_correct": false}
+  ]
+}
+```
+Una vez el fichero se ha terminado de tratar, mostrar los resultados de la importación.
