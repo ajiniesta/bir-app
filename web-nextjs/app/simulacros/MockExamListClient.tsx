@@ -55,8 +55,8 @@ export default function MockExamListClient({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Simulacros</h1>
-          <p className="text-sm text-gray-600 mt-1 max-w-2xl">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Simulacros</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl">
             Exámenes completos preparados por los creadores. Puedes resolverlos tantas veces como quieras:
             no verás las respuestas correctas hasta entregar.
           </p>
@@ -64,7 +64,7 @@ export default function MockExamListClient({
         {canManage && (
           <Link
             href="/simulacros/new"
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition"
+            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
           >
             + Nuevo simulacro
           </Link>
@@ -72,18 +72,18 @@ export default function MockExamListClient({
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/60">
           {error}
         </div>
       )}
 
       {mockExams.length === 0 ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center text-sm text-blue-900">
+        <div className="rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/40 p-6 text-center text-sm text-blue-900 dark:text-blue-300">
           No hay simulacros disponibles para tus bancos de preguntas.
           {canManage && (
             <span className="block mt-1">
               Puedes crear uno desde{" "}
-              <Link href="/simulacros/new" className="font-semibold underline hover:text-blue-700">
+              <Link href="/simulacros/new" className="font-semibold underline hover:text-blue-700 dark:hover:text-blue-400">
                 aquí
               </Link>
               .
@@ -95,33 +95,33 @@ export default function MockExamListClient({
           {mockExams.map((m) => (
             <div
               key={m.id}
-              className="flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition"
+              className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:shadow-md dark:hover:border-slate-700 transition-all"
             >
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-800">
+                  <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
                     {m.examTypeCode}
                   </span>
-                  <span className="text-xs text-gray-500 font-medium">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                     {m.questionCount} preguntas
                   </span>
                 </div>
-                <h2 className="text-lg font-bold text-gray-900 mb-2">{m.title}</h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{m.title}</h2>
                 {m.description && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{m.description}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">{m.description}</p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 mb-6">
+                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400 mb-6">
                   <span>
-                    Intentos: <strong className="text-gray-900">{m.attemptCount}</strong>
+                    Intentos: <strong className="text-slate-900 dark:text-white">{m.attemptCount}</strong>
                   </span>
                   <span>
-                    Completados: <strong className="text-gray-900">{m.finishedCount}</strong>
+                    Completados: <strong className="text-slate-900 dark:text-white">{m.finishedCount}</strong>
                   </span>
                   {m.bestAccuracy !== null && m.bestAccuracy !== undefined && (
                     <span>
                       Mejor nota:{" "}
-                      <strong className="text-green-600 font-semibold">
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">
                         {m.bestAccuracy.toFixed(1)}%
                       </strong>
                     </span>
@@ -129,10 +129,10 @@ export default function MockExamListClient({
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-gray-100">
+              <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Link
                   href={`/simulacros/${m.id}`}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Ver detalle
                 </Link>
@@ -140,7 +140,7 @@ export default function MockExamListClient({
                 {m.inProgressAttemptId ? (
                   <Link
                     href={`/simulacros/${m.id}/attempts/${m.inProgressAttemptId}`}
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition"
+                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-xs transition-colors"
                   >
                     Continuar intento
                   </Link>
@@ -149,7 +149,7 @@ export default function MockExamListClient({
                     type="button"
                     onClick={() => handleStartAttempt(m.id)}
                     disabled={startingId === m.id}
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 transition disabled:opacity-50"
+                    className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow-xs transition-colors disabled:opacity-50"
                   >
                     {startingId === m.id ? "Iniciando..." : "Empezar simulacro"}
                   </button>
@@ -159,7 +159,7 @@ export default function MockExamListClient({
                   href={`/simulacros/${m.id}/pdf`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="rounded-md border border-gray-400 bg-white px-3 py-1.5 text-xs font-semibold text-gray-800 hover:bg-gray-50 transition"
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Imprimir PDF
                 </Link>
@@ -167,7 +167,7 @@ export default function MockExamListClient({
                 {canManage && (
                   <Link
                     href={`/simulacros/${m.id}/edit`}
-                    className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+                    className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                   >
                     Editar
                   </Link>

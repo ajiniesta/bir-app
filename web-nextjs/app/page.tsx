@@ -72,16 +72,16 @@ export default async function LandingPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <Navbar session={session} />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10 space-y-10">
         {/* Hero Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 sm:p-10">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
+        <section className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-8 sm:p-10">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
             BirApp
           </h1>
-          <p className="text-lg text-gray-600 max-w-3xl mb-6">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-3xl mb-6">
             Banco de preguntas tipo test para las oposiciones MIR, EIR, BIR, FIR, PIR, QIR y RFIR.
           </p>
 
@@ -90,19 +90,19 @@ export default async function LandingPage() {
               <>
                 <Link
                   href="/free"
-                  className="inline-flex items-center justify-center rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
                 >
                   Empezar modo libre
                 </Link>
                 <Link
                   href="/simulacros"
-                  className="inline-flex items-center justify-center rounded-md bg-blue-50 px-5 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-50 dark:bg-slate-800 px-5 py-2.5 text-sm font-medium text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Ver simulacros
                 </Link>
                 <Link
                   href="/estadisticas"
-                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Mis estadísticas
                 </Link>
@@ -111,13 +111,13 @@ export default async function LandingPage() {
               <>
                 <Link
                   href="/register"
-                  className="inline-flex items-center justify-center rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-xs hover:bg-blue-700 transition-colors"
                 >
                   Crear una cuenta
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex items-center justify-center rounded-md border border-blue-600 bg-white px-5 py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Iniciar sesión
                 </Link>
@@ -130,8 +130,8 @@ export default async function LandingPage() {
         {isAuthenticated && bankStats && (
           <section>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Banco de preguntas</h2>
-              <span className="text-sm text-gray-500">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Banco de preguntas</h2>
+              <span className="text-sm text-slate-500 dark:text-slate-400">
                 {bankStats.totalQuestions} preguntas · {bankStats.byExamType.length} tipos de examen
               </span>
             </div>
@@ -141,24 +141,24 @@ export default async function LandingPage() {
                 {bankStats.byExamType.map((et) => (
                   <div
                     key={et.code}
-                    className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col justify-between hover:shadow-md transition-shadow"
+                    className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 flex flex-col justify-between hover:shadow-md dark:hover:border-slate-700 transition-all"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-800">
+                        <span className="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2.5 py-1 text-xs font-bold text-blue-700 dark:text-blue-300">
                           {et.code}
                         </span>
                         {typeof et.total === "number" && (
-                          <span className="text-2xl font-semibold text-gray-900">
+                          <span className="text-2xl font-semibold text-slate-900 dark:text-white">
                             {et.total}
                           </span>
                         )}
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
                         {et.name}
                       </h3>
                       {EXAM_DESCRIPTIONS[et.code] && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
                           {EXAM_DESCRIPTIONS[et.code]}
                         </p>
                       )}
@@ -169,7 +169,7 @@ export default async function LandingPage() {
             ) : (
               <div
                 role="status"
-                className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800"
+                className="rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 p-4 text-sm text-blue-800 dark:text-blue-300"
               >
                 No tienes bancos de preguntas asignados. Pide a un administrador que te asigne uno.
               </div>

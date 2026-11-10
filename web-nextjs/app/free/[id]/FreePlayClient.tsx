@@ -111,7 +111,7 @@ export default function FreePlayClient({
   return (
     <div className="space-y-4">
       {/* Top counters */}
-      <div className="flex justify-between items-center text-xs text-gray-500">
+      <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
         <span>
           Pregunta {shownItem?.position || 1} de {session.totalQuestions}
         </span>
@@ -121,7 +121,7 @@ export default function FreePlayClient({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
         <div
           className="bg-blue-600 h-1.5 transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
@@ -129,7 +129,7 @@ export default function FreePlayClient({
       </div>
 
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 p-4 border border-red-200 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/40 p-4 border border-red-200 dark:border-red-900/60 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
@@ -137,24 +137,24 @@ export default function FreePlayClient({
       {shownItem ? (
         <div className="space-y-4">
           {/* Question statement card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-3">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">
+              <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                 {session.examTypeCode || "TODOS"}
               </span>
               {shownItem.category && (
-                <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <span className="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                   {shownItem.category}
                 </span>
               )}
               {shownItem.tag && (
-                <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                   #{shownItem.tag}
                 </span>
               )}
             </div>
 
-            <p className="text-base text-gray-900 leading-relaxed font-normal whitespace-pre-wrap">
+            <p className="text-base text-slate-900 dark:text-slate-100 leading-relaxed font-normal whitespace-pre-wrap">
               {shownItem.questionText}
             </p>
           </div>
@@ -165,8 +165,8 @@ export default function FreePlayClient({
               <div
                 className={`p-4 rounded-xl border text-sm font-medium ${
                   shownItem.correct
-                    ? "bg-green-50 border-green-300 text-green-900"
-                    : "bg-red-50 border-red-300 text-red-900"
+                    ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200"
+                    : "bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-900 text-red-900 dark:text-red-200"
                 }`}
               >
                 {shownItem.correct ? (
@@ -185,11 +185,11 @@ export default function FreePlayClient({
                   const isCorrect = opt.letter === shownItem.correctLetter;
                   const isSelected = opt.letter === shownItem.selectedLetter;
 
-                  let rowStyle = "bg-white border-gray-200 text-gray-800";
+                  let rowStyle = "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200";
                   if (isCorrect) {
-                    rowStyle = "bg-green-50 border-green-300 text-green-950 font-medium";
+                    rowStyle = "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800 text-emerald-950 dark:text-emerald-100 font-medium";
                   } else if (isSelected && !isCorrect) {
-                    rowStyle = "bg-red-50 border-red-300 text-red-950";
+                    rowStyle = "bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-900 text-red-950 dark:text-red-100";
                   }
 
                   return (
@@ -200,17 +200,17 @@ export default function FreePlayClient({
                       <span
                         className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
                           isCorrect
-                            ? "bg-green-600 text-white"
+                            ? "bg-emerald-600 text-white"
                             : isSelected
                             ? "bg-red-600 text-white"
-                            : "bg-gray-100 text-gray-700"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
                         }`}
                       >
                         {opt.letter}
                       </span>
                       <span className="flex-1 whitespace-pre-wrap">{opt.text}</span>
                       {isCorrect && (
-                        <span className="inline-flex items-center rounded-md bg-green-600 px-2 py-0.5 text-xs font-semibold text-white">
+                        <span className="inline-flex items-center rounded-md bg-emerald-600 px-2 py-0.5 text-xs font-semibold text-white">
                           Correcta
                         </span>
                       )}
@@ -226,11 +226,11 @@ export default function FreePlayClient({
 
               {/* Explanation card */}
               {shownItem.explanation && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-xs font-semibold text-gray-700 uppercase mb-1">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+                  <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1">
                     Explicación
                   </h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
                     {shownItem.explanation}
                   </p>
                 </div>
@@ -242,14 +242,14 @@ export default function FreePlayClient({
                   <button
                     type="button"
                     onClick={handleNextQuestion}
-                    className="w-full sm:w-auto rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+                    className="w-full sm:w-auto rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-xs focus:outline-none transition-colors"
                   >
                     Siguiente pregunta
                   </button>
                 ) : (
                   <Link
                     href={`/free/${session.id}/result`}
-                    className="inline-flex items-center justify-center w-full sm:w-auto rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+                    className="inline-flex items-center justify-center w-full sm:w-auto rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-xs focus:outline-none transition-colors"
                   >
                     Ver resultado
                   </Link>
@@ -258,13 +258,13 @@ export default function FreePlayClient({
 
               {/* Proposal notifications */}
               {proposalSuccessMessage && (
-                <div className="rounded-md bg-green-50 p-3 border border-green-200 text-xs text-green-800">
+                <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
                   {proposalSuccessMessage}
                 </div>
               )}
 
               {currentProposal && (
-                <div className="rounded-md bg-blue-50 p-3 border border-blue-200 text-xs text-blue-800">
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
                   Ya enviaste una propuesta:{" "}
                   <strong>
                     {currentProposal.status === "PENDING"
@@ -280,14 +280,14 @@ export default function FreePlayClient({
               )}
 
               {/* Proposal card button */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap justify-between items-center gap-3">
-                <span className="text-xs text-gray-600">
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
+                <span className="text-xs text-slate-600 dark:text-slate-400">
                   ¿Crees que la respuesta correcta es errónea o conflictiva?
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowModal(true)}
-                  className="rounded-md border border-amber-400 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-100 focus:outline-none"
+                  className="rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 text-xs font-medium text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors focus:outline-none"
                 >
                   Proponer cambio
                 </button>
@@ -320,8 +320,8 @@ export default function FreePlayClient({
                       key={opt.letter}
                       className={`flex items-center gap-3 p-3.5 rounded-lg border text-sm cursor-pointer transition-colors ${
                         isChecked
-                          ? "bg-blue-50 border-blue-400 text-blue-950 font-medium"
-                          : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50"
+                          ? "bg-blue-50 dark:bg-blue-950/40 border-blue-400 dark:border-blue-600 text-blue-950 dark:text-blue-100 font-medium"
+                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                       }`}
                     >
                       <input
@@ -331,9 +331,9 @@ export default function FreePlayClient({
                         checked={isChecked}
                         onChange={() => setSelectedLetter(opt.letter)}
                         required
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
                       />
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold bg-gray-100 text-gray-700">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                         {opt.letter}
                       </span>
                       <span className="flex-1 whitespace-pre-wrap">{opt.text}</span>
@@ -345,7 +345,7 @@ export default function FreePlayClient({
               <button
                 type="submit"
                 disabled={submitting || !selectedLetter}
-                className="w-full sm:w-auto rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+                className="w-full sm:w-auto rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-xs focus:outline-none disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Enviando..." : "Responder"}
               </button>
@@ -353,12 +353,12 @@ export default function FreePlayClient({
           )}
         </div>
       ) : (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center text-sm text-blue-800 space-y-3">
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 p-6 text-center text-sm text-blue-800 dark:text-blue-300 space-y-3">
           <p>No hay más preguntas disponibles en esta partida.</p>
           <div>
             <Link
               href={`/free/${session.id}/result`}
-              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 shadow-xs"
             >
               Ver resultado
             </Link>

@@ -129,20 +129,20 @@ export default function QuestionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">
+    <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-6">
+      <h1 className="text-xl font-bold text-slate-900 dark:text-white">
         {isEditing ? "Editar Pregunta" : "Nueva Pregunta"}
       </h1>
 
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 p-4 border border-red-200 text-sm text-red-700">
+        <div role="alert" className="rounded-xl bg-red-50 dark:bg-red-950/40 p-4 border border-red-200 dark:border-red-900/60 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
 
       {/* Tipo de examen */}
       <div>
-        <label htmlFor="examTypeId" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="examTypeId" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Tipo de examen
         </label>
         <select
@@ -150,7 +150,7 @@ export default function QuestionForm({
           value={examTypeId}
           onChange={(e) => setExamTypeId(e.target.value)}
           required
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         >
           <option value="">Selecciona un tipo de examen</option>
           {examTypes.map((et) => (
@@ -163,7 +163,7 @@ export default function QuestionForm({
 
       {/* Categoría */}
       <div>
-        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="category" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Categoría
         </label>
         <input
@@ -172,13 +172,13 @@ export default function QuestionForm({
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           placeholder="Opcional"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         />
       </div>
 
       {/* Tag */}
       <div>
-        <label htmlFor="tag" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="tag" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Tag
         </label>
         <input
@@ -189,21 +189,21 @@ export default function QuestionForm({
           onChange={(e) => setTag(e.target.value)}
           maxLength={100}
           placeholder="Opcional"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         />
         <datalist id="tagOptions">
           {tags.map((t) => (
             <option key={t} value={t} />
           ))}
         </datalist>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
           Etiqueta opcional para agrupar preguntas (por ejemplo, por tema).
         </p>
       </div>
 
       {/* Texto de la pregunta */}
       <div>
-        <label htmlFor="text" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="text" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Texto de la pregunta
         </label>
         <textarea
@@ -213,13 +213,13 @@ export default function QuestionForm({
           onChange={(e) => setText(e.target.value)}
           required
           placeholder="Pregunta..."
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         />
       </div>
 
       {/* Explicación */}
       <div>
-        <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="explanation" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Explicación
         </label>
         <textarea
@@ -228,19 +228,19 @@ export default function QuestionForm({
           value={explanation}
           onChange={(e) => setExplanation(e.target.value)}
           placeholder="Opcional: explica por qué la respuesta correcta es correcta"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         />
       </div>
 
-      <hr className="border-gray-200" />
+      <hr className="border-slate-200 dark:border-slate-800" />
 
       {/* Opciones de respuesta */}
       <div className="space-y-3">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
             Opciones de respuesta
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Solo una opción debe ser la correcta.
           </p>
         </div>
@@ -248,7 +248,7 @@ export default function QuestionForm({
         <div className="space-y-3">
           {options.map((opt) => (
             <div key={opt.letter} className="flex items-center gap-3">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-gray-100 font-bold text-xs text-gray-700">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-xs text-slate-700 dark:text-slate-200">
                 {opt.letter}
               </span>
               <input
@@ -257,9 +257,9 @@ export default function QuestionForm({
                 onChange={(e) => handleOptionTextChange(opt.letter, e.target.value)}
                 placeholder="Texto de la opción"
                 required
-                className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               />
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-700 cursor-pointer">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
                 <input
                   type="radio"
                   name="correctLetter"
@@ -267,7 +267,7 @@ export default function QuestionForm({
                   checked={correctLetter === opt.letter}
                   onChange={() => setCorrectLetter(opt.letter)}
                   required
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                 />
                 Correcta
               </label>
@@ -281,13 +281,13 @@ export default function QuestionForm({
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+          className="rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-xs focus:outline-none disabled:opacity-50 transition-colors"
         >
           {isEditing ? "Guardar cambios" : "Crear pregunta"}
         </button>
         <Link
           href="/questions"
-          className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors"
         >
           Cancelar
         </Link>

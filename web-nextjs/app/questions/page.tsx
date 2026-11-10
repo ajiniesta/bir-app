@@ -38,21 +38,21 @@ export default async function QuestionsPage(props: QuestionsPageProps) {
 
   if (!isAdmin && !isCreator) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
         <Navbar session={session} />
-        <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
           <div
             role="alert"
-            className="bg-white rounded-xl shadow-sm border border-red-200 p-8 text-center space-y-4"
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-red-200 dark:border-red-900/60 p-8 text-center space-y-4"
           >
-            <h1 className="text-2xl font-bold text-red-700">Acceso denegado</h1>
-            <p className="text-sm text-gray-600">
+            <h1 className="text-2xl font-bold text-red-700 dark:text-red-400">Acceso denegado</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
               Solo los usuarios con rol <strong>ADMIN</strong> o <strong>CREATOR</strong> pueden gestionar las preguntas.
             </p>
             <div>
               <Link
                 href="/"
-                className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-xs transition-colors"
               >
                 Volver al inicio
               </Link>
@@ -144,27 +144,27 @@ export default async function QuestionsPage(props: QuestionsPageProps) {
   } catch {}
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <Navbar session={session} />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Preguntas</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Preguntas</h1>
           <div className="flex gap-2">
             <Link
               href="/questions/duplicates"
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Duplicadas
             </Link>
             <Link
               href="/questions/import"
-              className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Importar
             </Link>
             <Link
               href="/questions/create"
-              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 shadow-xs transition-colors"
             >
               + Nueva Pregunta
             </Link>

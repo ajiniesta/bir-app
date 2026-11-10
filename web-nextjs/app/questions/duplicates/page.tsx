@@ -35,16 +35,16 @@ export default async function QuestionDuplicatesPage(props: QuestionDuplicatesPa
 
   if (!isAdmin && !isCreator) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
         <Navbar session={session} />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-800 space-y-3">
+        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full">
+          <div className="rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 p-6 text-center text-sm text-red-800 dark:text-red-300 space-y-3">
             <h1 className="text-lg font-bold">Acceso denegado</h1>
             <p>Solo los creadores y administradores pueden gestionar preguntas duplicadas.</p>
             <div>
               <Link
                 href="/questions"
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 Volver a preguntas
               </Link>
@@ -97,9 +97,9 @@ export default async function QuestionDuplicatesPage(props: QuestionDuplicatesPa
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col pb-16">
       <Navbar session={session} />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         <QuestionDuplicatesClient
           examTypes={examTypes}
           selectedExamType={selectedExamType}

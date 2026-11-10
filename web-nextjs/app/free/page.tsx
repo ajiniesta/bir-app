@@ -67,10 +67,10 @@ export default async function FreeConfigPage() {
   } catch {}
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <Navbar session={session} />
-      <main className="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Modo libre</h1>
+      <main className="flex-1 max-w-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Modo libre</h1>
         <FreeConfigForm
           examTypes={examTypes}
           categories={categories}

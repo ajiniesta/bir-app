@@ -124,7 +124,7 @@ export default function QuestionsListClient({
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-md bg-red-50 p-4 border border-red-200 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 p-4 border border-red-200 dark:border-red-900/60 text-sm text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
@@ -132,11 +132,11 @@ export default function QuestionsListClient({
       {/* Filter form */}
       <form
         onSubmit={handleFilterSubmit}
-        className="bg-white p-4 rounded-xl shadow-sm border border-gray-200"
+        className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800"
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           <div className="lg:col-span-2">
-            <label htmlFor="q" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="q" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Buscar en el enunciado
             </label>
             <input
@@ -146,12 +146,12 @@ export default function QuestionsListClient({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Texto de la pregunta..."
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
             />
           </div>
 
           <div>
-            <label htmlFor="examType" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="examType" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Banco
             </label>
             <select
@@ -159,7 +159,7 @@ export default function QuestionsListClient({
               name="examType"
               value={selectedExamType}
               onChange={(e) => setSelectedExamType(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
             >
               <option value="">Todos</option>
               {examTypes.map((et) => (
@@ -171,7 +171,7 @@ export default function QuestionsListClient({
           </div>
 
           <div>
-            <label htmlFor="category" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="category" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Categoría
             </label>
             <select
@@ -179,7 +179,7 @@ export default function QuestionsListClient({
               name="category"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
             >
               <option value="">Todas</option>
               <option value="__NONE__">Sin categoría</option>
@@ -192,7 +192,7 @@ export default function QuestionsListClient({
           </div>
 
           <div>
-            <label htmlFor="tag" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="tag" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Tag
             </label>
             <select
@@ -200,7 +200,7 @@ export default function QuestionsListClient({
               name="tag"
               value={selectedTag}
               onChange={(e) => setSelectedTag(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
             >
               <option value="">Todos</option>
               <option value="__NONE__">Sin tag</option>
@@ -215,13 +215,13 @@ export default function QuestionsListClient({
           <div className="flex gap-2 lg:col-span-5 justify-end pt-2">
             <button
               type="submit"
-              className="rounded-md bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none"
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-700 focus:outline-none transition-colors"
             >
               Buscar
             </button>
             <Link
               href="/questions"
-              className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors"
             >
               Limpiar
             </Link>
@@ -231,7 +231,7 @@ export default function QuestionsListClient({
 
       {/* Pagination summary info */}
       {total > 0 && (
-        <div className="flex justify-between items-center text-xs text-gray-500">
+        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400">
           <span>
             Mostrando {from}–{to} de {total} preguntas
           </span>
@@ -243,7 +243,7 @@ export default function QuestionsListClient({
 
       {/* Questions list / Empty state */}
       {questions.length === 0 ? (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center text-sm text-blue-800">
+        <div className="rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/40 p-6 text-center text-sm text-blue-900 dark:text-blue-300">
           No hay preguntas disponibles.
         </div>
       ) : (
@@ -251,47 +251,47 @@ export default function QuestionsListClient({
           {questions.map((qItem) => (
             <div
               key={qItem.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 transition-all hover:shadow-md"
+              className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-5 transition-all hover:shadow-md dark:hover:border-slate-700"
             >
               <div className="flex justify-between items-start mb-2">
-                <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700">
+                <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {qItem.examTypeCode || "N/A"}
                 </span>
                 <div className="text-right space-x-1.5">
                   {qItem.category && (
-                    <span className="text-xs text-gray-500 font-medium">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       {qItem.category}
                     </span>
                   )}
                   {qItem.tag && (
-                    <span className="inline-flex items-center rounded-md bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                    <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                       #{qItem.tag}
                     </span>
                   )}
                 </div>
               </div>
 
-              <p className="text-sm font-medium text-gray-900 mb-4 whitespace-pre-wrap">
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-4 whitespace-pre-wrap">
                 {qItem.text}
               </p>
 
               <div className="flex gap-2 items-center">
                 <Link
                   href={`/questions/${qItem.id}`}
-                  className="rounded border border-blue-600 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                  className="rounded-lg border border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Ver
                 </Link>
                 <Link
                   href={`/questions/${qItem.id}/edit`}
-                  className="rounded border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   Editar
                 </Link>
                 <button
                   type="button"
                   onClick={() => handleDelete(qItem.id)}
-                  className="rounded border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                  className="rounded-lg border border-red-300 dark:border-red-900/60 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
                 >
                   Eliminar
                 </button>
@@ -306,10 +306,10 @@ export default function QuestionsListClient({
         <nav aria-label="Paginación de preguntas" className="flex justify-center items-center gap-1 pt-4">
           <Link
             href={buildPageUrl(Math.max(1, page - 1))}
-            className={`rounded px-3 py-1.5 text-sm font-medium ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               page <= 1
-                ? "text-gray-400 pointer-events-none"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "text-slate-400 pointer-events-none"
+                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             Anterior
@@ -319,10 +319,10 @@ export default function QuestionsListClient({
             <Link
               key={pNum}
               href={buildPageUrl(pNum)}
-              className={`rounded px-3 py-1.5 text-sm font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 pNum === page
                   ? "bg-blue-600 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
+                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
               }`}
             >
               {pNum}
@@ -331,10 +331,10 @@ export default function QuestionsListClient({
 
           <Link
             href={buildPageUrl(Math.min(totalPages, page + 1))}
-            className={`rounded px-3 py-1.5 text-sm font-medium ${
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               page >= totalPages
-                ? "text-gray-400 pointer-events-none"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "text-slate-400 pointer-events-none"
+                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             }`}
           >
             Siguiente

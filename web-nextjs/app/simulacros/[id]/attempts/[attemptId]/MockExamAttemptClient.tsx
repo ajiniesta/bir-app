@@ -103,11 +103,13 @@ export default function MockExamAttemptClient({
   }
 
   async function handleFinish() {
-    if (
-      !window.confirm(
-        "¿Entregar el simulacro? Ya no podrás cambiar tus respuestas."
-      )
-    ) {
+    const unanswered = attempt.items.filter((i) => !i.answered).length;
+    let msg = "¿Estás seguro de que deseas entregar el simulacro?";
+    if (unanswered > 0) {
+      msg = `Tienes ${unanswered} preguntas sin responder. ${msg}`;
+    }
+
+    if (!window.confirm(msg)) {
       return;
     }
 
@@ -147,29 +149,29 @@ export default function MockExamAttemptClient({
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {saved && (
-        <div className="rounded-lg bg-green-50 p-3 text-sm text-green-800 border border-green-200">
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
           Respuesta guardada.
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 border border-red-200">
+        <div className="rounded-lg bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/60">
           {error}
         </div>
       )}
 
       {/* Header bar */}
       <div className="flex items-center justify-between gap-4">
-        <span className="text-sm font-semibold text-gray-700">
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           Pregunta {currentPosition} de {attempt.totalQuestions}
         </span>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-500 font-medium">
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
             Respondidas: {attempt.answeredCount} / {attempt.totalQuestions}
           </span>
           <Link
             href={`/simulacros/${mockExamId}`}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
           >
             Salir
           </Link>
@@ -177,7 +179,7 @@ export default function MockExamAttemptClient({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
+      <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2">
         <div
           className="bg-blue-600 h-2 rounded-full transition-all duration-300"
           style={{ width: `${progressPercent}%` }}
@@ -185,8 +187,8 @@ export default function MockExamAttemptClient({
       </div>
 
       {/* Question navigator */}
-      <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-        <div className="text-xs font-semibold text-gray-500 mb-2">Ir a la pregunta:</div>
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Ir a la pregunta:</div>
         <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
           {attempt.items.map((item) => {
             const isCurrent = item.position === currentPosition;
@@ -196,12 +198,12 @@ export default function MockExamAttemptClient({
                 key={item.position}
                 type="button"
                 onClick={() => handleSelectQuestion(item.position)}
-                className={`w-8 h-8 rounded text-xs font-bold transition flex items-center justify-center ${
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors flex items-center justify-center ${
                   isCurrent
-                    ? "bg-gray-900 text-white"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
                     : isAnswered
-                    ? "border border-green-600 bg-green-50 text-green-700 hover:bg-green-100"
-                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+                    ? "border border-emerald-600 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950/70"
+                    : "border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
               >
                 {item.position}
@@ -213,24 +215,24 @@ export default function MockExamAttemptClient({
 
       {/* Question Card */}
       {currentItem && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 sm:p-8 space-y-4">
           <div className="flex items-center gap-2">
-            <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-800">
+            <span className="rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
               {attempt.examTypeCode}
             </span>
             {currentItem.category && (
-              <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">
+              <span className="rounded-md bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-semibold text-blue-800 dark:text-blue-300">
                 {currentItem.category}
               </span>
             )}
             {currentItem.tag && (
-              <span className="rounded bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+              <span className="rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
                 #{currentItem.tag}
               </span>
             )}
           </div>
 
-          <p className="text-base sm:text-lg font-medium text-gray-900 leading-relaxed">
+          <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-slate-100 leading-relaxed">
             {currentItem.questionText}
           </p>
 
@@ -241,10 +243,10 @@ export default function MockExamAttemptClient({
               return (
                 <label
                   key={opt.letter}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                  className={`flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-colors ${
                     isChecked
-                      ? "border-blue-600 bg-blue-50/50"
-                      : "border-gray-200 hover:bg-gray-50"
+                      ? "border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 dark:border-blue-500 text-blue-950 dark:text-blue-100 font-medium"
+                      : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-900 dark:text-slate-100"
                   }`}
                 >
                   <input
@@ -253,10 +255,10 @@ export default function MockExamAttemptClient({
                     value={opt.letter}
                     checked={isChecked}
                     onChange={() => setSelectedLetter(opt.letter)}
-                    className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                   />
-                  <div className="flex items-center gap-2 text-sm text-gray-900">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-200 text-xs font-bold text-gray-800">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200">
                       {opt.letter}
                     </span>
                     <span>{opt.text}</span>
@@ -267,12 +269,12 @@ export default function MockExamAttemptClient({
           </div>
 
           {/* Action bar for question */}
-          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+          <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={() => handleSaveAnswer(false)}
               disabled={submitting || !selectedLetter}
-              className="rounded-md border border-blue-600 bg-white px-3.5 py-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition disabled:opacity-50"
+              className="rounded-lg border border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
             >
               Guardar respuesta
             </button>
@@ -280,7 +282,7 @@ export default function MockExamAttemptClient({
               type="button"
               onClick={() => handleSaveAnswer(true)}
               disabled={submitting || !selectedLetter}
-              className="rounded-md bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               Guardar y siguiente
             </button>
@@ -295,7 +297,7 @@ export default function MockExamAttemptClient({
             <button
               type="button"
               onClick={() => handleSelectQuestion(currentPosition - 1)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Anterior
             </button>
@@ -304,7 +306,7 @@ export default function MockExamAttemptClient({
             <button
               type="button"
               onClick={() => handleSelectQuestion(currentPosition + 1)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Siguiente
             </button>
@@ -315,7 +317,7 @@ export default function MockExamAttemptClient({
           type="button"
           onClick={handleFinish}
           disabled={submitting}
-          className="rounded-md bg-green-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-green-700 transition disabled:opacity-50"
+          className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 transition-colors disabled:opacity-50"
         >
           Entregar simulacro
         </button>

@@ -75,25 +75,25 @@ export default function FreeConfigForm({
   return (
     <div className="space-y-6">
       {error && (
-        <div role="alert" className="rounded-md bg-red-50 p-4 border border-red-200 text-sm text-red-700">
+        <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/40 p-4 border border-red-200 dark:border-red-900/60 text-sm text-red-800 dark:text-red-300">
           {error}
         </div>
       )}
 
       {examTypes.length === 0 && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+        <div className="rounded-xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/40 p-4 text-sm text-blue-800 dark:text-blue-300">
           No tienes ningún banco de preguntas disponible. Si eres usuario normal, pide a un administrador que te asigne uno.
         </div>
       )}
 
-      <p className="text-sm text-gray-600">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         Configura tu serie de preguntas. Se elegirán al azar y recibirás feedback al responder cada una.
       </p>
 
-      <form noValidate onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-5">
+      <form noValidate onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 sm:p-8 space-y-5">
         {/* Tipo de examen */}
         <div>
-          <label htmlFor="examTypeCode" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="examTypeCode" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Tipo de examen
           </label>
           <select
@@ -101,7 +101,7 @@ export default function FreeConfigForm({
             name="examTypeCode"
             value={examTypeCode}
             onChange={(e) => setExamTypeCode(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
             <option value="">Todos los tipos</option>
             {examTypes.map((et) => (
@@ -114,7 +114,7 @@ export default function FreeConfigForm({
 
         {/* Categoría */}
         <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="category" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Categoría
           </label>
           <select
@@ -122,7 +122,7 @@ export default function FreeConfigForm({
             name="category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
             <option value="">Todas las categorías</option>
             {categories.map((c) => (
@@ -132,7 +132,7 @@ export default function FreeConfigForm({
             ))}
           </select>
           {categories.length === 0 && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Todavía no hay categorías registradas.
             </p>
           )}
@@ -140,7 +140,7 @@ export default function FreeConfigForm({
 
         {/* Tag */}
         <div>
-          <label htmlFor="tag" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="tag" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Tag
           </label>
           <select
@@ -148,7 +148,7 @@ export default function FreeConfigForm({
             name="tag"
             value={tag}
             onChange={(e) => setTag(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           >
             <option value="">Todos los tags</option>
             {tags.map((t) => (
@@ -158,7 +158,7 @@ export default function FreeConfigForm({
             ))}
           </select>
           {tags.length === 0 && (
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Todavía no hay tags registrados.
             </p>
           )}
@@ -166,7 +166,7 @@ export default function FreeConfigForm({
 
         {/* Número de preguntas */}
         <div>
-          <label htmlFor="count" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="count" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
             Número de preguntas
           </label>
           <input
@@ -178,9 +178,9 @@ export default function FreeConfigForm({
             min={1}
             max={100}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
             Entre 1 y 100. Si hay menos disponibles, se usarán todas.
           </p>
         </div>
@@ -188,7 +188,7 @@ export default function FreeConfigForm({
         <button
           type="submit"
           disabled={loading}
-          className="w-full sm:w-auto rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+          className="w-full sm:w-auto rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
         >
           {loading ? "Iniciando..." : "Empezar partida"}
         </button>
