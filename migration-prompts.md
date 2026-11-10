@@ -111,3 +111,9 @@ Contexto Legacy:
 | POST | `/simulacros/{id}/attempts/{attemptId}/proposals` | — | Propose an alternative answer from the mock-exam review |
 
 Ejecuta el pipeline TDD.
+
+# Estadisticas
+Migrar la sección de estadísticas de web a web-nextjs. Paso la ruta de la aplicación original.
+Contexto Legacy:
+| GET | `/estadisticas` | `stats/index` | Personal stats by category (free + mock); global section for ADMIN/CREATOR |
+Ejecuta el pipeline TDD.
