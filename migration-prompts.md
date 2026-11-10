@@ -141,3 +141,10 @@ Debe mostrar una muestra de fichero a importar como este:
 }
 ```
 Una vez el fichero se ha terminado de tratar, mostrar los resultados de la importación.
+
+# Duplicados
+
+Crear una vista para detectar y eliminar preguntas duplicadas en la sección de preguntas de web-nextjs. El API tiene disponible estos endpoints:
+| GET | `/api/questions/duplicates{?examType}` | ADMIN/CREATOR | Read-only preview of duplicate questions (same bank + statement + options) |
+| POST | `/api/questions/duplicates/purge` | ADMIN/CREATOR | Delete up to `maxGroups` duplicate groups, re-pointing their history; returns `remaining` |
+Ejecuta el pipeline TDD.
