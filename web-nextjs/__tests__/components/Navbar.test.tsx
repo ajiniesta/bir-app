@@ -86,6 +86,10 @@ describe('Navbar (shared across all views)', () => {
     expect(questionsLink).toBeInTheDocument();
     expect(questionsLink).toHaveAttribute('href', '/questions');
 
+    const reviewsLink = screen.getByRole('link', { name: /revisiones/i });
+    expect(reviewsLink).toBeInTheDocument();
+    expect(reviewsLink).toHaveAttribute('href', '/revisiones');
+
     unmount();
 
     render(
@@ -98,9 +102,10 @@ describe('Navbar (shared across all views)', () => {
     );
 
     expect(screen.getByRole('link', { name: /preguntas/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /revisiones/i })).toBeInTheDocument();
   });
 
-  it('does NOT render Preguntas link when user is USER or unauthenticated', () => {
+  it('does NOT render Preguntas or Revisiones link when user is USER or unauthenticated', () => {
     const { unmount } = render(
       <Navbar
         session={{
@@ -111,10 +116,12 @@ describe('Navbar (shared across all views)', () => {
     );
 
     expect(screen.queryByRole('link', { name: /preguntas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /revisiones/i })).not.toBeInTheDocument();
 
     unmount();
 
     render(<Navbar session={null} />);
     expect(screen.queryByRole('link', { name: /preguntas/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /revisiones/i })).not.toBeInTheDocument();
   });
 });

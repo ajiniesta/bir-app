@@ -82,3 +82,13 @@ ARQUITECTO: Mapear los campos del formulario de configuración y la tabla de res
 TESTER: Escribir tests que validen que el formulario de configuración valida los campos antes de enviarlos.
 FRONTEND DEV: Implementar las vistas en el nuevo proyecto bir-app-nextjs, asegurando que la tabla de resultados se renderiza desde el servidor (Server Component) por rendimiento.
 Ejecuta el pipeline TDD.
+
+## El motor de examen libre. 
+
+Migrar /free/{id} (la vista donde se responde pregunta a pregunta) y el modal de "Proponer cambio". Requiere manejo de estado (saber qué pregunta toca) e interactividad del lado del cliente.
+
+# Revisiones
+Migrar el modo de revisiones, que tendrá que tener acceso desde la barra de navegación superior.
+
+| GET | `/revisiones{?status,examType}` | `review/list` | Review inbox (ADMIN/CREATOR) |
+| POST | `/revisiones/{id}/review` | — | Accept/reject a proposal with a note; **accepting applies the change** (ADMIN/CREATOR) |

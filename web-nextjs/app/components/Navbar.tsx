@@ -66,12 +66,20 @@ export default function Navbar({
                 Mis estadísticas
               </Link>
               {canManageQuestions && (
-                <Link
-                  href="/questions"
-                  className="text-sm font-medium text-gray-700 hover:text-blue-600"
-                >
-                  Preguntas
-                </Link>
+                <>
+                  <Link
+                    href="/questions"
+                    className="text-sm font-medium text-gray-700 hover:text-blue-600"
+                  >
+                    Preguntas
+                  </Link>
+                  <Link
+                    href="/revisiones"
+                    className="text-sm font-medium text-gray-700 hover:text-blue-600"
+                  >
+                    Revisiones
+                  </Link>
+                </>
               )}
               {isAdmin && (
                 <Link
