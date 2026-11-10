@@ -8,6 +8,7 @@ import AdminUsersPage from '@/app/admin/users/page';
 import ReviewPage from '@/app/revisiones/page';
 import QuestionDuplicatesPage from '@/app/questions/duplicates/page';
 import QuestionImportPage from '@/app/questions/import/page';
+import RootLayout from '@/app/layout';
 import { auth } from '@/auth';
 
 jest.mock('@/auth', () => ({
@@ -159,5 +160,17 @@ describe('Design System Consistency & Dark Theme Support', () => {
     const { container: dupContainer } = render(dupElement!);
     const dupWrapper = dupContainer.firstChild as HTMLElement;
     expect(dupWrapper.className).toMatch(/dark:bg-slate-950/);
+  });
+
+  it('renders RootLayout with suppressHydrationWarning on both html and body tags', () => {
+    const element = RootLayout({ children: <div data-testid="child">Test</div> });
+    expect(element.props.suppressHydrationWarning).toBe(true);
+
+    const children = Array.isArray(element.props.children)
+      ? element.props.children
+      : [element.props.children];
+    const body = children.find((c: any) => c?.type === 'body');
+    expect(body).toBeDefined();
+    expect(body?.props.suppressHydrationWarning).toBe(true);
   });
 });
