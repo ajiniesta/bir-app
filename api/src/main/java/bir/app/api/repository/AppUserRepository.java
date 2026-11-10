@@ -1,6 +1,7 @@
 package bir.app.api.repository;
 
 import bir.app.api.entity.AppUser;
+import io.micronaut.data.annotation.Query;
 import io.micronaut.data.annotation.Repository;
 import io.micronaut.data.jpa.annotation.EntityGraph;
 import io.micronaut.data.jpa.repository.JpaRepository;
@@ -16,6 +17,9 @@ public interface AppUserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByUsername(String username);
 
     /** Lista de usuarios con sus bancos asignados cargados (panel de administración). */
+    @Query("SELECT DISTINCT u FROM AppUser u LEFT JOIN FETCH u.allowedExamTypes ORDER BY u.id")
+    List<AppUser> findAllWithBanks();
+
     @EntityGraph(attributePaths = {"allowedExamTypes"})
     @Override
     List<AppUser> findAll();
