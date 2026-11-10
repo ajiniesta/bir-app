@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
+import ChangePasswordButton from "./ChangePasswordButton";
 
 export const instant = false;
 
@@ -107,6 +108,12 @@ export default async function ProfilePage() {
                 <dd className="inline-flex items-center text-emerald-600 dark:text-emerald-400 font-medium">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
                   Conectado
+                </dd>
+              </div>
+              <div className="flex justify-between items-center py-2">
+                <dt className="text-slate-500 dark:text-slate-400">Contraseña:</dt>
+                <dd>
+                  <ChangePasswordButton accessToken={user.accessToken} />
                 </dd>
               </div>
             </dl>
