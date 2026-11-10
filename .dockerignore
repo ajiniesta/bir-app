@@ -5,6 +5,8 @@
 .github
 .idea
 **/target
+**/node_modules
+**/.next
 oficiales
 to_import_sample_data
 *.md

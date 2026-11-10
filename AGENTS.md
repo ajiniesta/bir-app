@@ -90,18 +90,18 @@ There are three Compose files depending on the use case:
 | File | Purpose | Web Host Port | Command |
 |------|---------|---------------|---------|
 | `docker-compose.yml` | Only **PostgreSQL** (`5434:5432`, volume `pgdata`) for local dev | — | `docker compose up -d` |
-| `docker-compose.full.yml` | Full stack (`postgres` + `migrations` + `api` + `web`) **building images locally** from the Dockerfiles | `8081` (`8081:8081`) | `docker compose -f docker-compose.full.yml up -d --build` |
-| `docker/docker-compose.yml` | Full stack using the **published GHCR images** (`ghcr.io/ajiniesta/bir-app/api:latest` & `web:latest`) without compiling | `8082` (`8082:8081`) | `docker compose -f docker/docker-compose.yml up -d` |
+| `docker-compose.full.yml` | Full stack (`postgres` + `migrations` + `api` + `web` + `web-nextjs`) **building images locally** from the Dockerfiles | `8081` & `3000` | `docker compose -f docker-compose.full.yml up -d --build` |
+| `docker/docker-compose.yml` | Full stack using the **published GHCR images** (`ghcr.io/ajiniesta/bir-app/api:latest`, `web:latest`, `web-nextjs:latest`) without compiling | `8082` & `3000` | `docker compose -f docker/docker-compose.yml up -d` |
 
 ```bash
 # Build & run locally:
-docker compose -f docker-compose.full.yml up -d --build   # web → http://localhost:8081
+docker compose -f docker-compose.full.yml up -d --build   # web → http://localhost:8081, web-nextjs → http://localhost:3000
 docker compose -f docker-compose.full.yml logs -f web
 docker compose -f docker-compose.full.yml down -v         # -v also drops pgdata-full
 
 # Or run from published GHCR images (no build):
 docker compose -f docker/docker-compose.yml pull
-docker compose -f docker/docker-compose.yml up -d         # web → http://localhost:8082
+docker compose -f docker/docker-compose.yml up -d         # web → http://localhost:8082, web-nextjs → http://localhost:3000
 docker compose -f docker/docker-compose.yml down -v
 ```
 
@@ -384,28 +384,35 @@ Web module uses Micronaut's declarative `@Client` interface (`QuestionApiClient`
 
 ### Images
 
-`api/Dockerfile` and `web/Dockerfile` are self-contained multi-stage builds: the build stage compiles with Maven, the runtime stage is `eclipse-temurin:21-jre-alpine` and runs `java -cp /app/classes:/app/dependency/*`. The **build context is the repository root** (the POMs are a multi-module aggregator, so all of them must be copied before `-pl <module> -am`):
+- **`api/Dockerfile`**: Standard JVM image using `eclipse-temurin:21-jre-alpine` running `java -cp /app/classes:/app/dependency/* bir.app.api.BirAppApi`.
+- **`api/Dockerfile.graalvm`**: Native Image executable compiled via Oracle GraalVM 21 (`container-registry.oracle.com/graalvm/native-image:21`) running on a lightweight `debian:bookworm-slim` base image (`/app/api`). Instant startup (~30ms) and low memory footprint.
+- **`web/Dockerfile`**: Legacy Thymeleaf frontend image on `eclipse-temurin:21-jre-alpine` with `fontconfig` + `ttf-dejavu` for PDF rendering.
+- **`web-nextjs/Dockerfile`**: Standalone production image (`node:20-alpine`) using Next.js 16 standalone output (`output: "standalone"` in `next.config.ts`), running `node server.js` under an unprivileged `nextjs` user on port `3000`.
+
+The **build context for all images is the repository root**:
 
 ```bash
 docker build -f api/Dockerfile -t bir-app-api:local .
+docker build -f api/Dockerfile.graalvm -t bir-app-api:graalvm .
 docker build -f web/Dockerfile -t bir-app-web:local .
+docker build -f web-nextjs/Dockerfile -t bir-app-web-nextjs:local .
 ```
 
 Notes:
 
-- There is no fat-jar plugin, so the image ships `target/classes` plus `dependency:copy-dependencies` output (`target/dependency`).
+- There is no fat-jar plugin for the JVM image, so it ships `target/classes` plus `dependency:copy-dependencies` output (`target/dependency`).
 - The `web` runtime installs `fontconfig` + `ttf-dejavu`; without them OpenHTMLtoPDF renders PDFs with no text.
-- `.dockerignore` drops `.git`, `.github`, `.idea`, `**/target`, `*.md`, `sample.json`, `docker-compose*.yml`, `oficiales/` and `to_import_sample_data/` (>200 MB of sample data; `.gitignore` also ignores `*.orig` directories).
-- Configuration is env-driven: `api` reads `${DB_URL:...}` / `DB_USERNAME` / `DB_PASSWORD` / `JWT_SECRET`, `web` reads `${API_BASE_URL:http://localhost:18080}`.
-- Published GHCR images (`ghcr.io/ajiniesta/bir-app/api:latest` and `ghcr.io/ajiniesta/bir-app/web:latest`) can be run directly without building via `docker/docker-compose.yml` (which exposes `web` on host port `8082` and `api` on `18080`).
+- `.dockerignore` drops `.git`, `.github`, `.idea`, `**/target`, `**/node_modules`, `**/.next`, `*.md`, `sample.json`, `docker-compose*.yml`, `oficiales/` and `to_import_sample_data/` (>200 MB of sample data; `.gitignore` also ignores `*.orig` directories).
+- Configuration is env-driven: `api` reads `${DB_URL:...}` / `DB_USERNAME` / `DB_PASSWORD` / `JWT_SECRET`, `web` and `web-nextjs` read `${API_BASE_URL:http://localhost:18080}` and `AUTH_SECRET`.
+- Published GHCR images (`ghcr.io/ajiniesta/bir-app/api:latest`, `api-graalvm:latest`, `web:latest`, and `web-nextjs:latest`) can be run directly without building via `docker/docker-compose.yml`.
 
 ### Pipeline (`.github/workflows/ci.yml`)
 
 | Job | When | What it does |
 |-----|------|--------------|
-| `build-test` | every push and PR | `mvn -B -ntp verify`; uploads `surefire-reports` as an artifact on failure |
-| `docker` (matrix `api`, `web`) | pushes to `main` only | Buildx build + push to GHCR |
-| `smoke` | pushes to `main` only | `docker compose -f docker-compose.full.yml up -d --build`, then asserts `GET /api/stats` contains `totalQuestions` and that a real form login (`admin/admin1234`, with `Accept: text/html`) returns `303`; dumps logs on failure and always runs `down -v` |
+| `build-test` | every push and PR | `mvn -B -ntp verify` (Java) + `npm ci && npm test && npm run build` (`web-nextjs`); uploads `surefire-reports` as an artifact on failure |
+| `docker` (matrix: `api`, `api-graalvm`, `web`, `web-nextjs`) | pushes to `main` only | Buildx build + push to GHCR |
+| `smoke` | pushes to `main` only | `docker compose -f docker-compose.full.yml up -d --build`, then asserts `GET /api/stats` contains `totalQuestions`, real form login (`admin/admin1234`, with `Accept: text/html`) returns `303`, and `web-nextjs` responds on `:3000`; dumps logs on failure and always runs `down -v` |
 
 - Registry auth uses the built-in `GITHUB_TOKEN` (`permissions: packages: write`), no extra secrets.
 - Image names: `ghcr.io/<owner>/<repo>/api` and `ghcr.io/<owner>/<repo>/web` (lowercased with `${GITHUB_REPOSITORY,,}`, which GHCR requires).

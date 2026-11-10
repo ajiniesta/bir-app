@@ -1,0 +1,46 @@
+# syntax=docker/dockerfile:1.7
+#
+# Imagen de la API compilada con GraalVM Native Image (binario nativo).
+# El contexto de build es la RAÍZ del repositorio:
+#   docker build -f api/Dockerfile.graalvm -t bir-app-api:graalvm .
+
+# --- Compilación con GraalVM -------------------------------------------------
+FROM maven:3.9-eclipse-temurin-21 AS maven-tools
+
+FROM container-registry.oracle.com/graalvm/native-image:21 AS build
+
+COPY --from=maven-tools /usr/share/maven /usr/share/maven
+ENV MAVEN_HOME=/usr/share/maven
+ENV PATH=$MAVEN_HOME/bin:$PATH
+
+WORKDIR /workspace
+
+# Solo los POMs primero: capa cacheada mientras no cambien las dependencias.
+COPY pom.xml ./
+COPY api/pom.xml api/
+COPY web/pom.xml web/
+COPY db-migrations/pom.xml db-migrations/
+
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp -q -pl api -am dependency:go-offline
+
+COPY api/src api/src
+
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp -pl api -am -DskipTests package -Dpackaging=native-image
+
+# --- Imagen final de ejecución -----------------------------------------------
+FROM debian:bookworm-slim
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -r app && useradd -r -g app app
+
+WORKDIR /app
+COPY --from=build --chown=app:app /workspace/api/target/api /app/api
+
+USER app
+EXPOSE 18080
+
+ENTRYPOINT ["/app/api"]

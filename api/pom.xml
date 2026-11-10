@@ -11,11 +11,15 @@
     </parent>
 
     <artifactId>api</artifactId>
-    <packaging>jar</packaging>
+    <packaging>${packaging}</packaging>
 
     <properties>
+        <packaging>jar</packaging>
+        <mainClass>bir.app.api.BirAppApi</mainClass>
         <!-- Clase principal del módulo; mn:run la usa para lanzar la aplicación -->
         <exec.mainClass>bir.app.api.BirAppApi</exec.mainClass>
+        <micronaut.aot.version>2.6.0</micronaut.aot.version>
+        <micronaut.aot.enabled>false</micronaut.aot.enabled>
     </properties>
 
     <dependencies>
@@ -120,9 +124,9 @@
             <plugin>
                 <groupId>io.micronaut.maven</groupId>
                 <artifactId>micronaut-maven-plugin</artifactId>
+                <extensions>true</extensions>
                 <configuration>
-
-                  <testResourcesVersion>1</testResourcesVersion>
+                    <testResourcesVersion>1</testResourcesVersion>
                     <testResourcesEnabled>false</testResourcesEnabled>
                 </configuration>
             </plugin>

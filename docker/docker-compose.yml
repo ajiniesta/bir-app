@@ -86,5 +86,17 @@ services:
       start_period: 15s
     restart: unless-stopped
 
+  web-nextjs:
+    image: ghcr.io/ajiniesta/bir-app/web-nextjs:latest
+    environment:
+      API_BASE_URL: http://api:18080
+      AUTH_SECRET: ${JWT_SECRET:-bir-app-full-secret-change-me-0123456789abcdef}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata-full:
