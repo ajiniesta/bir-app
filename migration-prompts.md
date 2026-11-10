@@ -92,3 +92,22 @@ Migrar el modo de revisiones, que tendrá que tener acceso desde la barra de nav
 
 | GET | `/revisiones{?status,examType}` | `review/list` | Review inbox (ADMIN/CREATOR) |
 | POST | `/revisiones/{id}/review` | — | Accept/reject a proposal with a note; **accepting applies the change** (ADMIN/CREATOR) |
+
+
+# Simulacros
+Migrar el modo de simulacros del actual version web a web-nextjs. Pasamos todas las rutas de la aplicación original que deben ser migradas e integradas en la nueva web-nextjs.
+Contexto Legacy:
+| GET | `/simulacros` | `simulacro/list` | Mock exams visible to the user |
+| GET | `/simulacros/{id}` | `simulacro/detail` | Detail + attempt history |
+| GET | `/simulacros/{id}/pdf` | — | Printable PDF of the whole mock exam (questions + options, no correct answers, with an answer sheet) |
+| GET/POST | `/simulacros/new` | `simulacro/form` | Create a mock exam (ADMIN/CREATOR) |
+| GET/POST | `/simulacros/{id}/edit` | `simulacro/form` | Edit a mock exam (ADMIN/CREATOR) |
+| POST | `/simulacros/{id}/delete` | — | Delete a mock exam (ADMIN/CREATOR) |
+| POST | `/simulacros/{id}/start` | — | Start a new attempt |
+| GET | `/simulacros/{id}/attempts/{attemptId}` | `simulacro/attempt` | Answer one question at a time |
+| POST | `/simulacros/{id}/attempts/{attemptId}/answer` | — | Save an answer |
+| POST | `/simulacros/{id}/attempts/{attemptId}/finish` | — | Submit the attempt |
+| GET | `/simulacros/{id}/attempts/{attemptId}/result` | `simulacro/result` | Result + review (propose an alternative answer per item) |
+| POST | `/simulacros/{id}/attempts/{attemptId}/proposals` | — | Propose an alternative answer from the mock-exam review |
+
+Ejecuta el pipeline TDD.

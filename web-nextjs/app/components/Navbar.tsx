@@ -60,6 +60,12 @@ export default function Navbar({
                 Modo libre
               </Link>
               <Link
+                href="/simulacros"
+                className="text-sm font-medium text-gray-700 hover:text-blue-600"
+              >
+                Simulacros
+              </Link>
+              <Link
                 href="/estadisticas"
                 className="text-sm font-medium text-gray-700 hover:text-blue-600"
               >
