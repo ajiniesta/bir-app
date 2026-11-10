@@ -46,7 +46,7 @@ export default function LoginForm({ initialError = false }: LoginFormProps) {
       {hasError && (
         <div
           role="alert"
-          className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+          className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/60"
         >
           Usuario o contraseña incorrectos
         </div>
@@ -56,7 +56,7 @@ export default function LoginForm({ initialError = false }: LoginFormProps) {
         <div>
           <label
             htmlFor="username"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
           >
             Usuario
           </label>
@@ -68,14 +68,14 @@ export default function LoginForm({ initialError = false }: LoginFormProps) {
             onChange={(e) => setUsername(e.target.value)}
             required
             autoFocus
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
 
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
           >
             Contraseña
           </label>
@@ -86,16 +86,16 @@ export default function LoginForm({ initialError = false }: LoginFormProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50"
+          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
         >
-          Entrar
+          {loading ? "Entrando..." : "Entrar"}
         </button>
       </form>
     </>

@@ -1,6 +1,8 @@
 package bir.app.api.service;
 
 import bir.app.api.dto.AdminUserResponse;
+import bir.app.api.dto.ChangePasswordRequest;
+import bir.app.api.dto.MessageResponse;
 import bir.app.api.dto.RegisterRequest;
 import bir.app.api.dto.UserResponse;
 import bir.app.api.entity.AppUser;
@@ -116,6 +118,35 @@ public class AppUserService {
         user.getAllowedExamTypes().clear();
         user.getAllowedExamTypes().addAll(resolved);
         return AdminUserResponse.from(userRepository.save(user));
+    }
+
+    @Transactional
+    public MessageResponse changePassword(String username, ChangePasswordRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("La solicitud no puede ser nula");
+        }
+        AppUser user = requireByUsername(username);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("La contraseña actual no es correcta");
+        }
+
+        if (request.newPassword() == null || request.newPassword().length() < 6) {
+            throw new IllegalArgumentException("La nueva contraseña debe tener al menos 6 caracteres");
+        }
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException("La confirmación de la nueva contraseña no coincide");
+        }
+
+        if (request.newPassword().equals(request.currentPassword())) {
+            throw new IllegalArgumentException("La nueva contraseña no puede ser igual a la actual");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        return new MessageResponse("Contraseña modificada correctamente");
     }
 
     private static UserRole parseRole(String roleName) {

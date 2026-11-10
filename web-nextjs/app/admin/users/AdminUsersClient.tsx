@@ -147,7 +147,7 @@ export default function AdminUsersClient({
       {message && (
         <div
           role="status"
-          className="rounded-md bg-green-50 p-3 text-sm text-green-700 border border-green-200"
+          className="rounded-xl bg-green-50 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-300 border border-green-200 dark:border-green-900/50"
         >
           {message}
         </div>
@@ -156,7 +156,7 @@ export default function AdminUsersClient({
       {error && (
         <div
           role="alert"
-          className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200"
+          className="rounded-xl bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/60"
         >
           {error}
         </div>
@@ -165,7 +165,7 @@ export default function AdminUsersClient({
       {users.length === 0 ? (
         <div
           role="status"
-          className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800"
+          className="rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 p-4 text-sm text-blue-800 dark:text-blue-300"
         >
           No hay usuarios registrados.
         </div>
@@ -179,18 +179,18 @@ export default function AdminUsersClient({
               <div
                 key={u.id}
                 data-testid={`user-card-${u.id}`}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       {u.displayName || u.username}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-slate-500 dark:text-slate-400">
                       @{u.username}
                     </span>
                   </div>
-                  <span className="inline-flex items-center rounded-md bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">
+                  <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-800 dark:text-slate-200">
                     {u.role}
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export default function AdminUsersClient({
                     >
                       <label
                         htmlFor={`role-${u.id}`}
-                        className="block text-xs font-semibold uppercase tracking-wide text-gray-500"
+                        className="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
                       >
                         Rol
                       </label>
@@ -219,7 +219,7 @@ export default function AdminUsersClient({
                               [u.id]: e.target.value,
                             }))
                           }
-                          className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                          className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-colors"
                         >
                           {ROLES.map((r) => (
                             <option key={r} value={r}>
@@ -230,7 +230,7 @@ export default function AdminUsersClient({
                         <button
                           type="submit"
                           disabled={savingUserId === u.id}
-                          className="rounded-md border border-blue-600 bg-white px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                          className="rounded-lg border border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition-colors"
                         >
                           Guardar
                         </button>
@@ -244,7 +244,7 @@ export default function AdminUsersClient({
                       onSubmit={(e) => handleBanksSubmit(e, u.id)}
                       className="space-y-3"
                     >
-                      <span className="block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                         Bancos de preguntas
                       </span>
 
@@ -265,11 +265,11 @@ export default function AdminUsersClient({
                                   value={et.code}
                                   checked={isChecked}
                                   onChange={() => toggleBank(u.id, et.code)}
-                                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                  className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-600"
                                 />
                                 <label
                                   htmlFor={checkboxId}
-                                  className="text-sm text-gray-700 cursor-pointer"
+                                  className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
                                 >
                                   {et.code} - {et.name}
                                 </label>
@@ -278,7 +278,7 @@ export default function AdminUsersClient({
                           })}
                         </div>
                       ) : (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
                           No hay tipos de examen registrados.
                         </p>
                       )}
@@ -287,7 +287,7 @@ export default function AdminUsersClient({
                         <button
                           type="submit"
                           disabled={savingUserId === u.id}
-                          className="rounded-md border border-blue-600 bg-white px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50"
+                          className="rounded-lg border border-blue-600 dark:border-blue-500 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-50 transition-colors"
                         >
                           Guardar bancos
                         </button>

@@ -29,16 +29,16 @@ export default async function CreateSimulacroPage() {
 
   if (!isAdmin && !isCreator) {
     return (
-      <div className="min-h-screen bg-gray-50 text-gray-900">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
         <Navbar session={session} />
-        <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-800 space-y-3">
+        <main className="flex-1 max-w-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-12">
+          <div className="rounded-2xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 p-6 text-center text-sm text-red-800 dark:text-red-300 space-y-3">
             <h1 className="text-lg font-bold">Acceso denegado</h1>
             <p>Solo los creadores y administradores pueden crear simulacros.</p>
             <div>
               <Link
                 href="/simulacros"
-                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 Volver a simulacros
               </Link>
@@ -83,10 +83,10 @@ export default async function CreateSimulacroPage() {
   } catch {}
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <Navbar session={session} />
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuevo simulacro</h1>
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Nuevo simulacro</h1>
         <MockExamForm
           examTypes={examTypes}
           allQuestions={allQuestions}

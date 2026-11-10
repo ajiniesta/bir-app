@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
-export default function LogoutButton() {
+interface LogoutButtonProps {
+  className?: string;
+}
+
+export default function LogoutButton({ className }: LogoutButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -19,12 +23,15 @@ export default function LogoutButton() {
     }
   }
 
+  const defaultClasses =
+    "inline-flex items-center justify-center rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 transition-colors";
+
   return (
     <button
       type="button"
       onClick={handleLogout}
       disabled={loading}
-      className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50"
+      className={className || defaultClasses}
     >
       Cerrar sesión
     </button>

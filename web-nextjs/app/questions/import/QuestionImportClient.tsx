@@ -161,36 +161,36 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Importar preguntas</h1>
-          <p className="text-sm text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Importar preguntas</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
             Carga masiva de preguntas desde fichero JSON hacia el banco del sistema.
           </p>
         </div>
         <Link
           href="/questions"
-          className="rounded-md border border-gray-300 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition"
+          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
         >
           Volver
         </Link>
       </div>
 
       {errorMessage && (
-        <div className="rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
+        <div className="rounded-xl bg-red-50 dark:bg-red-950/40 p-4 text-sm text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/60">
           {errorMessage}
         </div>
       )}
 
       {/* Progress & Live Results Panel */}
       {(isProcessing || isDone) && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-gray-900">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
               {isDone ? "Importación terminada" : "Progreso de importación"}
             </h2>
-            <span className="text-sm font-semibold text-blue-600">{progress}%</span>
+            <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{progress}%</span>
           </div>
 
-          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
             <div
               className={`h-3 rounded-full transition-all duration-300 ${
                 isDone ? "bg-green-600" : "bg-blue-600 animate-pulse"
@@ -199,26 +199,26 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
             />
           </div>
 
-          <p className="text-xs text-gray-600">{statusText}</p>
+          <p className="text-xs text-slate-600 dark:text-slate-400">{statusText}</p>
 
           <div className="grid grid-cols-3 gap-3 pt-2 text-center text-xs">
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <span className="text-gray-500 block">Importadas</span>
-              <strong className="text-sm text-green-600 font-bold">{importedCount}</strong>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400 block">Importadas</span>
+              <strong className="text-sm text-green-600 dark:text-green-400 font-bold">{importedCount}</strong>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <span className="text-gray-500 block">Ya existentes</span>
-              <strong className="text-sm text-gray-700 font-bold">{duplicatesCount}</strong>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400 block">Ya existentes</span>
+              <strong className="text-sm text-slate-700 dark:text-slate-300 font-bold">{duplicatesCount}</strong>
             </div>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <span className="text-gray-500 block">Con errores</span>
-              <strong className="text-sm text-red-600 font-bold">{skippedCount}</strong>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-500 dark:text-slate-400 block">Con errores</span>
+              <strong className="text-sm text-red-600 dark:text-red-400 font-bold">{skippedCount}</strong>
             </div>
           </div>
 
           {/* Final Results summary text */}
           {isDone && (
-            <div className="rounded-lg bg-green-50 p-4 border border-green-200 text-xs text-green-900 space-y-1">
+            <div className="rounded-xl bg-green-50 dark:bg-green-950/30 p-4 border border-green-200 dark:border-green-900/50 text-xs text-green-900 dark:text-green-300 space-y-1">
               <p className="font-bold">
                 Importación terminada: {importedCount} {importedCount === 1 ? "importada" : "importadas"}, {duplicatesCount} {duplicatesCount === 1 ? "ya existente" : "ya existentes"}, {skippedCount} {skippedCount === 1 ? "con errores" : "con errores"}.
               </p>
@@ -227,7 +227,7 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
 
           {/* Error messages list if any */}
           {errorList.length > 0 && (
-            <div className="rounded-lg bg-amber-50 p-4 border border-amber-200 text-xs text-amber-900 space-y-2">
+            <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-4 border border-amber-200 dark:border-amber-900/50 text-xs text-amber-900 dark:text-amber-300 space-y-2">
               <p className="font-bold">Preguntas descartadas (el resto se ha importado):</p>
               <ul className="list-disc list-inside space-y-1 max-h-48 overflow-y-auto">
                 {errorList.map((err, idx) => (
@@ -240,9 +240,9 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
       )}
 
       {/* Upload Form */}
-      <form onSubmit={handleImportSubmit} noValidate className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <form onSubmit={handleImportSubmit} noValidate className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 space-y-4">
         <div>
-          <label htmlFor="file" className="block text-sm font-semibold text-gray-700 mb-1">
+          <label htmlFor="file" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Fichero de preguntas
           </label>
           <input
@@ -253,9 +253,9 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
             onChange={handleFileChange}
             disabled={isProcessing}
             required
-            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950/60 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 cursor-pointer"
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Selecciona un fichero JSON con las preguntas que quieres importar (hasta 10 MB). Las preguntas ya guardadas se omiten para evitar duplicados.
           </p>
         </div>
@@ -264,13 +264,13 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
           <button
             type="submit"
             disabled={isProcessing || !file}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50"
+            className="rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition disabled:opacity-50"
           >
             {isProcessing ? "Importando…" : "Importar"}
           </button>
           <Link
             href="/questions"
-            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition"
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
           >
             Cancelar
           </Link>
@@ -278,15 +278,15 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
       </form>
 
       {/* Sample Format Display */}
-      <details className="bg-white rounded-xl border border-gray-200 shadow-sm p-6" open>
-        <summary className="text-sm font-bold text-gray-900 cursor-pointer hover:text-blue-600">
+      <details className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6" open>
+        <summary className="text-sm font-bold text-slate-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400">
           Formato del fichero
         </summary>
-        <div className="mt-3 text-xs text-gray-600 space-y-2">
+        <div className="mt-3 text-xs text-slate-600 dark:text-slate-400 space-y-2">
           <p>
             El fichero puede contener un array de preguntas o varios objetos JSON consecutivos. Cada pregunta requiere obligatoriamente <code>text</code>, <code>exam_type</code> y <code>answers</code> con exactamente una respuesta correcta (<code>is_correct: true</code>).
           </p>
-          <pre className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-gray-800 font-mono text-[11px] overflow-x-auto">
+          <pre className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-mono text-[11px] overflow-x-auto">
 {`{
   "exam_type": "3",
   "category": "Fisiología",

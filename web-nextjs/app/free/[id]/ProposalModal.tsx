@@ -82,17 +82,17 @@ export default function ProposalModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="proposal-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
     >
-      <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-          <h2 id="proposal-modal-title" className="text-lg font-bold text-gray-900">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-slate-100">
+        <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h2 id="proposal-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">
             Proponer respuesta alternativa
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-lg leading-none p-1"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none p-1"
             aria-label="Cerrar"
           >
             &times;
@@ -100,21 +100,21 @@ export default function ProposalModal({
         </div>
 
         {error && (
-          <div role="alert" className="rounded-md bg-red-50 p-3 border border-red-200 text-xs text-red-700">
+          <div role="alert" className="rounded-lg bg-red-50 dark:bg-red-950/40 p-3 border border-red-200 dark:border-red-900/60 text-xs text-red-800 dark:text-red-300">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
           <div>
-            <label htmlFor="proposedLetter" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="proposedLetter" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Creo que la opción correcta es
             </label>
             <select
               id="proposedLetter"
               value={proposedLetter}
               onChange={(e) => setProposedLetter(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
               <option value="">— Ninguna / no lo sé —</option>
               {item.options.map((opt) => (
@@ -126,7 +126,7 @@ export default function ProposalModal({
           </div>
 
           <div>
-            <label htmlFor="proposedText" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="proposedText" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Otra respuesta alternativa (texto)
             </label>
             <textarea
@@ -135,12 +135,12 @@ export default function ProposalModal({
               value={proposedText}
               onChange={(e) => setProposedText(e.target.value)}
               placeholder="Si la respuesta correcta debería ser otra distinta de las opciones"
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
           <div>
-            <label htmlFor="comment" className="block text-xs font-medium text-gray-700 mb-1">
+            <label htmlFor="comment" className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
               Motivo <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -150,23 +150,23 @@ export default function ProposalModal({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Explica por qué la respuesta es errónea o conflictiva"
-              className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="rounded-md border border-gray-300 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-md bg-amber-500 px-4 py-1.5 text-xs font-medium text-white hover:bg-amber-600 focus:outline-none disabled:opacity-50"
+              className="rounded-lg bg-amber-500 px-4 py-1.5 text-xs font-medium text-white hover:bg-amber-600 shadow-xs focus:outline-none disabled:opacity-50 transition-colors"
             >
               {submitting ? "Enviando..." : "Enviar propuesta"}
             </button>
