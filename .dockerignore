@@ -12,3 +12,4 @@ to_import_sample_data
 *.md
 sample.json
 docker-compose*.yml
+**/.env*.local
