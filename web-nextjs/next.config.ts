@@ -1,7 +1,5 @@
 import type { NextConfig } from "next";
 
-const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:18080";
-
 const nextConfig: NextConfig = {
   output: "standalone",
   cacheComponents: true,
@@ -13,23 +11,6 @@ const nextConfig: NextConfig = {
         as: "*.css",
       },
     },
-  },
-  async rewrites() {
-    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:18080";
-    return [
-      {
-        source: "/api/auth/login",
-        destination: `${apiBaseUrl}/login`,
-      },
-      {
-        source: "/api/auth/register",
-        destination: `${apiBaseUrl}/api/auth/register`,
-      },
-      {
-        source: "/api/:path((?!auth/).*)",
-        destination: `${apiBaseUrl}/api/:path*`,
-      },
-    ];
   },
 };
 

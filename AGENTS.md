@@ -243,9 +243,7 @@ Every view starts with the two fragments in `templates/fragments/layout.html`:
 The new headless frontend lives in `web-nextjs/` as a standalone Node/npm application alongside the legacy `web/` module:
 
 - **Stack**: Next.js `16.4.5` (App Router, Turbopack, `cacheComponents: true`, `partialPrefetching: true`), React `19.3.0`, TypeScript `5`, Tailwind CSS `v4` (`@tailwindcss/turbopack`).
-- **API Proxy (`next.config.ts`)**: Reads `process.env.API_BASE_URL || "http://localhost:18080"` (also set in `web-nextjs/.env.local` along with `NEXT_PUBLIC_API_BASE_URL`) and defines Next.js `rewrites()`:
-  - `/api/auth/login` → `${apiBaseUrl}/login`
-  - `/api/:path*` → `${apiBaseUrl}/api/:path*`
+- **API Proxy**: Uses dynamic App Router Route Handlers (`app/api/[...path]/route.ts`, `app/api/auth/login/route.ts`, `app/api/auth/register/route.ts`) powered by `proxyHelper.ts`. Resolves `process.env.API_BASE_URL` at **runtime** (defaulting to `http://localhost:18080`), ensuring Docker deployments with `API_BASE_URL: http://api:18080` work seamlessly without hardcoded build-time rewrites.
 - **Next.js 16 Agent Rules**: `web-nextjs/AGENTS.md` is auto-generated/maintained by `next dev` and points to `web-nextjs/node_modules/next/dist/docs/` for Next.js 16 breaking changes. Do not delete that block.
 - **Migrated views so far**:
   - `/login` (`web-nextjs/app/login/page.tsx`) — login form posting to `/api/auth/login` with links to `/register` and `/`, covered by `web-nextjs/__tests__/login/page.test.tsx`.
