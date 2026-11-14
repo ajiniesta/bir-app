@@ -7,7 +7,9 @@
 # --- Compilación con GraalVM -------------------------------------------------
 FROM maven:3.9-eclipse-temurin-21 AS maven-tools
 
-FROM container-registry.oracle.com/graalvm/native-image:21 AS build
+# Usamos 21-ol9 (Oracle Linux 9) en vez de :21 (Oracle Linux 10), porque en OL10
+# /usr/lib64/crt1.o y libc_nonshared.a exigen x86-64-v3 (AVX2) en la cabecera ELF.
+FROM container-registry.oracle.com/graalvm/native-image:21-ol9 AS build
 
 COPY --from=maven-tools /usr/share/maven /usr/share/maven
 ENV MAVEN_HOME=/usr/share/maven
@@ -27,7 +29,8 @@ RUN --mount=type=cache,target=/root/.m2 \
 COPY api/src api/src
 
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -ntp -pl api -am -DskipTests package -Dpackaging=native-image
+    mvn -B -ntp -pl api -am -DskipTests package -Dpackaging=native-image && \
+    objcopy --remove-section=.note.gnu.property /workspace/api/target/api
 
 # --- Imagen final de ejecución -----------------------------------------------
 FROM debian:bookworm-slim
