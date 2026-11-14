@@ -12,6 +12,7 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micronaut.core.annotation.ReflectiveAccess;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -335,6 +336,7 @@ public class QuestionImportService {
 
     private record Candidate(int position, CreateQuestionRequest request) {}
 
+    @ReflectiveAccess
     record ImportQuestion(
         @JsonProperty("exam_type") String examType,
         String category,
@@ -344,6 +346,7 @@ public class QuestionImportService {
         List<ImportAnswer> answers
     ) {}
 
+    @ReflectiveAccess
     record ImportAnswer(
         String letter,
         String text,
