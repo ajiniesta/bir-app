@@ -134,6 +134,10 @@
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
                 <configuration>
+                    <isDetectionEnabled>true</isDetectionEnabled>
+                    <metadataRepository>
+                        <enabled>true</enabled>
+                    </metadataRepository>
                     <buildArgs combine.children="append">
                         <!-- Genera binario compatible con CPUs x86-64 sin AVX2 (p. ej. Intel Celeron en NAS QNAP) -->
                         <buildArg>-march=compatibility</buildArg>
