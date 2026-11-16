@@ -77,8 +77,8 @@ services:
       migrations:
         condition: service_completed_successfully
     healthcheck:
-      # /api/stats es público: sirve para saber si la API ya atiende.
-      test: ["CMD-SHELL", "wget -qO- http://localhost:18080/api/stats >/dev/null || exit 1"]
+      # /api/health es público y ligero: sirve para saber si la API ya atiende.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:18080/api/health >/dev/null || exit 1"]
       interval: 120s
       timeout: 5s
       retries: 10
