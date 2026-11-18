@@ -31,6 +31,7 @@ export default async function EstadisticasPage() {
 
   let overview: StatsOverviewResponse | null = null;
   let error: string | null = null;
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/stats/overview`, {
@@ -39,13 +40,20 @@ export default async function EstadisticasPage() {
       cache: "no-store",
     });
 
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       overview = await res.json();
     } else {
       error = "No se pudieron cargar las estadísticas.";
     }
   } catch (err: unknown) {
     error = "No se pudieron cargar las estadísticas: " + (err instanceof Error ? err.message : "error inesperado");
+  }
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
   }
 
   return (

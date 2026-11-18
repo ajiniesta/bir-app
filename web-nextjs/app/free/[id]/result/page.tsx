@@ -38,6 +38,7 @@ export default async function FreeResultPage(props: FreeResultPageProps) {
 
   let freeSession: FreeSessionResponse | null = null;
   let notFound = false;
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/free-sessions/${id}`, {
@@ -46,13 +47,20 @@ export default async function FreeResultPage(props: FreeResultPageProps) {
       cache: "no-store",
     });
 
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       freeSession = await res.json();
     } else {
       notFound = true;
     }
   } catch {
     notFound = true;
+  }
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
   }
 
   const percent =

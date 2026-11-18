@@ -10,6 +10,7 @@ interface AdminData {
   users: AdminUser[];
   examTypes: ExamType[];
   error: string | null;
+  unauthorized?: boolean;
 }
 
 async function fetchAdminData(accessToken?: string): Promise<AdminData> {
@@ -31,6 +32,10 @@ async function fetchAdminData(accessToken?: string): Promise<AdminData> {
       headers,
       cache: "no-store",
     });
+
+    if (usersRes.status === 401) {
+      return { users: [], examTypes: [], error: null, unauthorized: true };
+    }
 
     if (usersRes.ok) {
       const data = await usersRes.json();
@@ -104,7 +109,12 @@ export default async function AdminUsersPage() {
     );
   }
 
-  const { users, examTypes, error } = await fetchAdminData(user.accessToken);
+  const { users, examTypes, error, unauthorized } = await fetchAdminData(user.accessToken);
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">

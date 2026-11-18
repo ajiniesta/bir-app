@@ -36,16 +36,24 @@ export default async function SimulacrosPage() {
   }
 
   let mockExams: MockExamSummary[] = [];
+  let unauthorized = false;
   try {
     const res = await fetch(`${apiBaseUrl}/api/mock-exams`, {
       method: "GET",
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       mockExams = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">

@@ -165,4 +165,28 @@ describe('Navbar (modernized top menu with mobile and user dropdown)', () => {
     expect(screen.queryByRole('link', { name: /preguntas/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /revisiones/i })).not.toBeInTheDocument();
   });
+
+  it('treats an expired API session as unauthenticated and triggers signOut automatically', async () => {
+    mockSignOut.mockResolvedValueOnce(undefined);
+
+    render(
+      <Navbar
+        session={{
+          user: {
+            name: 'demo',
+            role: 'CREATOR',
+            accessTokenExpires: Date.now() - 5000,
+          },
+          expires: new Date(Date.now() - 5000).toISOString(),
+        }}
+      />
+    );
+
+    expect(screen.getByRole('link', { name: /iniciar sesión/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /demo/i })).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
+    });
+  });
 });

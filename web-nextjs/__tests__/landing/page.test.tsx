@@ -5,11 +5,13 @@ import { auth } from '@/auth';
 
 const mockPush = jest.fn();
 const mockRefresh = jest.fn();
+const mockRedirect = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
     refresh: mockRefresh,
   }),
+  redirect: (...args: unknown[]) => mockRedirect(...args),
 }));
 
 const mockSignOut = jest.fn();
@@ -181,5 +183,25 @@ describe('LandingPage (/)', () => {
       expect(mockSignOut).toHaveBeenCalledWith({ redirect: false });
       expect(mockPush).toHaveBeenCalledWith('/');
     });
+  });
+
+  it('redirects to /logout automatically when the backend API returns 401 Unauthorized', async () => {
+    mockAuth.mockResolvedValue({
+      user: {
+        name: 'alumno1',
+        role: 'USER',
+        accessToken: 'expired-jwt-token',
+      },
+    });
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
+    });
+
+    await LandingPage();
+
+    expect(mockRedirect).toHaveBeenCalledWith('/logout');
   });
 });

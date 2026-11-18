@@ -36,16 +36,24 @@ export default async function SimulacroPdfPage(props: SimulacroPdfPageProps) {
   }
 
   let mockExam: MockExamResponse | null = null;
+  let unauthorized = false;
   try {
     const res = await fetch(`${apiBaseUrl}/api/mock-exams/${id}`, {
       method: "GET",
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       mockExam = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   if (!mockExam) {
     return (

@@ -78,6 +78,7 @@ export default async function ReviewPage(props: ReviewPageProps) {
 
   let proposals: AnswerProposal[] = [];
   let examTypes: ExamType[] = [];
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/proposals?${queryParams.toString()}`, {
@@ -85,10 +86,17 @@ export default async function ReviewPage(props: ReviewPageProps) {
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       proposals = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/exam-types`, {

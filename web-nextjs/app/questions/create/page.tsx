@@ -63,6 +63,7 @@ export default async function CreateQuestionPage() {
 
   let examTypes: ExamType[] = [];
   let tags: string[] = [];
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/exam-types`, {
@@ -70,10 +71,17 @@ export default async function CreateQuestionPage() {
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       examTypes = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/tags`, {
