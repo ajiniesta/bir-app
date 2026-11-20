@@ -153,6 +153,7 @@ Notes:
 | GET | `/api/stats/banks` | authenticated | Same, limited to the user's allowed banks (all for ADMIN/CREATOR) |
 | GET | `/api/stats/quiz` | authenticated | `QuizStatsResponse` (current user; global block only for ADMIN/CREATOR) |
 | GET | `/api/stats/overview` | authenticated | `StatsOverviewResponse` (free + mock stats by category; `global` only for ADMIN/CREATOR) |
+| GET | `/api/stats/questions/{id}` | authenticated | `QuestionStatsResponse` (times answered and accuracy % for a question across the whole platform and for the authenticated user) |
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
 | GET | `/api/questions/page{?page,size,q,examType,category,tag}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank, category and tag; `__NONE__` = without category/tag |
@@ -225,7 +226,7 @@ The official frontend lives in `web-nextjs/` as a standalone Node/npm applicatio
 | `/estadisticas` | `app/estadisticas/page.tsx` | authenticated | Personal statistics by category (free mode + finished mock exams); global KPIs, category breakdown and per-user table for ADMIN/CREATOR |
 | `/questions` | `app/questions/page.tsx`, `QuestionsListClient.tsx` | ADMIN/CREATOR | Paginated question bank (20/page) with text search and bank/category/tag filters |
 | `/questions/create` | `app/questions/create/page.tsx`, `QuestionForm.tsx` | ADMIN/CREATOR | Create a new question (validates 4 options A–D and exactly 1 correct) |
-| `/questions/[id]` | `app/questions/[id]/page.tsx` | ADMIN/CREATOR | Question detail with correct option highlighted, explanation, edit and delete actions |
+| `/questions/[id]` | `app/questions/[id]/page.tsx`, `QuestionStatsButton.tsx`, `QuestionStatsModal.tsx` | ADMIN/CREATOR | Question detail with correct option highlighted, explanation, edit/delete actions, and popup showing question statistics (platform & user answered count, accuracy %, and concentric pie charts) |
 | `/questions/[id]/edit` | `app/questions/[id]/edit/page.tsx`, `QuestionForm.tsx` | ADMIN/CREATOR | Edit an existing question |
 | `/questions/import` | `app/questions/import/page.tsx`, `QuestionImportClient.tsx`, `jsonSplitter.ts` | ADMIN/CREATOR | Client-side JSON splitter (`jsonSplitter.ts`, batches of 100 objects) posting batch-by-batch to `/api/questions/import` with progress bar and error report |
 | `/questions/duplicates` | `app/questions/duplicates/page.tsx`, `QuestionDuplicatesClient.tsx` | ADMIN/CREATOR | Preview duplicate groups by bank and run batched purge (`/api/questions/duplicates/purge`) with progress bar |

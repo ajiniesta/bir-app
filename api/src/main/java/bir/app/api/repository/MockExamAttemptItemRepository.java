@@ -25,4 +25,10 @@ public interface MockExamAttemptItemRepository extends JpaRepository<MockExamAtt
            "JOIN FETCH i.attempt a JOIN FETCH a.user " +
            "WHERE a.finishedAt IS NOT NULL AND i.answeredAt IS NOT NULL")
     List<MockExamAttemptItem> findAllAnsweredFinished();
+
+    /** Respuestas a una pregunta concreta en simulacros entregados. */
+    @Query("SELECT i FROM MockExamAttemptItem i " +
+           "JOIN FETCH i.attempt a JOIN FETCH a.user " +
+           "WHERE i.question.id = :questionId AND a.finishedAt IS NOT NULL AND i.answeredAt IS NOT NULL")
+    List<MockExamAttemptItem> findAnsweredFinishedByQuestionId(Long questionId);
 }

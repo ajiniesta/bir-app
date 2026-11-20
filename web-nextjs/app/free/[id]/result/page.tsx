@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
+import QuestionStatsButton from "@/app/components/QuestionStatsButton";
 import { FreeSessionResponse } from "../../types";
 
 export const instant = false;
@@ -157,15 +158,24 @@ export default async function FreeResultPage(props: FreeResultPageProps) {
                         </span>
                       )}
                     </div>
-                    <span
-                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold shrink-0 ${
-                        item.correct
-                          ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                          : "bg-red-50 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800"
-                      }`}
-                    >
-                      {item.correct ? "Correcta" : "Incorrecta"}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {typeof item.questionId === "number" && (
+                        <QuestionStatsButton
+                          questionId={item.questionId}
+                          accessToken={user.accessToken}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        />
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold shrink-0 ${
+                          item.correct
+                            ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                            : "bg-red-50 text-red-800 dark:bg-red-900/40 dark:text-red-300 border border-red-200 dark:border-red-800"
+                        }`}
+                      >
+                        {item.correct ? "Correcta" : "Incorrecta"}
+                      </span>
+                    </div>
                   </div>
 
                   {item.answered && (

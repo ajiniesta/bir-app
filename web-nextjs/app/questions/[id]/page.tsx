@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
+import QuestionStatsButton from "@/app/components/QuestionStatsButton";
 import { QuestionDetailResponse } from "../types";
 
 export const instant = false;
@@ -133,7 +134,11 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                 Pregunta #{question.id}
               </h1>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <QuestionStatsButton
+                  questionId={question.id}
+                  accessToken={user.accessToken}
+                />
                 <Link
                   href={`/questions/${question.id}/edit`}
                   className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"

@@ -1,5 +1,6 @@
 package bir.app.api.service;
 
+import bir.app.api.dto.QuestionStatsResponse;
 import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.entity.AppUser;
 import bir.app.api.entity.MockExamAttemptItem;
@@ -17,6 +18,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -96,6 +98,57 @@ public class StatisticsService {
         }
 
         return new StatsOverviewResponse(mine, global);
+    }
+
+    /**
+     * Estadísticas de una pregunta concreta (modo libre + simulacros entregados):
+     * veces respondida y porcentaje de acierto en toda la plataforma y por el
+     * usuario autenticado.
+     */
+    @Transactional
+    public QuestionStatsResponse questionStats(Long questionId, String username) {
+        if (!questionRepository.existsById(questionId)) {
+            throw new NoSuchElementException("Pregunta no encontrada: " + questionId);
+        }
+
+        List<SessionItem> freeAnswered = sessionItemRepository.findAnsweredByQuestionId(questionId);
+        List<MockExamAttemptItem> mockAnswered = finishedOnly(
+                mockExamAttemptItemRepository.findAnsweredFinishedByQuestionId(questionId));
+
+        long platformAnswered = freeAnswered.size() + mockAnswered.size();
+        long platformCorrect = countCorrect(freeAnswered) + countCorrectMock(mockAnswered);
+        long platformIncorrect = platformAnswered - platformCorrect;
+        QuestionStatsResponse.ScopeStats platform = new QuestionStatsResponse.ScopeStats(
+                platformAnswered,
+                platformCorrect,
+                platformIncorrect,
+                pct(platformCorrect, platformAnswered)
+        );
+
+        List<SessionItem> userFree = freeAnswered.stream()
+                .filter(i -> i.getSession() != null
+                        && i.getSession().getUser() != null
+                        && username != null
+                        && username.equals(i.getSession().getUser().getUsername()))
+                .toList();
+        List<MockExamAttemptItem> userMock = mockAnswered.stream()
+                .filter(i -> i.getAttempt() != null
+                        && i.getAttempt().getUser() != null
+                        && username != null
+                        && username.equals(i.getAttempt().getUser().getUsername()))
+                .toList();
+
+        long userAnswered = userFree.size() + userMock.size();
+        long userCorrect = countCorrect(userFree) + countCorrectMock(userMock);
+        long userIncorrect = userAnswered - userCorrect;
+        QuestionStatsResponse.ScopeStats user = new QuestionStatsResponse.ScopeStats(
+                userAnswered,
+                userCorrect,
+                userIncorrect,
+                pct(userCorrect, userAnswered)
+        );
+
+        return new QuestionStatsResponse(questionId, platform, user);
     }
 
     // --- Desglose por categoría ----------------------------------------------

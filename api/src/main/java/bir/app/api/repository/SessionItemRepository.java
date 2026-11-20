@@ -27,6 +27,11 @@ public interface SessionItemRepository extends JpaRepository<SessionItem, Long> 
            "WHERE i.answeredAt IS NOT NULL")
     List<SessionItem> findAllAnswered();
 
+    @Query("SELECT i FROM SessionItem i " +
+           "JOIN FETCH i.session s JOIN FETCH s.user " +
+           "WHERE i.question.id = :questionId AND i.answeredAt IS NOT NULL")
+    List<SessionItem> findAnsweredByQuestionId(Long questionId);
+
     /** Ids de las preguntas (de las indicadas) que aparecen en alguna sesión. */
     @Query("SELECT DISTINCT i.question.id FROM SessionItem i WHERE i.question.id IN (:questionIds)")
     List<Long> findQuestionIdsIn(java.util.Collection<Long> questionIds);

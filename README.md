@@ -74,6 +74,10 @@ categoría, tag y explicación opcional.
   simulacros entregados), incluyendo las categorías que aún no has practicado. Los administradores y
   creadores ven además las estadísticas globales y el desglose por usuario. En simulacros: nota
   media, mejor nota e historial por simulacro.
+- **Estadísticas por pregunta (popup concéntrico)**: al visualizar una pregunta, un botón abre un
+  popup con las veces que se ha respondido y su porcentaje de acierto tanto en toda la plataforma
+  como por el usuario autenticado, acompañado de dos gráficos de tarta concéntricos (interior:
+  usuario; exterior: toda la plataforma).
 - **Impresión / PDF de simulacros** (`/simulacros/[id]/pdf`): vista optimizada para impresión y
   guardado en PDF (preguntas, opciones sin revelar la respuesta correcta y hoja de respuestas final)
   para practicar en papel.
