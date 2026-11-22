@@ -67,6 +67,7 @@ class QuestionImportServiceTest {
         verify(questionService).create(request.capture());
         assertThat(request.getValue().text()).isEqualTo("¿Qué es?");
         assertThat(request.getValue().tag()).isEqualTo("Tema 1");
+        assertThat(request.getValue().tags()).containsExactly("Tema 1");
         assertThat(request.getValue().examTypeId()).isEqualTo(2L);
         assertThat(request.getValue().answerOptions())
                 .extracting(CreateQuestionRequest.AnswerOptionRequest::letter)
@@ -173,6 +174,53 @@ class QuestionImportServiceTest {
         String longTag = "x".repeat(101);
         String content = """
                 {"exam_type":"BIR","text":"Pregunta","tag":"%s","answers":[
+                  {"letter":"A","text":"Una","is_correct":true}]}
+                """.formatted(longTag);
+
+        QuestionImportResponse response = service.importQuestions(content);
+
+        assertThat(response.imported()).isZero();
+        assertThat(response.errors()).anySatisfy(error ->
+                assertThat(error).contains("el tag no puede superar 100 caracteres"));
+    }
+
+    @Test
+    @DisplayName("importa preguntas con array 'tags' y con 'tag' separado por comas")
+    void importsMultipleTagsFromArrayAndCommaSeparatedString() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        String content = """
+                [
+                  {"exam_type":"BIR","text":"Pregunta con array tags","tags":[" Tema 1 ","Fisiología","tema 1"],
+                   "answers":[{"letter":"A","text":"Una","is_correct":true}]},
+                  {"exam_type":"BIR","text":"Pregunta con tag separado por comas","tag":"Genética, Biología Molecular",
+                   "answers":[{"letter":"A","text":"Una","is_correct":true}]}
+                ]
+                """;
+
+        QuestionImportResponse response = service.importQuestions(content);
+
+        assertThat(response.imported()).isEqualTo(2);
+        assertThat(response.errors()).isEmpty();
+
+        ArgumentCaptor<CreateQuestionRequest> requests = ArgumentCaptor.forClass(CreateQuestionRequest.class);
+        verify(questionService, times(2)).create(requests.capture());
+        List<CreateQuestionRequest> captured = requests.getAllValues();
+
+        assertThat(captured.get(0).tags()).containsExactly("Tema 1", "Fisiología");
+        assertThat(captured.get(0).tag()).isEqualTo("Tema 1, Fisiología");
+        assertThat(captured.get(1).tags()).containsExactly("Genética", "Biología Molecular");
+        assertThat(captured.get(1).tag()).isEqualTo("Genética, Biología Molecular");
+    }
+
+    @Test
+    @DisplayName("descarta una pregunta cuando alguna tag del array supera 100 caracteres")
+    void rejectsTooLongTagInTagsArray() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        String longTag = "y".repeat(101);
+        String content = """
+                {"exam_type":"BIR","text":"Pregunta","tags":["Tema 1","%s"],"answers":[
                   {"letter":"A","text":"Una","is_correct":true}]}
                 """.formatted(longTag);
 

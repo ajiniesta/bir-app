@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MockExamAttemptResponse, MyProposalResponse } from "../../../../types";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface MockExamResultClientProps {
   attempt: MockExamAttemptResponse;
@@ -235,10 +236,17 @@ export default function MockExamResultClient({
                       <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                         {item.questionText}
                       </div>
-                      {item.tag && (
-                        <span className="mt-1 inline-block rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                          #{item.tag}
-                        </span>
+                      {getQuestionTags(item).length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {getQuestionTags(item).map((t) => (
+                            <span
+                              key={t}
+                              className="inline-block rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300"
+                            >
+                              #{t}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
                   </div>

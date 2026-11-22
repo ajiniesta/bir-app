@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import PrintButton from "./PrintButton";
 import { MockExamResponse } from "../../types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 export const instant = false;
 
@@ -116,11 +117,14 @@ export default async function SimulacroPdfPage(props: SimulacroPdfPageProps) {
               <span>{q.text}</span>
             </div>
 
-            {(q.category || q.tag) && (
+            {(q.category || getQuestionTags(q).length > 0) && (
               <div className="text-[11px] text-slate-500 dark:text-slate-400 print:text-gray-600 mt-0.5">
                 {q.category}
-                {q.category && q.tag && " · "}
-                {q.tag && `Tag: #${q.tag}`}
+                {q.category && getQuestionTags(q).length > 0 && " · "}
+                {getQuestionTags(q).length > 0 &&
+                  `Tag: ${getQuestionTags(q)
+                    .map((t) => `#${t}`)
+                    .join(" ")}`}
               </div>
             )}
 

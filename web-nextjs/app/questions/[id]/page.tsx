@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 import { QuestionDetailResponse } from "../types";
 
 export const instant = false;
@@ -156,7 +157,7 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
 
             {/* Statement card */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
                   {question.examTypeCode || "N/A"}
                 </span>
@@ -165,11 +166,14 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
                     {question.category}
                   </span>
                 )}
-                {question.tag && (
-                  <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    #{question.tag}
+                {getQuestionTags(question).map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                  >
+                    #{t}
                   </span>
-                )}
+                ))}
               </div>
               <p className="text-lg text-slate-900 dark:text-slate-100 leading-relaxed font-normal whitespace-pre-wrap">
                 {question.text}

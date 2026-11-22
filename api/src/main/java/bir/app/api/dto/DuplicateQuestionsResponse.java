@@ -1,5 +1,7 @@
 package bir.app.api.dto;
 
+import bir.app.api.support.QuestionTagSupport;
+import io.micronaut.core.annotation.Creator;
 import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
@@ -55,12 +57,32 @@ public record DuplicateQuestionsResponse(
         Long id,
         String category,
         String tag,
+        List<String> tags,
         boolean hasExplanation,
         int optionCount,
         boolean inMockExam,
         boolean hasProposals,
         boolean inFreeSessions
-    ) {}
+    ) {
+        @Creator
+        public DuplicateCandidate {
+            tags = tags != null ? List.copyOf(tags) : QuestionTagSupport.parse(tag);
+        }
+
+        public DuplicateCandidate(
+            Long id,
+            String category,
+            String tag,
+            boolean hasExplanation,
+            int optionCount,
+            boolean inMockExam,
+            boolean hasProposals,
+            boolean inFreeSessions
+        ) {
+            this(id, category, tag, QuestionTagSupport.parse(tag),
+                    hasExplanation, optionCount, inMockExam, hasProposals, inFreeSessions);
+        }
+    }
 
     /** Mismo enunciado en el mismo banco pero con opciones distintas. */
     @Serdeable

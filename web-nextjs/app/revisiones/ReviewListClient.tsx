@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnswerProposal, ExamType } from "./types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface ReviewListClientProps {
   initialProposals: AnswerProposal[];
@@ -206,11 +207,14 @@ export default function ReviewListClient({
                         {p.category}
                       </span>
                     )}
-                    {p.tag && (
-                      <span className="inline-flex items-center rounded-md bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                        #{p.tag}
+                    {getQuestionTags(p).map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center rounded-md bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+                      >
+                        #{t}
                       </span>
-                    )}
+                    ))}
                     {p.questionId && (
                       <Link
                         href={`/questions/${p.questionId}`}

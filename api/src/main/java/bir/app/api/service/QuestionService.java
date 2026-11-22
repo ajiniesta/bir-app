@@ -11,6 +11,7 @@ import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.MockExamRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.support.QuestionTagSupport;
 import io.micronaut.data.model.Page;
 import io.micronaut.data.model.Pageable;
 import jakarta.inject.Singleton;
@@ -73,10 +74,12 @@ public class QuestionService {
             throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
         }
 
+        List<String> resolvedTags = validateAndResolveTags(request);
+
         Question question = new Question();
         question.setText(request.text());
         question.setCategory(request.category());
-        question.setTag(normalize(request.tag()));
+        question.setTag(QuestionTagSupport.join(resolvedTags));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -105,9 +108,11 @@ public class QuestionService {
             throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
         }
 
+        List<String> resolvedTags = validateAndResolveTags(request);
+
         question.setText(request.text());
         question.setCategory(request.category());
-        question.setTag(normalize(request.tag()));
+        question.setTag(QuestionTagSupport.join(resolvedTags));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -152,7 +157,22 @@ public class QuestionService {
 
     @Transactional
     public List<String> listTags() {
-        return questionRepository.findDistinctTags();
+        List<String> rawRows = questionRepository.findDistinctTags();
+        List<String> parsed = QuestionTagSupport.parse(null, rawRows);
+        List<String> sorted = new ArrayList<>(parsed);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER.thenComparing(String::compareTo));
+        return List.copyOf(sorted);
+    }
+
+    private static List<String> validateAndResolveTags(CreateQuestionRequest request) {
+        List<String> tags = request.resolvedTags();
+        for (String t : tags) {
+            if (t.length() > QuestionTagSupport.MAX_TAG_LENGTH) {
+                throw new IllegalArgumentException(
+                        "Cada tag no puede superar " + QuestionTagSupport.MAX_TAG_LENGTH + " caracteres");
+            }
+        }
+        return tags;
     }
 
     /**

@@ -104,6 +104,30 @@ class FreeSessionServiceTest {
     }
 
     @Test
+    @DisplayName("filtra por tag encontrando preguntas que tienen múltiples tags")
+    void createMatchesQuestionWithMultipleTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question multiTagged = question(1L, examType, "Anatomía", "Tema 1, Cardiología, Fisiología");
+        Question other = question(2L, examType, "Anatomía", "Tema 10, Neurología");
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(examType));
+        when(questionRepository.findByExamTypeCode("MIR"))
+                .thenReturn(List.of(multiTagged, other));
+        stubSavedSession();
+
+        FreeSessionResponse response = service.create("demo",
+                new CreateFreeSessionRequest("MIR", null, "cardiología", 10));
+
+        assertThat(response.totalQuestions()).isEqualTo(1);
+        assertThat(response.items()).singleElement().satisfies(item -> {
+            assertThat(item.questionId()).isEqualTo(1L);
+            assertThat(item.tags()).containsExactly("Tema 1", "Cardiología", "Fisiología");
+        });
+    }
+
+    @Test
     @DisplayName("recorta el número de preguntas al tamaño del pool disponible")
     void createLimitsCountToPool() {
         ExamType examType = TestData.examType(1L, "MIR", "MIR");

@@ -3,6 +3,7 @@ export interface QuestionSummary {
   text: string;
   category?: string | null;
   tag?: string | null;
+  tags?: string[] | null;
   examTypeCode?: string | null;
 }
 
@@ -26,6 +27,7 @@ export interface QuestionDetailResponse {
   text: string;
   category?: string | null;
   tag?: string | null;
+  tags?: string[] | null;
   explanation?: string | null;
   examTypeCode?: string | null;
   examTypeName?: string | null;

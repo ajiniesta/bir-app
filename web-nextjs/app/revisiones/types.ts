@@ -16,6 +16,7 @@ export interface AnswerProposal {
   questionText: string;
   category?: string | null;
   tag?: string | null;
+  tags?: string[] | null;
   examTypeCode?: string | null;
   correctLetter?: string | null;
   options: ProposalOption[];

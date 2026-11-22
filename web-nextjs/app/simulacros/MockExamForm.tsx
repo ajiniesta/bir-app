@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExamType, QuestionSummary, MockExamResponse } from "./types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface MockExamFormProps {
   initialExam?: MockExamResponse | null;
@@ -80,7 +81,9 @@ export default function MockExamForm({
   const tags = useMemo(() => {
     const set = new Set<string>();
     for (const q of bankQuestions) {
-      if (q.tag) set.add(q.tag);
+      for (const t of getQuestionTags(q)) {
+        set.add(t);
+      }
     }
     return Array.from(set).sort();
   }, [bankQuestions]);
@@ -113,7 +116,9 @@ export default function MockExamForm({
 
   function handleAddTagged() {
     if (!selectedTag) return;
-    const tagged = bankQuestions.filter((q) => q.tag === selectedTag);
+    const tagged = bankQuestions.filter((q) =>
+      getQuestionTags(q).some((t) => t.toLowerCase() === selectedTag.toLowerCase())
+    );
     const newIds = [...selectedIds];
     for (const q of tagged) {
       if (!newIds.includes(q.id) && newIds.length < MAX_QUESTIONS) {
@@ -451,11 +456,14 @@ export default function MockExamForm({
                       {q.category && (
                         <span className="text-slate-500 dark:text-slate-400 ml-1.5">({q.category})</span>
                       )}
-                      {q.tag && (
-                        <span className="ml-1.5 rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1 py-0.5 text-amber-700 dark:text-amber-300 font-medium">
-                          #{q.tag}
+                      {getQuestionTags(q).map((t) => (
+                        <span
+                          key={t}
+                          className="ml-1.5 rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1 py-0.5 text-amber-700 dark:text-amber-300 font-medium"
+                        >
+                          #{t}
                         </span>
-                      )}
+                      ))}
                     </div>
                   </label>
                 );

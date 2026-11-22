@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 import { FreeSessionResponse } from "../../types";
 
 export const instant = false;
@@ -152,11 +153,14 @@ export default async function FreeResultPage(props: FreeResultPageProps) {
                   <div className="flex justify-between items-start gap-3">
                     <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
                       <span>#{item.position}. {item.questionText}</span>
-                      {item.tag && (
-                        <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ml-2">
-                          #{item.tag}
+                      {getQuestionTags(item).map((t) => (
+                        <span
+                          key={t}
+                          className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 ml-2"
+                        >
+                          #{t}
                         </span>
-                      )}
+                      ))}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       {typeof item.questionId === "number" && (

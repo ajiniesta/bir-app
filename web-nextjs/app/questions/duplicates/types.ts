@@ -8,6 +8,7 @@ export interface DuplicateCandidate {
   id: number;
   category: string | null;
   tag: string | null;
+  tags?: string[] | null;
   hasExplanation: boolean;
   optionCount: number;
   inMockExam: boolean;

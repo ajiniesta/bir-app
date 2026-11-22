@@ -75,7 +75,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                    OR q.category = :category)
               AND (:tag = ''
                    OR (:tag = '__NONE__' AND (q.tag IS NULL OR q.tag = ''))
-                   OR q.tag = :tag)
+                   OR q.tag = :tag
+                   OR LOWER(CONCAT(', ', q.tag, ', ')) LIKE LOWER(CONCAT('%, ', :tag, ', %')))
               AND LOWER(FUNCTION('translate', q.text, 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN')) LIKE :text
             ORDER BY q.id DESC
             """,
@@ -87,7 +88,8 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
                    OR q.category = :category)
               AND (:tag = ''
                    OR (:tag = '__NONE__' AND (q.tag IS NULL OR q.tag = ''))
-                   OR q.tag = :tag)
+                   OR q.tag = :tag
+                   OR LOWER(CONCAT(', ', q.tag, ', ')) LIKE LOWER(CONCAT('%, ', :tag, ', %')))
               AND LOWER(FUNCTION('translate', q.text, 'áéíóúüñÁÉÍÓÚÜÑ', 'aeiouunAEIOUUN')) LIKE :text
             """)
     Page<Question> search(String examType, String category, String tag, String text, Pageable pageable);

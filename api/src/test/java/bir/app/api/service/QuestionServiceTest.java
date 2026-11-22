@@ -80,10 +80,52 @@ class QuestionServiceTest {
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.tag()).isEqualTo("Tema 1");
+        assertThat(response.tags()).containsExactly("Tema 1");
         assertThat(response.explanation()).isEqualTo("Explicación");
         assertThat(response.examTypeCode()).isEqualTo("MIR");
         assertThat(response.answerOptions()).hasSize(2);
         assertThat(response.answerOptions()).filteredOn(o -> o.isCorrect()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("crea una pregunta con múltiples tags, las normaliza y deduplica")
+    void createWithMultipleTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "Médico Interno Residente");
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> {
+            Question saved = invocation.getArgument(0);
+            saved.setId(11L);
+            return saved;
+        });
+
+        CreateQuestionRequest multiTagReq = new CreateQuestionRequest(
+                "Enunciado",
+                "Anatomía",
+                null,
+                List.of("  Tema 1 ", "Cardiología", "tema 1", "Fisiología, Electrocardiograma"),
+                "Explicación",
+                1L,
+                List.of(
+                        new CreateQuestionRequest.AnswerOptionRequest("A", "Opción A", true),
+                        new CreateQuestionRequest.AnswerOptionRequest("B", "Opción B", false)
+                )
+        );
+
+        QuestionResponse response = service.create(multiTagReq);
+
+        assertThat(response.tags()).containsExactly("Tema 1", "Cardiología", "Fisiología", "Electrocardiograma");
+        assertThat(response.tag()).isEqualTo("Tema 1, Cardiología, Fisiología, Electrocardiograma");
+    }
+
+    @Test
+    @DisplayName("listTags desglosa, deduplica y ordena todas las tags individuales")
+    void listTagsSplitsAndSortsIndividualTags() {
+        when(questionRepository.findDistinctTags())
+                .thenReturn(List.of("Tema 2, Fisiología", "Anatomía", "Fisiología, Tema 1"));
+
+        List<String> tags = service.listTags();
+
+        assertThat(tags).containsExactly("Anatomía", "Fisiología", "Tema 1", "Tema 2");
     }
 
     @Test

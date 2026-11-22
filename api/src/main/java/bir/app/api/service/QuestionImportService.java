@@ -6,6 +6,7 @@ import bir.app.api.entity.ExamType;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.support.JsonObjectSplitter;
+import bir.app.api.support.QuestionTagSupport;
 import bir.app.api.support.QuestionTextNormalizer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -192,10 +193,14 @@ public class QuestionImportService {
             errors.add(prefix + "la categoría no puede superar " + MAX_CATEGORY_LENGTH + " caracteres.");
         }
 
-        String tag = trimToNull(question.tag());
-        if (tag != null && tag.length() > MAX_TAG_LENGTH) {
-            errors.add(prefix + "el tag no puede superar " + MAX_TAG_LENGTH + " caracteres.");
+        List<String> tags = QuestionTagSupport.parse(question.tag(), question.tags());
+        for (String singleTag : tags) {
+            if (singleTag.length() > MAX_TAG_LENGTH) {
+                errors.add(prefix + "el tag no puede superar " + MAX_TAG_LENGTH + " caracteres.");
+                break;
+            }
         }
+        String tag = QuestionTagSupport.join(tags);
 
         String explanation = trimToNull(question.explanation());
         Long examTypeId = resolveExamType(question.examType(), prefix, errors, examTypeCache);
@@ -247,7 +252,7 @@ public class QuestionImportService {
         }
 
         options.sort(Comparator.comparing(CreateQuestionRequest.AnswerOptionRequest::letter));
-        return new CreateQuestionRequest(text, category, tag, explanation, examTypeId, options);
+        return new CreateQuestionRequest(text, category, tag, tags, explanation, examTypeId, options);
     }
 
     /**
@@ -341,6 +346,7 @@ public class QuestionImportService {
         @JsonProperty("exam_type") String examType,
         String category,
         String tag,
+        List<String> tags,
         String text,
         String explanation,
         List<ImportAnswer> answers

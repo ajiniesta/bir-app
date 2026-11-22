@@ -10,6 +10,7 @@ import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.repository.SessionItemRepository;
+import bir.app.api.support.QuestionTagSupport;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -188,7 +189,7 @@ public class FreeSessionService {
                 .filter(q -> category == null
                         || (q.getCategory() != null && q.getCategory().equalsIgnoreCase(category)))
                 .filter(q -> tag == null
-                        || (q.getTag() != null && q.getTag().equalsIgnoreCase(tag)))
+                        || QuestionTagSupport.containsTag(q.getTag(), tag))
                 .toList();
     }
 

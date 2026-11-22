@@ -103,7 +103,13 @@ describe('EditQuestionPage (/questions/[id]/edit)', () => {
     expect(categoryInput).toHaveValue('Fisiología');
 
     const tagInput = screen.getByLabelText(/tag/i);
-    expect(tagInput).toHaveValue('electrolitos');
+    expect(tagInput).toHaveValue('');
+    expect(screen.getByText('#electrolitos')).toBeInTheDocument();
+
+    // Add a second tag while editing
+    await user.type(tagInput, 'nefropatia');
+    await user.click(screen.getByRole('button', { name: /^añadir$/i }));
+    expect(screen.getByText('#nefropatia')).toBeInTheDocument();
 
     const explanationInput = screen.getByLabelText(/explicación/i);
     expect(explanationInput).toHaveValue('El sodio es el principal catión del líquido extracelular.');
@@ -138,7 +144,8 @@ describe('EditQuestionPage (/questions/[id]/edit)', () => {
           body: JSON.stringify({
             text: '¿Cuál es el principal catión extracelular?',
             category: 'Fisiología',
-            tag: 'electrolitos',
+            tag: 'electrolitos, nefropatia',
+            tags: ['electrolitos', 'nefropatia'],
             explanation: 'Explicación actualizada sobre el sodio.',
             examTypeId: 2,
             answerOptions: [

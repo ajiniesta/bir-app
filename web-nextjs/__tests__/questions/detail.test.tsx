@@ -26,7 +26,8 @@ const MOCK_QUESTION = {
   id: 42,
   text: '¿Cuál es el principal neurotransmisor inhibitorio del SNC?',
   category: 'Neurobiología',
-  tag: 'neurotransmisores',
+  tag: 'neurotransmisores, sinapsis',
+  tags: ['neurotransmisores', 'sinapsis'],
   explanation: 'El GABA es el principal neurotransmisor inhibitorio en el cerebro.',
   examTypeCode: 'MIR',
   examTypeName: 'Médico Interno Residente',
@@ -84,6 +85,7 @@ describe('QuestionDetailPage (/questions/[id])', () => {
     expect(screen.getByText('MIR')).toBeInTheDocument();
     expect(screen.getByText('Neurobiología')).toBeInTheDocument();
     expect(screen.getByText('#neurotransmisores')).toBeInTheDocument();
+    expect(screen.getByText('#sinapsis')).toBeInTheDocument();
 
     // Explanation
     expect(screen.getByText(/el gaba es el principal neurotransmisor inhibitorio/i)).toBeInTheDocument();

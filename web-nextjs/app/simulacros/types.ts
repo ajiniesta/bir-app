@@ -10,6 +10,7 @@ export interface MockExamQuestionSummary {
   text: string;
   category: string | null;
   tag: string | null;
+  tags?: string[] | null;
   explanation: string | null;
   options: MockExamOption[];
 }
@@ -56,6 +57,7 @@ export interface MockExamAttemptItem {
   questionText: string;
   category: string | null;
   tag: string | null;
+  tags?: string[] | null;
   explanation: string | null;
   answered: boolean;
   selectedLetter: string | null;
@@ -93,6 +95,7 @@ export interface QuestionSummary {
   text: string;
   category: string | null;
   tag: string | null;
+  tags?: string[] | null;
 }
 
 export interface MyProposalResponse {

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { FreeSessionResponse, FreeSessionItem, MyProposalResponse } from "../types";
 import ProposalModal from "./ProposalModal";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface FreePlayClientProps {
   initialSession: FreeSessionResponse;
@@ -149,11 +150,14 @@ export default function FreePlayClient({
                     {shownItem.category}
                   </span>
                 )}
-                {shownItem.tag && (
-                  <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                    #{shownItem.tag}
+                {getQuestionTags(shownItem).map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+                  >
+                    #{t}
                   </span>
-                )}
+                ))}
               </div>
               {typeof shownItem.questionId === "number" && (
                 <QuestionStatsButton

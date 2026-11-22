@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MockExamResponse, MockExamAttemptSummary } from "../types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface MockExamDetailClientProps {
   mockExam: MockExamResponse;
@@ -194,11 +195,14 @@ export default function MockExamDetailClient({
                 <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{q.text}</div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   {q.category && <span>{q.category}</span>}
-                  {q.tag && (
-                    <span className="rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-amber-700 dark:text-amber-300 font-medium">
-                      #{q.tag}
+                  {getQuestionTags(q).map((t) => (
+                    <span
+                      key={t}
+                      className="rounded bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-amber-700 dark:text-amber-300 font-medium"
+                    >
+                      #{t}
                     </span>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>

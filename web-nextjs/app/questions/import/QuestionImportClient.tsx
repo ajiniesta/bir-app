@@ -284,13 +284,13 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
         </summary>
         <div className="mt-3 text-xs text-slate-600 dark:text-slate-400 space-y-2">
           <p>
-            El fichero puede contener un array de preguntas o varios objetos JSON consecutivos. Cada pregunta requiere obligatoriamente <code>text</code>, <code>exam_type</code> y <code>answers</code> con exactamente una respuesta correcta (<code>is_correct: true</code>).
+            El fichero puede contener un array de preguntas o varios objetos JSON consecutivos. Cada pregunta requiere obligatoriamente <code>text</code>, <code>exam_type</code> y <code>answers</code> con exactamente una respuesta correcta (<code>is_correct: true</code>). Puedes indicar varias etiquetas usando el array <code>tags</code> (o el campo <code>tag</code> separado por comas).
           </p>
           <pre className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-mono text-[11px] overflow-x-auto">
 {`{
   "exam_type": "3",
   "category": "Fisiología",
-  "tag": "Tema 1",
+  "tags": ["Tema 1", "Cardiología"],
   "text": "Esta es la pregunta",
   "explanation": "Esta es la explicación",
   "answers": [

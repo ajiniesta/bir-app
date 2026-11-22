@@ -8,6 +8,7 @@ import {
   DuplicateQuestionsResponse,
   DuplicatePurgeResponse,
 } from "./types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface QuestionDuplicatesClientProps {
   examTypes: ExamType[];
@@ -354,7 +355,11 @@ export default function QuestionDuplicatesClient({
                                     #{dup.id}
                                   </Link>
                                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                                    {dup.category || "Sin categoría"} · {dup.tag || "Sin tag"} · {dup.optionCount} opciones
+                                    {dup.category || "Sin categoría"} ·{" "}
+                                    {getQuestionTags(dup).length > 0
+                                      ? getQuestionTags(dup).join(", ")
+                                      : "Sin tag"}{" "}
+                                    · {dup.optionCount} opciones
                                     {dup.hasExplanation && " · con explicación"}
                                   </span>
                                 </div>

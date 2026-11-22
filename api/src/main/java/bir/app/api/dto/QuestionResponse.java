@@ -2,6 +2,8 @@ package bir.app.api.dto;
 
 import bir.app.api.entity.AnswerOption;
 import bir.app.api.entity.Question;
+import bir.app.api.support.QuestionTagSupport;
+import io.micronaut.core.annotation.Creator;
 import io.micronaut.serde.annotation.Serdeable;
 
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ public record QuestionResponse(
     String text,
     String category,
     String tag,
+    List<String> tags,
     String explanation,
     String examTypeCode,
     String examTypeName,
@@ -20,12 +23,35 @@ public record QuestionResponse(
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {
+    @Creator
+    public QuestionResponse {
+        tags = tags != null ? List.copyOf(tags) : QuestionTagSupport.parse(tag);
+    }
+
+    public QuestionResponse(
+        Long id,
+        String text,
+        String category,
+        String tag,
+        String explanation,
+        String examTypeCode,
+        String examTypeName,
+        List<AnswerOptionResponse> answerOptions,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
+    ) {
+        this(id, text, category, tag, QuestionTagSupport.parse(tag), explanation,
+                examTypeCode, examTypeName, answerOptions, createdAt, updatedAt);
+    }
+
     public static QuestionResponse from(Question q) {
+        List<String> parsedTags = q.getTags();
         return new QuestionResponse(
             q.getId(),
             q.getText(),
             q.getCategory(),
-            q.getTag(),
+            QuestionTagSupport.join(parsedTags),
+            parsedTags,
             q.getExplanation(),
             q.getExamType().getCode(),
             q.getExamType().getName(),

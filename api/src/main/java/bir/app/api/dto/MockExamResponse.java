@@ -1,5 +1,7 @@
 package bir.app.api.dto;
 
+import bir.app.api.support.QuestionTagSupport;
+import io.micronaut.core.annotation.Creator;
 import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
@@ -25,13 +27,28 @@ public record MockExamResponse(
         String text,
         String category,
         String tag,
+        List<String> tags,
         String explanation,
         List<OptionSummary> options
     ) {
+        @Creator
         public QuestionSummary {
             if (options == null) {
                 options = List.of();
             }
+            tags = tags != null ? List.copyOf(tags) : QuestionTagSupport.parse(tag);
+        }
+
+        public QuestionSummary(
+            int position,
+            Long questionId,
+            String text,
+            String category,
+            String tag,
+            String explanation,
+            List<OptionSummary> options
+        ) {
+            this(position, questionId, text, category, tag, QuestionTagSupport.parse(tag), explanation, options);
         }
     }
 
