@@ -44,6 +44,7 @@ export default async function SimulacroDetailPage(props: SimulacroDetailPageProp
 
   let mockExam: MockExamResponse | null = null;
   let attempts: MockExamAttemptSummary[] = [];
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/mock-exams/${id}`, {
@@ -51,10 +52,17 @@ export default async function SimulacroDetailPage(props: SimulacroDetailPageProp
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       mockExam = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/mock-exams/${id}/attempts`, {

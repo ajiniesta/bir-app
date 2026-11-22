@@ -80,6 +80,7 @@ class QuestionServiceTest {
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.tag()).isEqualTo("Tema 1");
+        assertThat(response.tags()).containsExactly("Tema 1");
         assertThat(response.explanation()).isEqualTo("Explicación");
         assertThat(response.examTypeCode()).isEqualTo("MIR");
         assertThat(response.answerOptions()).hasSize(2);
@@ -87,16 +88,95 @@ class QuestionServiceTest {
     }
 
     @Test
-    @DisplayName("rechaza una pregunta sin ninguna opción correcta")
+    @DisplayName("crea una pregunta con múltiples tags, las normaliza y deduplica")
+    void createWithMultipleTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "Médico Interno Residente");
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> {
+            Question saved = invocation.getArgument(0);
+            saved.setId(11L);
+            return saved;
+        });
+
+        CreateQuestionRequest multiTagReq = new CreateQuestionRequest(
+                "Enunciado",
+                "Anatomía",
+                null,
+                List.of("  Tema 1 ", "Cardiología", "tema 1", "Fisiología, Electrocardiograma"),
+                "Explicación",
+                1L,
+                List.of(
+                        new CreateQuestionRequest.AnswerOptionRequest("A", "Opción A", true),
+                        new CreateQuestionRequest.AnswerOptionRequest("B", "Opción B", false)
+                )
+        );
+
+        QuestionResponse response = service.create(multiTagReq);
+
+        assertThat(response.tags()).containsExactly("Tema 1", "Cardiología", "Fisiología", "Electrocardiograma");
+        assertThat(response.tag()).isEqualTo("Tema 1, Cardiología, Fisiología, Electrocardiograma");
+    }
+
+    @Test
+    @DisplayName("listTags desglosa, deduplica y ordena todas las tags individuales")
+    void listTagsSplitsAndSortsIndividualTags() {
+        when(questionRepository.findDistinctTags())
+                .thenReturn(List.of("Tema 2, Fisiología", "Anatomía", "Fisiología, Tema 1"));
+
+        List<String> tags = service.listTags();
+
+        assertThat(tags).containsExactly("Anatomía", "Fisiología", "Tema 1", "Tema 2");
+    }
+
+    @Test
+    @DisplayName("updateTags actualiza únicamente las tags de una pregunta existente")
+    void updateTagsUpdatesExistingQuestionTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question existing = TestData.question(7L, "Enunciado", examType,
+                TestData.option("A", "Opción A", true),
+                TestData.option("B", "Opción B", false));
+        existing.setTag("Tema 1");
+        when(questionRepository.findById(7L)).thenReturn(Optional.of(existing));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QuestionResponse response = service.updateTags(7L, List.of("Tema 1", "Fisiología"));
+
+        assertThat(response.tags()).containsExactly("Tema 1", "Fisiología");
+        assertThat(response.tag()).isEqualTo("Tema 1, Fisiología");
+    }
+
+    @Test
+    @DisplayName("permite crear una pregunta invalidada sin ninguna opción correcta")
     void createWithoutCorrectOption() {
-        when(examTypeRepository.findById(1L))
-                .thenReturn(Optional.of(TestData.examType(1L, "MIR", "MIR")));
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> {
+            Question saved = invocation.getArgument(0);
+            saved.setId(12L);
+            return saved;
+        });
 
-        assertThatThrownBy(() -> service.create(request(null, false, false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Exactly one answer must be correct");
+        QuestionResponse response = service.create(request(null, false, false));
 
-        verify(questionRepository, never()).save(any(Question.class));
+        assertThat(response.id()).isEqualTo(12L);
+        assertThat(response.answerOptions()).hasSize(2);
+        assertThat(response.answerOptions()).filteredOn(QuestionResponse.AnswerOptionResponse::isCorrect).isEmpty();
+    }
+
+    @Test
+    @DisplayName("permite actualizar una pregunta para invalidarla dejando todas las opciones como incorrectas")
+    void updateToInvalidatedQuestion() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question existing = TestData.question(7L, "Enunciado", examType,
+                TestData.option("A", "Antigua A", true),
+                TestData.option("B", "Antigua B", false));
+        when(questionRepository.findById(7L)).thenReturn(Optional.of(existing));
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QuestionResponse response = service.update(7L, request("Anulada", false, false));
+
+        assertThat(response.answerOptions()).filteredOn(QuestionResponse.AnswerOptionResponse::isCorrect).isEmpty();
     }
 
     @Test

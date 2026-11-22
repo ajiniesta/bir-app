@@ -15,6 +15,7 @@ export interface FreeSessionItem {
   questionText: string;
   category?: string | null;
   tag?: string | null;
+  tags?: string[] | null;
   explanation?: string | null;
   options: FreeSessionOption[];
   answered: boolean;

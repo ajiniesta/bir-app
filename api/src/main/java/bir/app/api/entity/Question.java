@@ -1,5 +1,6 @@
 package bir.app.api.entity;
 
+import bir.app.api.support.QuestionTagSupport;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,8 +20,8 @@ public class Question {
     @Column(length = 100)
     private String category;
 
-    /** Etiqueta opcional para agrupar preguntas (por ejemplo, por tema). */
-    @Column(length = 100)
+    /** Etiquetas opcionales para agrupar preguntas (por ejemplo, por tema), separadas por coma. */
+    @Column(columnDefinition = "TEXT")
     private String tag;
 
     /** Explicación opcional: el porqué de la respuesta correcta. */
@@ -63,6 +64,9 @@ public class Question {
 
     public String getTag() { return tag; }
     public void setTag(String tag) { this.tag = tag; }
+
+    public List<String> getTags() { return QuestionTagSupport.parse(this.tag); }
+    public void setTags(List<String> tags) { this.tag = QuestionTagSupport.join(tags); }
 
     public String getExplanation() { return explanation; }
     public void setExplanation(String explanation) { this.explanation = explanation; }

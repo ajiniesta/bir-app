@@ -256,7 +256,7 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
             className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950/60 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 cursor-pointer"
           />
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Selecciona un fichero JSON con las preguntas que quieres importar (hasta 10 MB). Las preguntas ya guardadas se omiten para evitar duplicados.
+            Selecciona un fichero JSON con las preguntas que quieres importar (hasta 10 MB). Las preguntas ya guardadas con las mismas tags (o sin nuevas tags) se omiten como duplicadas; si una pregunta ya existente trae tags nuevas, se añaden a la pregunta guardada.
           </p>
         </div>
 
@@ -284,13 +284,13 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
         </summary>
         <div className="mt-3 text-xs text-slate-600 dark:text-slate-400 space-y-2">
           <p>
-            El fichero puede contener un array de preguntas o varios objetos JSON consecutivos. Cada pregunta requiere obligatoriamente <code>text</code>, <code>exam_type</code> y <code>answers</code> con exactamente una respuesta correcta (<code>is_correct: true</code>).
+            El fichero puede contener un array de preguntas o varios objetos JSON consecutivos. Cada pregunta requiere obligatoriamente <code>text</code>, <code>exam_type</code> y <code>answers</code> con exactamente una respuesta correcta (<code>is_correct: true</code>). Puedes indicar varias etiquetas usando el array <code>tags</code> (o el campo <code>tag</code> separado por comas).
           </p>
           <pre className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 font-mono text-[11px] overflow-x-auto">
 {`{
   "exam_type": "3",
   "category": "Fisiología",
-  "tag": "Tema 1",
+  "tags": ["Tema 1", "Cardiología"],
   "text": "Esta es la pregunta",
   "explanation": "Esta es la explicación",
   "answers": [

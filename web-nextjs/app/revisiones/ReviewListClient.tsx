@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnswerProposal, ExamType } from "./types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface ReviewListClientProps {
   initialProposals: AnswerProposal[];
@@ -206,11 +207,14 @@ export default function ReviewListClient({
                         {p.category}
                       </span>
                     )}
-                    {p.tag && (
-                      <span className="inline-flex items-center rounded-md bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
-                        #{p.tag}
+                    {getQuestionTags(p).map((t) => (
+                      <span
+                        key={t}
+                        className="inline-flex items-center rounded-md bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+                      >
+                        #{t}
                       </span>
-                    )}
+                    ))}
                     {p.questionId && (
                       <Link
                         href={`/questions/${p.questionId}`}
@@ -218,6 +222,11 @@ export default function ReviewListClient({
                       >
                         Ver pregunta #{p.questionId}
                       </Link>
+                    )}
+                    {!p.correctLetter && !(p.options || []).some((opt) => opt.isCorrect) && (
+                      <span className="inline-flex items-center rounded-md bg-rose-100 dark:bg-rose-950/50 px-2 py-0.5 text-xs font-semibold text-rose-800 dark:text-rose-300">
+                        Invalidada
+                      </span>
                     )}
                   </div>
 
@@ -278,6 +287,11 @@ export default function ReviewListClient({
 
                 {/* Proposal details */}
                 <div className="text-xs space-y-1 border-t border-slate-100 dark:border-slate-800 pt-3 text-slate-700 dark:text-slate-300">
+                  {!p.proposedLetter && !p.proposedText && (
+                    <div>
+                      Propuesta: <strong>Invalidar pregunta (ninguna respuesta correcta)</strong>
+                    </div>
+                  )}
                   {p.proposedLetter && (
                     <div>
                       Opción propuesta: <strong>{p.proposedLetter}</strong>

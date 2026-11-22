@@ -70,6 +70,7 @@ export default async function EditQuestionPage(props: EditQuestionPageProps) {
 
   let question: QuestionDetailResponse | null = null;
   let notFound = false;
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/questions/${id}`, {
@@ -77,13 +78,20 @@ export default async function EditQuestionPage(props: EditQuestionPageProps) {
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       question = await res.json();
     } else {
       notFound = true;
     }
   } catch {
     notFound = true;
+  }
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
   }
 
   let examTypes: ExamType[] = [];

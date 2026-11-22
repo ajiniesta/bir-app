@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QuestionPageResponse, ExamType } from "./types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface QuestionsListClientProps {
   initialData: QuestionPageResponse;
@@ -257,17 +258,20 @@ export default function QuestionsListClient({
                 <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {qItem.examTypeCode || "N/A"}
                 </span>
-                <div className="text-right space-x-1.5">
+                <div className="text-right flex flex-wrap justify-end items-center gap-1.5">
                   {qItem.category && (
                     <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                       {qItem.category}
                     </span>
                   )}
-                  {qItem.tag && (
-                    <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                      #{qItem.tag}
+                  {getQuestionTags(qItem).map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+                    >
+                      #{t}
                     </span>
-                  )}
+                  ))}
                 </div>
               </div>
 

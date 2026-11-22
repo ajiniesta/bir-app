@@ -2,10 +2,13 @@ package bir.app.api.service;
 
 import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionImportResponse;
+import bir.app.api.dto.QuestionResponse;
 import bir.app.api.entity.ExamType;
+import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.support.JsonObjectSplitter;
+import bir.app.api.support.QuestionTagSupport;
 import bir.app.api.support.QuestionTextNormalizer;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -120,25 +123,42 @@ public class QuestionImportService {
             }
         }
 
-        Map<Long, Set<String>> existingTexts = loadExistingTexts(candidates);
+        Map<Long, Map<String, ExistingQuestion>> existingByBank = loadExistingQuestions(candidates);
 
         int imported = 0;
         int duplicates = 0;
         int processed = 0;
 
         for (Candidate candidate : candidates) {
-            Set<String> texts = existingTexts.computeIfAbsent(
-                    candidate.request().examTypeId(), id -> new HashSet<>());
+            Map<String, ExistingQuestion> byText = existingByBank.computeIfAbsent(
+                    candidate.request().examTypeId(), id -> new HashMap<>());
             String key = normalizeText(candidate.request().text());
-            if (texts.contains(key)) {
-                duplicates++;
+            ExistingQuestion existing = byText.get(key);
+            if (existing != null) {
+                List<String> incomingTags = candidate.request().resolvedTags();
+                List<String> mergedTags = QuestionTagSupport.parse(
+                        QuestionTagSupport.join(existing.tags()), incomingTags);
+                if (incomingTags.isEmpty() || mergedTags.size() == existing.tags().size()) {
+                    duplicates++;
+                } else {
+                    try {
+                        if (existing.id() != null) {
+                            questionService.updateTags(existing.id(), mergedTags);
+                        }
+                        byText.put(key, new ExistingQuestion(existing.id(), mergedTags));
+                        imported++;
+                    } catch (Exception e) {
+                        errors.add("Pregunta " + candidate.position()
+                                + ": no se pudo actualizar las tags (" + rootMessage(e) + ").");
+                    }
+                }
             } else {
-                texts.add(key);
                 try {
-                    questionService.create(candidate.request());
+                    QuestionResponse created = questionService.create(candidate.request());
+                    Long createdId = created != null ? created.id() : null;
+                    byText.put(key, new ExistingQuestion(createdId, candidate.request().resolvedTags()));
                     imported++;
                 } catch (Exception e) {
-                    texts.remove(key);
                     errors.add("Pregunta " + candidate.position()
                             + ": no se pudo guardar (" + rootMessage(e) + ").");
                 }
@@ -157,21 +177,28 @@ public class QuestionImportService {
     }
 
     /**
-     * Enunciados ya guardados en cada banco implicado, normalizados para poder
-     * compararlos. Se carga una sola vez por banco y llamada (no por pregunta).
+     * Preguntas ya guardadas en cada banco implicado, indexadas por su enunciado
+     * normalizado junto con su id y sus tags actuales. Se carga una sola vez por
+     * banco y llamada (no por pregunta).
      */
-    private Map<Long, Set<String>> loadExistingTexts(List<Candidate> candidates) {
+    private Map<Long, Map<String, ExistingQuestion>> loadExistingQuestions(List<Candidate> candidates) {
         Set<Long> examTypeIds = new LinkedHashSet<>();
         for (Candidate candidate : candidates) {
             examTypeIds.add(candidate.request().examTypeId());
         }
-        Map<Long, Set<String>> existing = new HashMap<>();
+        Map<Long, Map<String, ExistingQuestion>> existing = new HashMap<>();
         for (Long examTypeId : examTypeIds) {
-            Set<String> texts = new HashSet<>();
-            for (String text : questionRepository.findTextsByExamTypeId(examTypeId)) {
-                texts.add(normalizeText(text));
+            Map<String, ExistingQuestion> byText = new HashMap<>();
+            List<Question> savedQuestions = questionRepository.findByExamTypeId(examTypeId);
+            if (savedQuestions != null) {
+                for (Question q : savedQuestions) {
+                    if (q != null && q.getText() != null) {
+                        String key = normalizeText(q.getText());
+                        byText.putIfAbsent(key, new ExistingQuestion(q.getId(), q.getTags()));
+                    }
+                }
             }
-            existing.put(examTypeId, texts);
+            existing.put(examTypeId, byText);
         }
         return existing;
     }
@@ -192,10 +219,14 @@ public class QuestionImportService {
             errors.add(prefix + "la categoría no puede superar " + MAX_CATEGORY_LENGTH + " caracteres.");
         }
 
-        String tag = trimToNull(question.tag());
-        if (tag != null && tag.length() > MAX_TAG_LENGTH) {
-            errors.add(prefix + "el tag no puede superar " + MAX_TAG_LENGTH + " caracteres.");
+        List<String> tags = QuestionTagSupport.parse(question.tag(), question.tags());
+        for (String singleTag : tags) {
+            if (singleTag.length() > MAX_TAG_LENGTH) {
+                errors.add(prefix + "el tag no puede superar " + MAX_TAG_LENGTH + " caracteres.");
+                break;
+            }
         }
+        String tag = QuestionTagSupport.join(tags);
 
         String explanation = trimToNull(question.explanation());
         Long examTypeId = resolveExamType(question.examType(), prefix, errors, examTypeCache);
@@ -238,8 +269,8 @@ public class QuestionImportService {
             options.add(new CreateQuestionRequest.AnswerOptionRequest(letter, optionText, isCorrect));
         }
 
-        if (correct != 1) {
-            errors.add(prefix + "debe haber exactamente una respuesta correcta (hay " + correct + ").");
+        if (correct > 1) {
+            errors.add(prefix + "no puede haber más de una respuesta correcta (hay " + correct + ").");
         }
 
         if (text == null || examTypeId == null || !errors.isEmpty()) {
@@ -247,7 +278,7 @@ public class QuestionImportService {
         }
 
         options.sort(Comparator.comparing(CreateQuestionRequest.AnswerOptionRequest::letter));
-        return new CreateQuestionRequest(text, category, tag, explanation, examTypeId, options);
+        return new CreateQuestionRequest(text, category, tag, tags, explanation, examTypeId, options);
     }
 
     /**
@@ -336,11 +367,14 @@ public class QuestionImportService {
 
     private record Candidate(int position, CreateQuestionRequest request) {}
 
+    private record ExistingQuestion(Long id, List<String> tags) {}
+
     @ReflectiveAccess
     record ImportQuestion(
         @JsonProperty("exam_type") String examType,
         String category,
         String tag,
+        List<String> tags,
         String text,
         String explanation,
         List<ImportAnswer> answers

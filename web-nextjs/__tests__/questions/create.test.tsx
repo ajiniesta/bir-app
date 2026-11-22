@@ -132,6 +132,7 @@ describe('CreateQuestionPage (/questions/create)', () => {
             text: '¿Qué enzima realiza la transcripción?',
             category: 'Genética',
             tag: 'enzimas',
+            tags: ['enzimas'],
             explanation: 'La ARN polimerasa es la encargada.',
             examTypeId: 1,
             answerOptions: [
@@ -144,6 +145,80 @@ describe('CreateQuestionPage (/questions/create)', () => {
         })
       );
       expect(mockPush).toHaveBeenCalledWith('/questions');
+    });
+  });
+
+  it('allows adding multiple tag chips (Enter, comma, Añadir button) and removing a chip before submitting', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'creator', role: 'CREATOR', roles: ['ROLE_CREATOR'], accessToken: 'token-creator' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_EXAM_TYPES })
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_TAGS });
+
+    const Component = await CreateQuestionPage();
+    render(Component);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de examen/i), '1');
+    const tagInput = screen.getByLabelText(/tag/i);
+
+    // 1. Add first tag with Enter
+    await user.type(tagInput, 'enzimas{enter}');
+    expect(screen.getByText('#enzimas')).toBeInTheDocument();
+    expect(tagInput).toHaveValue('');
+
+    // 2. Add second tag with Añadir button
+    await user.type(tagInput, 'farmacos');
+    await user.click(screen.getByRole('button', { name: /^añadir$/i }));
+    expect(screen.getByText('#farmacos')).toBeInTheDocument();
+    expect(tagInput).toHaveValue('');
+
+    // 3. Add third tag with comma and then remove 'farmacos'
+    await user.type(tagInput, 'genetica,');
+    expect(screen.getByText('#genetica')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /quitar farmacos/i }));
+    expect(screen.queryByText('#farmacos')).not.toBeInTheDocument();
+
+    // Fill rest of question
+    await user.type(screen.getByLabelText(/texto de la pregunta/i), 'Pregunta multi-tag');
+    const optionInputs = screen.getAllByPlaceholderText(/texto de la opción/i);
+    await user.type(optionInputs[0], 'A1');
+    await user.type(optionInputs[1], 'B1');
+    await user.type(optionInputs[2], 'C1');
+    await user.type(optionInputs[3], 'D1');
+    await user.click(screen.getAllByRole('radio', { name: /correcta/i })[0]);
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 100, text: 'Pregunta multi-tag' }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /crear pregunta/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/questions'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            text: 'Pregunta multi-tag',
+            category: null,
+            tag: 'enzimas, genetica',
+            tags: ['enzimas', 'genetica'],
+            explanation: null,
+            examTypeId: 1,
+            answerOptions: [
+              { letter: 'A', text: 'A1', isCorrect: true },
+              { letter: 'B', text: 'B1', isCorrect: false },
+              { letter: 'C', text: 'C1', isCorrect: false },
+              { letter: 'D', text: 'D1', isCorrect: false },
+            ],
+          }),
+        })
+      );
     });
   });
 
@@ -180,6 +255,61 @@ describe('CreateQuestionPage (/questions/create)', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/error al crear la pregunta/i)).toBeInTheDocument();
+    });
+  });
+
+  it('allows creating an invalidated question without any correct answer option', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'creator', role: 'CREATOR', roles: ['ROLE_CREATOR'], accessToken: 'token-creator' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_EXAM_TYPES })
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_TAGS });
+
+    const Component = await CreateQuestionPage();
+    render(Component);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de examen/i), '1');
+    await user.type(screen.getByLabelText(/texto de la pregunta/i), 'Pregunta anulada oficial');
+    const optionInputs = screen.getAllByPlaceholderText(/texto de la opción/i);
+    await user.type(optionInputs[0], 'Opción A');
+    await user.type(optionInputs[1], 'Opción B');
+    await user.type(optionInputs[2], 'Opción C');
+    await user.type(optionInputs[3], 'Opción D');
+
+    expect(screen.getByText(/pregunta invalidada/i)).toBeInTheDocument();
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 105, text: 'Pregunta anulada oficial' }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /crear pregunta/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/questions'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            text: 'Pregunta anulada oficial',
+            category: null,
+            tag: null,
+            tags: [],
+            explanation: null,
+            examTypeId: 1,
+            answerOptions: [
+              { letter: 'A', text: 'Opción A', isCorrect: false },
+              { letter: 'B', text: 'Opción B', isCorrect: false },
+              { letter: 'C', text: 'Opción C', isCorrect: false },
+              { letter: 'D', text: 'Opción D', isCorrect: false },
+            ],
+          }),
+        })
+      );
+      expect(mockPush).toHaveBeenCalledWith('/questions');
     });
   });
 });

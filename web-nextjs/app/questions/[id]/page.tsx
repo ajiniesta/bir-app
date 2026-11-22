@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
+import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 import { QuestionDetailResponse } from "../types";
 
 export const instant = false;
@@ -86,6 +88,7 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
 
   let question: QuestionDetailResponse | null = null;
   let notFound = false;
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/questions/${id}`, {
@@ -94,13 +97,20 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
       cache: "no-store",
     });
 
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       question = await res.json();
     } else {
       notFound = true;
     }
   } catch {
     notFound = true;
+  }
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
   }
 
   return (
@@ -125,7 +135,11 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                 Pregunta #{question.id}
               </h1>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <QuestionStatsButton
+                  questionId={question.id}
+                  accessToken={user.accessToken}
+                />
                 <Link
                   href={`/questions/${question.id}/edit`}
                   className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-1.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
@@ -143,7 +157,7 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
 
             {/* Statement card */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 text-xs font-semibold text-slate-800 dark:text-slate-200">
                   {question.examTypeCode || "N/A"}
                 </span>
@@ -152,9 +166,17 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
                     {question.category}
                   </span>
                 )}
-                {question.tag && (
-                  <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    #{question.tag}
+                {getQuestionTags(question).map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                  >
+                    #{t}
+                  </span>
+                ))}
+                {!question.answerOptions.some((opt) => opt.isCorrect) && (
+                  <span className="inline-flex items-center rounded-md bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                    Invalidada
                   </span>
                 )}
               </div>
@@ -175,9 +197,16 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
 
             {/* Options list */}
             <div className="space-y-3">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Opciones de respuesta
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                  Opciones de respuesta
+                </h2>
+                {!question.answerOptions.some((opt) => opt.isCorrect) && (
+                  <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
+                    Pregunta invalidada (sin respuesta correcta)
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
                 {question.answerOptions.map((opt) => (
                   <div

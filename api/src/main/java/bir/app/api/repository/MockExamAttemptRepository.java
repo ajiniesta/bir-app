@@ -11,15 +11,15 @@ import java.util.Optional;
 @Repository
 public interface MockExamAttemptRepository extends JpaRepository<MockExamAttempt, Long> {
 
-    @Query("SELECT a FROM MockExamAttempt a WHERE a.mockExam.id = :mockExamId " +
+    @Query("SELECT DISTINCT a FROM MockExamAttempt a LEFT JOIN FETCH a.items WHERE a.mockExam.id = :mockExamId " +
            "AND a.user.username = :username ORDER BY a.startedAt DESC")
     List<MockExamAttempt> findByMockExamAndUser(Long mockExamId, String username);
 
     @Query("SELECT a FROM MockExamAttempt a WHERE a.id = :id AND a.user.username = :username")
     Optional<MockExamAttempt> findByIdAndUsername(Long id, String username);
 
-    @Query("SELECT a FROM MockExamAttempt a " +
-           "JOIN FETCH a.mockExam m JOIN FETCH m.examType " +
+    @Query("SELECT DISTINCT a FROM MockExamAttempt a " +
+           "JOIN FETCH a.mockExam m JOIN FETCH m.examType LEFT JOIN FETCH a.items " +
            "WHERE a.user.username = :username ORDER BY a.startedAt DESC")
     List<MockExamAttempt> findByUsername(String username);
 

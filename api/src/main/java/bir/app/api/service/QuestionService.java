@@ -11,6 +11,7 @@ import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.MockExamRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.support.QuestionTagSupport;
 import io.micronaut.data.model.Page;
 import io.micronaut.data.model.Pageable;
 import jakarta.inject.Singleton;
@@ -66,17 +67,22 @@ public class QuestionService {
         ExamType examType = examTypeRepository.findById(request.examTypeId())
                 .orElseThrow(() -> new NoSuchElementException("Exam type not found: " + request.examTypeId()));
 
+        if (request.answerOptions() == null || request.answerOptions().isEmpty()) {
+            throw new IllegalArgumentException("At least one answer option is required");
+        }
         long correctCount = request.answerOptions().stream()
                 .filter(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
                 .count();
-        if (correctCount != 1) {
-            throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
+        if (correctCount > 1) {
+            throw new IllegalArgumentException("At most one answer can be correct, but found " + correctCount);
         }
+
+        List<String> resolvedTags = validateAndResolveTags(request);
 
         Question question = new Question();
         question.setText(request.text());
         question.setCategory(request.category());
-        question.setTag(normalize(request.tag()));
+        question.setTag(QuestionTagSupport.join(resolvedTags));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -98,16 +104,21 @@ public class QuestionService {
         ExamType examType = examTypeRepository.findById(request.examTypeId())
                 .orElseThrow(() -> new NoSuchElementException("Exam type not found: " + request.examTypeId()));
 
+        if (request.answerOptions() == null || request.answerOptions().isEmpty()) {
+            throw new IllegalArgumentException("At least one answer option is required");
+        }
         long correctCount = request.answerOptions().stream()
                 .filter(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
                 .count();
-        if (correctCount != 1) {
-            throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
+        if (correctCount > 1) {
+            throw new IllegalArgumentException("At most one answer can be correct, but found " + correctCount);
         }
+
+        List<String> resolvedTags = validateAndResolveTags(request);
 
         question.setText(request.text());
         question.setCategory(request.category());
-        question.setTag(normalize(request.tag()));
+        question.setTag(QuestionTagSupport.join(resolvedTags));
         question.setExplanation(normalize(request.explanation()));
         question.setExamType(examType);
 
@@ -123,6 +134,21 @@ public class QuestionService {
         }).toList();
         question.getAnswerOptions().addAll(options);
 
+        return QuestionResponse.from(questionRepository.save(question));
+    }
+
+    @Transactional
+    public QuestionResponse updateTags(Long id, List<String> tags) {
+        Question question = questionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
+        List<String> normalized = QuestionTagSupport.parse(null, tags);
+        for (String t : normalized) {
+            if (t.length() > QuestionTagSupport.MAX_TAG_LENGTH) {
+                throw new IllegalArgumentException(
+                        "Cada tag no puede superar " + QuestionTagSupport.MAX_TAG_LENGTH + " caracteres");
+            }
+        }
+        question.setTag(QuestionTagSupport.join(normalized));
         return QuestionResponse.from(questionRepository.save(question));
     }
 
@@ -152,7 +178,22 @@ public class QuestionService {
 
     @Transactional
     public List<String> listTags() {
-        return questionRepository.findDistinctTags();
+        List<String> rawRows = questionRepository.findDistinctTags();
+        List<String> parsed = QuestionTagSupport.parse(null, rawRows);
+        List<String> sorted = new ArrayList<>(parsed);
+        sorted.sort(String.CASE_INSENSITIVE_ORDER.thenComparing(String::compareTo));
+        return List.copyOf(sorted);
+    }
+
+    private static List<String> validateAndResolveTags(CreateQuestionRequest request) {
+        List<String> tags = request.resolvedTags();
+        for (String t : tags) {
+            if (t.length() > QuestionTagSupport.MAX_TAG_LENGTH) {
+                throw new IllegalArgumentException(
+                        "Cada tag no puede superar " + QuestionTagSupport.MAX_TAG_LENGTH + " caracteres");
+            }
+        }
+        return tags;
     }
 
     /**

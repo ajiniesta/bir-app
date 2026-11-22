@@ -33,7 +33,8 @@ const MOCK_PAGE_RESPONSE = {
       id: 1,
       text: '¿Cuál es la función principal de la insulina?',
       category: 'Endocrinología',
-      tag: 'metabolismo',
+      tag: 'metabolismo, hormonas',
+      tags: ['metabolismo', 'hormonas'],
       examTypeCode: 'MIR',
     },
     {
@@ -41,6 +42,7 @@ const MOCK_PAGE_RESPONSE = {
       text: '¿Qué tipo de ácido nucleico tiene el virus de la gripe?',
       category: 'Microbiología',
       tag: 'virologia',
+      tags: ['virologia'],
       examTypeCode: 'BIR',
     },
   ],
@@ -140,6 +142,7 @@ describe('QuestionsPage (/questions)', () => {
     expect(screen.getAllByText('MIR').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Endocrinología').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('#metabolismo')).toBeInTheDocument();
+    expect(screen.getByText('#hormonas')).toBeInTheDocument();
 
     expect(screen.getByText('¿Qué tipo de ácido nucleico tiene el virus de la gripe?')).toBeInTheDocument();
     expect(screen.getAllByText('BIR').length).toBeGreaterThanOrEqual(1);

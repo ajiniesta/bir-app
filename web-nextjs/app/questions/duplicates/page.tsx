@@ -68,6 +68,7 @@ export default async function QuestionDuplicatesPage(props: QuestionDuplicatesPa
 
   let examTypes: ExamType[] = [];
   let preview: DuplicateQuestionsResponse | null = null;
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/exam-types`, {
@@ -75,10 +76,17 @@ export default async function QuestionDuplicatesPage(props: QuestionDuplicatesPa
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       examTypes = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   if (selectedExamType) {
     try {

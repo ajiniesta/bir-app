@@ -10,6 +10,7 @@ import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.repository.SessionItemRepository;
+import bir.app.api.support.QuestionTagSupport;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -185,11 +186,18 @@ public class FreeSessionService {
 
     private List<Question> filterPool(List<Question> questions, String category, String tag) {
         return questions.stream()
+                .filter(FreeSessionService::hasCorrectOption)
                 .filter(q -> category == null
                         || (q.getCategory() != null && q.getCategory().equalsIgnoreCase(category)))
                 .filter(q -> tag == null
-                        || (q.getTag() != null && q.getTag().equalsIgnoreCase(tag)))
+                        || QuestionTagSupport.containsTag(q.getTag(), tag))
                 .toList();
+    }
+
+    private static boolean hasCorrectOption(Question question) {
+        return question.getAnswerOptions() != null
+                && question.getAnswerOptions().stream()
+                        .anyMatch(o -> Boolean.TRUE.equals(o.getIsCorrect()));
     }
 
     private static String normalize(String value) {

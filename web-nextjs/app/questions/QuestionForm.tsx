@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QuestionDetailResponse, ExamType } from "./types";
+import { getQuestionTags, mergeUniqueTags } from "@/app/lib/questionTags";
 
 interface QuestionFormProps {
   initialData?: QuestionDetailResponse | null;
@@ -35,7 +36,10 @@ export default function QuestionForm({
 
   const [examTypeId, setExamTypeId] = useState(initialExamTypeId);
   const [category, setCategory] = useState(initialData?.category || "");
-  const [tag, setTag] = useState(initialData?.tag || "");
+  const [selectedTags, setSelectedTags] = useState<string[]>(() =>
+    getQuestionTags(initialData)
+  );
+  const [tagInput, setTagInput] = useState("");
   const [text, setText] = useState(initialData?.text || "");
   const [explanation, setExplanation] = useState(initialData?.explanation || "");
 
@@ -65,6 +69,38 @@ export default function QuestionForm({
     );
   }
 
+  function addTagFromInput(raw: string) {
+    if (!raw.trim()) return;
+    setSelectedTags((prev) => mergeUniqueTags(prev, [raw]));
+    setTagInput("");
+  }
+
+  function handleTagInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (val.includes(",")) {
+      const parts = val.split(",");
+      const remainder = parts.pop() ?? "";
+      const finished = parts.join(",");
+      if (finished.trim()) {
+        setSelectedTags((prev) => mergeUniqueTags(prev, [finished]));
+      }
+      setTagInput(remainder);
+    } else {
+      setTagInput(val);
+    }
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTagFromInput(tagInput);
+    }
+  }
+
+  function handleRemoveTag(tagToRemove: string) {
+    setSelectedTags((prev) => prev.filter((t) => t !== tagToRemove));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -74,15 +110,13 @@ export default function QuestionForm({
       return;
     }
 
-    if (!correctLetter) {
-      setError("Por favor, marca cuál es la respuesta correcta.");
-      return;
-    }
+    const finalTags = mergeUniqueTags(selectedTags, [tagInput]);
 
     const payload = {
       text,
       category: category.trim() || null,
-      tag: tag.trim() || null,
+      tag: finalTags.length > 0 ? finalTags.join(", ") : null,
+      tags: finalTags,
       explanation: explanation.trim() || null,
       examTypeId: parseInt(examTypeId, 10),
       answerOptions: options.map((opt) => ({
@@ -127,6 +161,10 @@ export default function QuestionForm({
       setLoading(false);
     }
   }
+
+  const availableSuggestions = tags.filter(
+    (t) => !selectedTags.some((sel) => sel.toLowerCase() === t.toLowerCase())
+  );
 
   return (
     <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-6">
@@ -176,28 +214,61 @@ export default function QuestionForm({
         />
       </div>
 
-      {/* Tag */}
+      {/* Tags (múltiples chips interactivos) */}
       <div>
         <label htmlFor="tag" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Tag
+          Tags
         </label>
-        <input
-          type="text"
-          id="tag"
-          list="tagOptions"
-          value={tag}
-          onChange={(e) => setTag(e.target.value)}
-          maxLength={100}
-          placeholder="Opcional"
-          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-        />
+
+        {selectedTags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {selectedTags.map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300"
+              >
+                <span>#{t}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(t)}
+                  aria-label={`Quitar ${t}`}
+                  className="ml-0.5 text-amber-700 dark:text-amber-300 hover:text-amber-950 dark:hover:text-white font-bold leading-none focus:outline-none"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            id="tag"
+            list="tagOptions"
+            value={tagInput}
+            onChange={handleTagInputChange}
+            onKeyDown={handleTagKeyDown}
+            maxLength={100}
+            placeholder="Añade una o varias tags (Enter o coma para añadir)"
+            className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+          <button
+            type="button"
+            onClick={() => addTagFromInput(tagInput)}
+            className="rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none transition-colors"
+          >
+            Añadir
+          </button>
+        </div>
+
         <datalist id="tagOptions">
-          {tags.map((t) => (
+          {availableSuggestions.map((t) => (
             <option key={t} value={t} />
           ))}
         </datalist>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Etiqueta opcional para agrupar preguntas (por ejemplo, por tema).
+          Etiquetas opcionales para agrupar preguntas (pulsa Enter, coma o «Añadir» para agregar varias).
         </p>
       </div>
 
@@ -236,14 +307,33 @@ export default function QuestionForm({
 
       {/* Opciones de respuesta */}
       <div className="space-y-3">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-            Opciones de respuesta
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Solo una opción debe ser la correcta.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              Opciones de respuesta
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Marca la opción correcta o déjala sin respuesta correcta si la pregunta está invalidada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCorrectLetter("")}
+            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
+              !correctLetter
+                ? "border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-700 text-amber-800 dark:text-amber-300"
+                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            Sin respuesta correcta (invalidada)
+          </button>
         </div>
+
+        {!correctLetter && (
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-300">
+            <strong>Pregunta invalidada:</strong> ninguna opción está marcada como correcta. No se incluirá en el modo libre y no puntuará en los simulacros.
+          </div>
+        )}
 
         <div className="space-y-3">
           {options.map((opt) => (
@@ -266,7 +356,6 @@ export default function QuestionForm({
                   value={opt.letter}
                   checked={correctLetter === opt.letter}
                   onChange={() => setCorrectLetter(opt.letter)}
-                  required
                   className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                 />
                 Correcta

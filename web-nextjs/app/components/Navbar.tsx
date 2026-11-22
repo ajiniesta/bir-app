@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import LogoutButton from "./LogoutButton";
 import ThemeToggle from "./ThemeToggle";
+import { extractJwtExpirationMs } from "@/app/lib/tokenExpiration";
 
 export interface NavbarSession {
   user?: {
@@ -13,8 +14,34 @@ export interface NavbarSession {
     role?: string;
     roles?: string[];
     accessToken?: string;
+    accessTokenExpires?: number;
   };
   expires?: string;
+}
+
+function isNavbarSessionExpired(session?: NavbarSession | null): boolean {
+  if (!session?.user) {
+    return false;
+  }
+  const now = Date.now();
+  if (
+    typeof session.user.accessTokenExpires === "number" &&
+    Number.isFinite(session.user.accessTokenExpires) &&
+    now >= session.user.accessTokenExpires
+  ) {
+    return true;
+  }
+  const jwtExp = extractJwtExpirationMs(session.user.accessToken);
+  if (jwtExp !== null && now >= jwtExp) {
+    return true;
+  }
+  if (session.expires) {
+    const parsed = Date.parse(session.expires);
+    if (Number.isFinite(parsed) && now >= parsed) {
+      return true;
+    }
+  }
+  return false;
 }
 
 interface NavbarProps {
@@ -28,11 +55,19 @@ export default function Navbar({
 }: NavbarProps) {
   const pathname = typeof usePathname === "function" ? (usePathname() ?? "") : "";
   const sessionState = useSession?.();
-  const activeSession =
+  const rawSession =
     session !== undefined
       ? session
       : (sessionState?.data as NavbarSession | null | undefined) ?? null;
+  const expired = isNavbarSessionExpired(rawSession);
+  const activeSession = expired ? null : rawSession;
   const isAuthenticated = Boolean(activeSession?.user);
+
+  useEffect(() => {
+    if (expired && typeof signOut === "function") {
+      void signOut({ redirect: false });
+    }
+  }, [expired]);
   const userName = activeSession?.user?.name || "Usuario";
   const userRole = activeSession?.user?.role || "USER";
 

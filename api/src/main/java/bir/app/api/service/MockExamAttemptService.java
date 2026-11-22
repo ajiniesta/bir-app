@@ -99,7 +99,9 @@ public class MockExamAttemptService {
         }
 
         item.setSelectedLetter(letter);
-        item.setIsCorrect(letter.equalsIgnoreCase(item.getCorrectLetter()));
+        item.setIsCorrect(item.getCorrectLetter() == null
+                ? null
+                : letter.equalsIgnoreCase(item.getCorrectLetter()));
         item.setAnsweredAt(LocalDateTime.now());
         recalculateCounters(attempt);
 
@@ -212,8 +214,7 @@ public class MockExamAttemptService {
                 .filter(o -> Boolean.TRUE.equals(o.getIsCorrect()))
                 .map(AnswerOption::getLetter)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "La pregunta " + question.getId() + " no tiene una opción correcta"));
+                .orElse(null);
     }
 
     private static MockExamAttemptResponse toResponse(MockExamAttempt attempt) {
@@ -266,6 +267,15 @@ public class MockExamAttemptService {
     }
 
     static double accuracy(MockExamAttempt attempt) {
+        if (attempt.getItems() != null && !attempt.getItems().isEmpty()) {
+            long validQuestions = attempt.getItems().stream()
+                    .filter(i -> i.getCorrectLetter() != null)
+                    .count();
+            if (validQuestions == 0) {
+                return 0d;
+            }
+            return round((double) attempt.getCorrectCount() * 100 / validQuestions);
+        }
         if (attempt.getTotalQuestions() == null || attempt.getTotalQuestions() == 0) {
             return 0d;
         }

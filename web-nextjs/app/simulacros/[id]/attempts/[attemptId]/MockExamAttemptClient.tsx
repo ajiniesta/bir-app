@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MockExamAttemptResponse, MockExamAttemptItem } from "../../../types";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface MockExamAttemptClientProps {
   initialAttempt: MockExamAttemptResponse;
@@ -216,7 +217,7 @@ export default function MockExamAttemptClient({
       {/* Question Card */}
       {currentItem && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-6 sm:p-8 space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
               {attempt.examTypeCode}
             </span>
@@ -225,11 +226,14 @@ export default function MockExamAttemptClient({
                 {currentItem.category}
               </span>
             )}
-            {currentItem.tag && (
-              <span className="rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
-                #{currentItem.tag}
+            {getQuestionTags(currentItem).map((t) => (
+              <span
+                key={t}
+                className="rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300"
+              >
+                #{t}
               </span>
-            )}
+            ))}
           </div>
 
           <p className="text-base sm:text-lg font-medium text-slate-900 dark:text-slate-100 leading-relaxed">

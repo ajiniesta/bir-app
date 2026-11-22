@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FreeSessionResponse, FreeSessionItem, MyProposalResponse } from "../types";
 import ProposalModal from "./ProposalModal";
+import QuestionStatsButton from "@/app/components/QuestionStatsButton";
+import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface FreePlayClientProps {
   initialSession: FreeSessionResponse;
@@ -138,19 +140,31 @@ export default function FreePlayClient({
         <div className="space-y-4">
           {/* Question statement card */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-6 space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                {session.examTypeCode || "TODOS"}
-              </span>
-              {shownItem.category && (
-                <span className="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
-                  {shownItem.category}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {session.examTypeCode || "TODOS"}
                 </span>
-              )}
-              {shownItem.tag && (
-                <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-                  #{shownItem.tag}
-                </span>
+                {shownItem.category && (
+                  <span className="inline-flex items-center rounded-md bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
+                    {shownItem.category}
+                  </span>
+                )}
+                {getQuestionTags(shownItem).map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+                  >
+                    #{t}
+                  </span>
+                ))}
+              </div>
+              {typeof shownItem.questionId === "number" && (
+                <QuestionStatsButton
+                  questionId={shownItem.questionId}
+                  accessToken={accessToken}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                />
               )}
             </div>
 

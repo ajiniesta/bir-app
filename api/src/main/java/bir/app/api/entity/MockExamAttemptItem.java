@@ -1,5 +1,6 @@
 package bir.app.api.entity;
 
+import bir.app.api.support.QuestionTagSupport;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
@@ -39,7 +40,7 @@ public class MockExamAttemptItem {
     @Column(length = 100)
     private String category;
 
-    @Column(length = 100)
+    @Column(columnDefinition = "TEXT")
     private String tag;
 
     @Column(columnDefinition = "TEXT")
@@ -48,7 +49,7 @@ public class MockExamAttemptItem {
     @Column(name = "selected_letter", length = 1)
     private String selectedLetter;
 
-    @Column(name = "correct_letter", nullable = false, length = 1)
+    @Column(name = "correct_letter", length = 1)
     private String correctLetter;
 
     @Column(name = "is_correct")
@@ -85,6 +86,8 @@ public class MockExamAttemptItem {
 
     public String getTag() { return tag; }
     public void setTag(String tag) { this.tag = tag; }
+
+    public List<String> getTags() { return QuestionTagSupport.parse(this.tag); }
 
     public String getExplanation() { return explanation; }
     public void setExplanation(String explanation) { this.explanation = explanation; }

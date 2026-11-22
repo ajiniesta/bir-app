@@ -203,4 +203,51 @@ describe('SimulacroResultPage (/simulacros/[id]/attempts/[attemptId]/result)', (
       expect(screen.getByText(/propuesta enviada/i)).toBeInTheDocument();
     });
   });
+
+  it('renders Invalidada badge and neutral selection notice for invalidated questions in mock exam results', async () => {
+    mockAuth.mockResolvedValue({
+      user: { name: 'user1', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-1' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          ...MOCK_ATTEMPT_RESULT,
+          totalQuestions: 3,
+          items: [
+            ...MOCK_ATTEMPT_RESULT.items,
+            {
+              position: 3,
+              questionId: 103,
+              questionText: 'Pregunta anulada por la comisión calificadora',
+              category: 'Farmacología',
+              tag: 'anulada',
+              explanation: 'Anulada por existir dos interpretaciones.',
+              answered: true,
+              selectedLetter: 'A',
+              correct: null,
+              correctLetter: null,
+              options: [
+                { letter: 'A', text: 'Opción A' },
+                { letter: 'B', text: 'Opción B' },
+              ],
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      });
+
+    const Component = await SimulacroResultPage({
+      params: Promise.resolve({ id: '1', attemptId: '30' }),
+    });
+    render(Component);
+
+    expect(screen.getByText('Pregunta anulada por la comisión calificadora')).toBeInTheDocument();
+    expect(screen.getByText('Invalidada')).toBeInTheDocument();
+    expect(screen.getByText('Tu respuesta (no puntúa)')).toBeInTheDocument();
+  });
 });

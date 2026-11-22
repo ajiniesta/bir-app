@@ -1,5 +1,6 @@
 package bir.app.api.service;
 
+import bir.app.api.dto.QuestionStatsResponse;
 import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.entity.AppUser;
 import bir.app.api.entity.ExamType;
@@ -24,9 +25,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -91,6 +94,24 @@ class StatisticsServiceTest {
         return item;
     }
 
+    private static MockExamAttemptItem invalidatedMockItem(AppUser user, String category) {
+        MockExamAttempt attempt = new MockExamAttempt();
+        attempt.setId(2L);
+        attempt.setUser(user);
+        attempt.setTotalQuestions(1);
+        attempt.setFinishedAt(LocalDateTime.now());
+        MockExamAttemptItem item = new MockExamAttemptItem();
+        item.setAttempt(attempt);
+        item.setPosition(1);
+        item.setQuestionText("Pregunta invalidada de simulacro");
+        item.setCorrectLetter(null);
+        item.setCategory(category);
+        item.setSelectedLetter("A");
+        item.setAnsweredAt(LocalDateTime.now());
+        item.setIsCorrect(null);
+        return item;
+    }
+
     @Test
     @DisplayName("combina modo libre y simulacros entregados y añade categorías sin respuestas")
     void combinesFreeAndMockByCategory() {
@@ -104,7 +125,8 @@ class StatisticsServiceTest {
         when(mockExamAttemptItemRepository.findAnsweredFinishedByUsername("demo")).thenReturn(List.of(
                 mockItem(user, "Biología", true, true),
                 mockItem(user, null, false, true),
-                mockItem(user, "Bioquímica", true, false)));
+                mockItem(user, "Bioquímica", true, false),
+                invalidatedMockItem(user, "Biología")));
         when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(false);
         when(accessControlService.allowedBankCodes("demo")).thenReturn(Set.of("MIR"));
         when(questionRepository.findDistinctCategoriesByExamTypeCodeIn(anySet())).thenReturn(
@@ -203,5 +225,70 @@ class StatisticsServiceTest {
                 .extracting(StatsOverviewResponse.CategoryStats::category)
                 .containsExactly("Anatomía");
         verify(questionRepository, never()).findDistinctCategoriesByExamTypeCodeIn(anySet());
+    }
+
+    @Test
+    @DisplayName("questionStats calcula veces respondida y porcentaje de acierto en toda la plataforma y del usuario autenticado")
+    void questionStatsCalculatesPlatformAndUserTotalsAndAccuracy() {
+        AppUser demo = TestData.user(1L, "demo", UserRole.USER);
+        AppUser other = TestData.user(2L, "otro", UserRole.USER);
+
+        when(questionRepository.existsById(42L)).thenReturn(true);
+        when(sessionItemRepository.findAnsweredByQuestionId(42L)).thenReturn(List.of(
+                freeItem(demo, "Neurobiología", true),
+                freeItem(demo, "Neurobiología", false),
+                freeItem(other, "Neurobiología", true),
+                freeItem(other, "Neurobiología", true)
+        ));
+        when(mockExamAttemptItemRepository.findAnsweredFinishedByQuestionId(42L)).thenReturn(List.of(
+                mockItem(demo, "Neurobiología", true, true),
+                mockItem(other, "Neurobiología", false, true),
+                mockItem(demo, "Neurobiología", false, false) // intento abierto: no debe contar
+        ));
+
+        QuestionStatsResponse stats = service.questionStats(42L, "demo");
+
+        assertThat(stats.questionId()).isEqualTo(42L);
+        // Plataforma: 4 en modo libre + 2 en simulacros entregados = 6 respondidas, 4 acertadas (66.7%)
+        assertThat(stats.platform().answered()).isEqualTo(6L);
+        assertThat(stats.platform().correct()).isEqualTo(4L);
+        assertThat(stats.platform().incorrect()).isEqualTo(2L);
+        assertThat(stats.platform().accuracy()).isEqualTo(66.7d);
+
+        // Usuario "demo": 2 en modo libre (1 ok, 1 fallo) + 1 en simulacro entregado (1 ok) = 3 respondidas, 2 acertadas (66.7%)
+        assertThat(stats.user().answered()).isEqualTo(3L);
+        assertThat(stats.user().correct()).isEqualTo(2L);
+        assertThat(stats.user().incorrect()).isEqualTo(1L);
+        assertThat(stats.user().accuracy()).isEqualTo(66.7d);
+    }
+
+    @Test
+    @DisplayName("questionStats devuelve contadores a cero cuando la pregunta aún no se ha respondido")
+    void questionStatsReturnsZerosWhenNeverAnswered() {
+        when(questionRepository.existsById(42L)).thenReturn(true);
+        when(sessionItemRepository.findAnsweredByQuestionId(42L)).thenReturn(List.of());
+        when(mockExamAttemptItemRepository.findAnsweredFinishedByQuestionId(42L)).thenReturn(List.of());
+
+        QuestionStatsResponse stats = service.questionStats(42L, "demo");
+
+        assertThat(stats.questionId()).isEqualTo(42L);
+        assertThat(stats.platform().answered()).isZero();
+        assertThat(stats.platform().correct()).isZero();
+        assertThat(stats.platform().incorrect()).isZero();
+        assertThat(stats.platform().accuracy()).isZero();
+        assertThat(stats.user().answered()).isZero();
+        assertThat(stats.user().correct()).isZero();
+        assertThat(stats.user().incorrect()).isZero();
+        assertThat(stats.user().accuracy()).isZero();
+    }
+
+    @Test
+    @DisplayName("questionStats lanza NoSuchElementException si la pregunta no existe")
+    void questionStatsThrowsWhenQuestionDoesNotExist() {
+        when(questionRepository.existsById(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.questionStats(999L, "demo"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessageContaining("999");
     }
 }

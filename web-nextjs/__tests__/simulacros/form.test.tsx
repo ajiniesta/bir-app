@@ -35,7 +35,8 @@ const MOCK_QUESTIONS = [
     examTypeCode: 'MIR',
     text: '¿Cuál es el tratamiento de la hipertensión esencial?',
     category: 'Cardiología',
-    tag: 'farmacos',
+    tag: 'farmacos, hipertension',
+    tags: ['farmacos', 'hipertension'],
   },
   {
     id: 102,
@@ -44,6 +45,7 @@ const MOCK_QUESTIONS = [
     text: '¿Qué marcador biológico indica daño miocárdico precoz?',
     category: 'Cardiología',
     tag: 'enzimas',
+    tags: ['enzimas'],
   },
   {
     id: 201,
@@ -52,6 +54,7 @@ const MOCK_QUESTIONS = [
     text: '¿Qué enzima cataliza la síntesis de ARN a partir de ADN?',
     category: 'Genética',
     tag: 'transcripcion',
+    tags: ['transcripcion'],
   },
 ];
 
@@ -137,15 +140,16 @@ describe('Simulacro Forms (New & Edit)', () => {
       const examTypeSelect = screen.getByLabelText(/banco de preguntas/i);
       await user.selectOptions(examTypeSelect, '2'); // MIR
 
-      // Question list for MIR should be displayed
+      // Question list for MIR should be displayed with multiple tags
       expect(screen.getByText('¿Cuál es el tratamiento de la hipertensión esencial?')).toBeInTheDocument();
+      expect(screen.getAllByText('#farmacos').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('#hipertension').length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByText('¿Qué enzima cataliza la síntesis de ARN a partir de ADN?')).not.toBeInTheDocument();
 
-      // Check the first question
-      const checkbox = screen.getByRole('checkbox', {
-        name: /¿cuál es el tratamiento de la hipertensión esencial\?/i,
-      });
-      await user.click(checkbox);
+      // Select question 101 via 'Añadir por tag' using its second tag 'hipertension'
+      const tagSelect = screen.getByLabelText(/añadir por tag/i);
+      await user.selectOptions(tagSelect, 'hipertension');
+      await user.click(screen.getByRole('button', { name: /añadir todas del tag/i }));
 
       expect(screen.getByText(/seleccionadas:\s*1/i)).toBeInTheDocument();
 

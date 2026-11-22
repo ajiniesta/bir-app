@@ -26,5 +26,7 @@
     <include file="changes/020-add-question-tag.sql" relativeToChangelogFile="true"/>
     <include file="changes/021-add-free-session-tag.sql" relativeToChangelogFile="true"/>
     <include file="changes/022-add-mock-exam-attempt-item-tag.sql" relativeToChangelogFile="true"/>
+    <include file="changes/023-widen-question-tags.sql" relativeToChangelogFile="true"/>
+    <include file="changes/024-allow-null-correct-letter.sql" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

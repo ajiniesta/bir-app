@@ -44,16 +44,24 @@ export default async function SimulacroAttemptPage(props: SimulacroAttemptPagePr
   }
 
   let attempt: MockExamAttemptResponse | null = null;
+  let unauthorized = false;
   try {
     const res = await fetch(`${apiBaseUrl}/api/mock-exam-attempts/${attemptId}`, {
       method: "GET",
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       attempt = await res.json();
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   if (!attempt) {
     redirect(`/simulacros/${id}`);

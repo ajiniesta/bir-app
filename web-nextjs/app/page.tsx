@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import Navbar from "./components/Navbar";
 
@@ -13,6 +14,7 @@ interface ExamTypeStats {
 interface DashboardStatsResponse {
   totalQuestions: number;
   byExamType: ExamTypeStats[];
+  unauthorized?: boolean;
 }
 
 const EXAM_DESCRIPTIONS: Record<string, string> = {
@@ -40,6 +42,10 @@ async function fetchPermittedBanks(accessToken?: string): Promise<DashboardStats
       },
       cache: "no-store",
     });
+
+    if (res.status === 401) {
+      return { totalQuestions: 0, byExamType: [], unauthorized: true };
+    }
 
     if (!res.ok) {
       return { totalQuestions: 0, byExamType: [] };
@@ -70,6 +76,11 @@ export default async function LandingPage() {
   const bankStats = isAuthenticated
     ? await fetchPermittedBanks(accessToken)
     : null;
+
+  if (bankStats?.unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">

@@ -97,6 +97,7 @@ export default async function QuestionsPage(props: QuestionsPageProps) {
   let examTypes: ExamType[] = [];
   let categories: string[] = [];
   let tags: string[] = [];
+  let unauthorized = false;
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/questions/page?${queryParams.toString()}`, {
@@ -104,11 +105,18 @@ export default async function QuestionsPage(props: QuestionsPageProps) {
       headers,
       cache: "no-store",
     });
-    if (res.ok) {
+    if (res.status === 401) {
+      unauthorized = true;
+    } else if (res.ok) {
       pageData = await res.json();
       if (!pageData.items) pageData.items = [];
     }
   } catch {}
+
+  if (unauthorized) {
+    redirect("/logout");
+    return null;
+  }
 
   try {
     const res = await fetch(`${apiBaseUrl}/api/exam-types`, {

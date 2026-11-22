@@ -2,6 +2,7 @@ package bir.app.api.controller;
 
 import bir.app.api.dto.DashboardStatsResponse;
 import bir.app.api.dto.MockExamStatsResponse;
+import bir.app.api.dto.QuestionStatsResponse;
 import bir.app.api.dto.QuizStatsResponse;
 import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.service.FreeSessionService;
@@ -65,5 +66,13 @@ public class StatsController {
     @Get("/mock-exams")
     public MockExamStatsResponse mockExamStats(Authentication authentication) {
         return mockExamAttemptService.stats(authentication.getName());
+    }
+
+    /**
+     * Estadísticas de una pregunta concreta: total de la plataforma y del usuario autenticado.
+     */
+    @Get("/questions/{id}")
+    public QuestionStatsResponse questionStats(Long id, Authentication authentication) {
+        return statisticsService.questionStats(id, authentication.getName());
     }
 }

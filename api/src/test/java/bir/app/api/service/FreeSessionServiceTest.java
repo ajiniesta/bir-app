@@ -104,6 +104,30 @@ class FreeSessionServiceTest {
     }
 
     @Test
+    @DisplayName("filtra por tag encontrando preguntas que tienen múltiples tags")
+    void createMatchesQuestionWithMultipleTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question multiTagged = question(1L, examType, "Anatomía", "Tema 1, Cardiología, Fisiología");
+        Question other = question(2L, examType, "Anatomía", "Tema 10, Neurología");
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(examType));
+        when(questionRepository.findByExamTypeCode("MIR"))
+                .thenReturn(List.of(multiTagged, other));
+        stubSavedSession();
+
+        FreeSessionResponse response = service.create("demo",
+                new CreateFreeSessionRequest("MIR", null, "cardiología", 10));
+
+        assertThat(response.totalQuestions()).isEqualTo(1);
+        assertThat(response.items()).singleElement().satisfies(item -> {
+            assertThat(item.questionId()).isEqualTo(1L);
+            assertThat(item.tags()).containsExactly("Tema 1", "Cardiología", "Fisiología");
+        });
+    }
+
+    @Test
     @DisplayName("recorta el número de preguntas al tamaño del pool disponible")
     void createLimitsCountToPool() {
         ExamType examType = TestData.examType(1L, "MIR", "MIR");
@@ -175,6 +199,32 @@ class FreeSessionServiceTest {
                 new CreateFreeSessionRequest(null, null, null, 5));
 
         assertThat(response.totalQuestions()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("excluye las preguntas invalidadas (sin respuesta correcta) del modo libre")
+    void createExcludesInvalidatedQuestionsFromPool() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question valid = question(1L, examType, "Anatomía", "Tema 1");
+        Question invalidated = TestData.question(2L, "Pregunta invalidada", examType,
+                TestData.option("A", "Opción A", false),
+                TestData.option("B", "Opción B", false));
+        invalidated.setCategory("Anatomía");
+        invalidated.setTag("Tema 1");
+
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(examType));
+        when(questionRepository.findByExamTypeCode("MIR"))
+                .thenReturn(List.of(valid, invalidated));
+        stubSavedSession();
+
+        FreeSessionResponse response = service.create("demo",
+                new CreateFreeSessionRequest("MIR", "Anatomía", "Tema 1", 10));
+
+        assertThat(response.totalQuestions()).isEqualTo(1);
+        assertThat(response.items()).extracting(FreeSessionResponse.Item::questionId).containsExactly(1L);
     }
 
     @Test

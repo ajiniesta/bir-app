@@ -127,14 +127,77 @@ class AnswerProposalServiceTest {
     }
 
     @Test
-    @DisplayName("exige indicar una opción o un texto alternativo")
-    void proposeRequiresOptionOrText() {
+    @DisplayName("permite proponer la invalidación de una pregunta sin opción ni texto alternativo")
+    void proposeAllowsInvalidationWithoutOptionOrText() {
+        Question question = question();
         when(appUserService.requireByUsername("demo")).thenReturn(demo);
-        when(questionRepository.findById(1L)).thenReturn(Optional.of(question()));
+        when(questionRepository.findById(1L)).thenReturn(Optional.of(question));
+        when(freeSessionRepository.findById(10L))
+                .thenReturn(Optional.of(ownedSession(question, true)));
+        when(proposalRepository.findByQuestionIdAndProposedByUsername(1L, "demo"))
+                .thenReturn(Optional.empty());
+        when(proposalRepository.save(any(AnswerProposal.class))).thenAnswer(invocation -> {
+            AnswerProposal saved = invocation.getArgument(0);
+            saved.setId(51L);
+            return saved;
+        });
 
-        assertThatThrownBy(() -> service.propose("demo", request(null, "  ", "Motivo")))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Indica una opción o un texto alternativo");
+        AnswerProposalResponse response = service.propose("demo", request(null, "  ", "Ninguna opción es correcta"));
+
+        assertThat(response.id()).isEqualTo(51L);
+        assertThat(response.status()).isEqualTo("PENDING");
+        assertThat(response.proposedLetter()).isNull();
+        assertThat(response.proposedText()).isNull();
+        assertThat(response.comment()).isEqualTo("Ninguna opción es correcta");
+    }
+
+    @Test
+    @DisplayName("aceptar una propuesta de invalidación deja la pregunta sin ninguna opción correcta")
+    void reviewAcceptedInvalidatesQuestionWhenNoLetterOrText() {
+        Question question = question();
+        AnswerProposal proposal = proposal(question, demo, ProposalStatus.PENDING, null, null);
+        when(proposalRepository.findById(9L)).thenReturn(Optional.of(proposal));
+        when(appUserService.requireByUsername("admin")).thenReturn(admin);
+        when(questionService.update(eq(1L), any(CreateQuestionRequest.class)))
+                .thenAnswer(invocation -> null);
+        when(proposalRepository.save(any(AnswerProposal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        AnswerProposalResponse response = service.review("admin", 9L,
+                new ReviewProposalRequest("ACCEPTED", "Pregunta anulada"));
+
+        ArgumentCaptor<CreateQuestionRequest> updated = ArgumentCaptor.forClass(CreateQuestionRequest.class);
+        verify(questionService).update(eq(1L), updated.capture());
+        assertThat(updated.getValue().answerOptions())
+                .filteredOn(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
+                .isEmpty();
+        assertThat(response.status()).isEqualTo("ACCEPTED");
+        assertThat(response.appliedBy()).isEqualTo("admin");
+    }
+
+    @Test
+    @DisplayName("aceptar una propuesta con opción sobre una pregunta invalidada establece la nueva opción correcta")
+    void reviewAcceptedSetsCorrectOptionOnInvalidatedQuestion() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question invalidated = TestData.question(1L, "Enunciado", examType,
+                TestData.option("A", "Opción A", false),
+                TestData.option("B", "Opción B", false));
+        AnswerProposal proposal = proposal(invalidated, demo, ProposalStatus.PENDING, "B", null);
+        when(proposalRepository.findById(9L)).thenReturn(Optional.of(proposal));
+        when(appUserService.requireByUsername("admin")).thenReturn(admin);
+        when(questionService.update(eq(1L), any(CreateQuestionRequest.class)))
+                .thenAnswer(invocation -> null);
+        when(proposalRepository.save(any(AnswerProposal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.review("admin", 9L, new ReviewProposalRequest("ACCEPTED", "Se rehabilita con B"));
+
+        ArgumentCaptor<CreateQuestionRequest> updated = ArgumentCaptor.forClass(CreateQuestionRequest.class);
+        verify(questionService).update(eq(1L), updated.capture());
+        assertThat(updated.getValue().answerOptions())
+                .filteredOn(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
+                .extracting(CreateQuestionRequest.AnswerOptionRequest::letter)
+                .containsExactly("B");
     }
 
     @Test
@@ -359,7 +422,7 @@ class AnswerProposalServiceTest {
     void applyRejectsProposalWithoutChanges() {
         Question question = question();
         when(proposalRepository.findById(9L))
-                .thenReturn(Optional.of(proposal(question, demo, ProposalStatus.ACCEPTED, null, null)));
+                .thenReturn(Optional.of(proposal(question, demo, ProposalStatus.ACCEPTED, "A", null)));
 
         assertThatThrownBy(() -> service.apply("admin", 9L))
                 .isInstanceOf(IllegalArgumentException.class)

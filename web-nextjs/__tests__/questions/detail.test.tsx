@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import QuestionDetailPage from '@/app/questions/[id]/page';
 import { auth } from '@/auth';
 
@@ -25,7 +26,8 @@ const MOCK_QUESTION = {
   id: 42,
   text: '¿Cuál es el principal neurotransmisor inhibitorio del SNC?',
   category: 'Neurobiología',
-  tag: 'neurotransmisores',
+  tag: 'neurotransmisores, sinapsis',
+  tags: ['neurotransmisores', 'sinapsis'],
   explanation: 'El GABA es el principal neurotransmisor inhibitorio en el cerebro.',
   examTypeCode: 'MIR',
   examTypeName: 'Médico Interno Residente',
@@ -83,6 +85,7 @@ describe('QuestionDetailPage (/questions/[id])', () => {
     expect(screen.getByText('MIR')).toBeInTheDocument();
     expect(screen.getByText('Neurobiología')).toBeInTheDocument();
     expect(screen.getByText('#neurotransmisores')).toBeInTheDocument();
+    expect(screen.getByText('#sinapsis')).toBeInTheDocument();
 
     // Explanation
     expect(screen.getByText(/el gaba es el principal neurotransmisor inhibitorio/i)).toBeInTheDocument();
@@ -115,5 +118,76 @@ describe('QuestionDetailPage (/questions/[id])', () => {
     render(Component);
 
     expect(screen.getByText(/pregunta no encontrada/i)).toBeInTheDocument();
+  });
+
+  it('renders Invalidada badge and notice when question has no correct answer option', async () => {
+    mockAuth.mockResolvedValue({
+      user: { name: 'admin', role: 'ADMIN', roles: ['ROLE_ADMIN'], accessToken: 'token-admin' },
+    });
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ...MOCK_QUESTION,
+        answerOptions: MOCK_QUESTION.answerOptions.map((o) => ({ ...o, isCorrect: false })),
+      }),
+    });
+
+    const Component = await QuestionDetailPage({ params: Promise.resolve({ id: '42' }) });
+    render(Component);
+
+    expect(screen.getByText('Invalidada')).toBeInTheDocument();
+    expect(screen.getByText(/pregunta invalidada \(sin respuesta correcta\)/i)).toBeInTheDocument();
+  });
+
+  it('renders an Estadísticas button on the question view that opens the popup with platform and user stats and concentric pie charts', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'admin', role: 'ADMIN', roles: ['ROLE_ADMIN'], accessToken: 'token-admin' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => MOCK_QUESTION,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          questionId: 42,
+          platform: {
+            answered: 80,
+            correct: 60,
+            incorrect: 20,
+            accuracy: 75.0,
+          },
+          user: {
+            answered: 5,
+            correct: 4,
+            incorrect: 1,
+            accuracy: 80.0,
+          },
+        }),
+      });
+
+    const Component = await QuestionDetailPage({ params: Promise.resolve({ id: '42' }) });
+    render(Component);
+
+    const statsBtn = screen.getByRole('button', { name: /estadísticas/i });
+    expect(statsBtn).toBeInTheDocument();
+
+    await user.click(statsBtn);
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByTestId('concentric-pie-chart')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('platform-stats-summary')).toHaveTextContent('80');
+    expect(screen.getByTestId('platform-stats-summary')).toHaveTextContent('75.0%');
+    expect(screen.getByTestId('user-stats-summary')).toHaveTextContent('5');
+    expect(screen.getByTestId('user-stats-summary')).toHaveTextContent('80.0%');
   });
 });
