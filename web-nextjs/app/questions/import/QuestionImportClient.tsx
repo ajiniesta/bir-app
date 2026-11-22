@@ -256,7 +256,7 @@ export default function QuestionImportClient({ accessToken }: QuestionImportClie
             className="w-full text-sm text-slate-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 dark:file:bg-blue-950/60 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 cursor-pointer"
           />
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Selecciona un fichero JSON con las preguntas que quieres importar (hasta 10 MB). Las preguntas ya guardadas se omiten para evitar duplicados.
+            Selecciona un fichero JSON con las preguntas que quieres importar (hasta 10 MB). Las preguntas ya guardadas con las mismas tags (o sin nuevas tags) se omiten como duplicadas; si una pregunta ya existente trae tags nuevas, se añaden a la pregunta guardada.
           </p>
         </div>
 

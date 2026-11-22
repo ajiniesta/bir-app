@@ -132,6 +132,21 @@ public class QuestionService {
     }
 
     @Transactional
+    public QuestionResponse updateTags(Long id, List<String> tags) {
+        Question question = questionRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Question not found: " + id));
+        List<String> normalized = QuestionTagSupport.parse(null, tags);
+        for (String t : normalized) {
+            if (t.length() > QuestionTagSupport.MAX_TAG_LENGTH) {
+                throw new IllegalArgumentException(
+                        "Cada tag no puede superar " + QuestionTagSupport.MAX_TAG_LENGTH + " caracteres");
+            }
+        }
+        question.setTag(QuestionTagSupport.join(normalized));
+        return QuestionResponse.from(questionRepository.save(question));
+    }
+
+    @Transactional
     public void delete(Long id) {
         if (!questionRepository.existsById(id)) {
             throw new NoSuchElementException("Question not found: " + id);

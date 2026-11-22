@@ -129,6 +129,23 @@ class QuestionServiceTest {
     }
 
     @Test
+    @DisplayName("updateTags actualiza únicamente las tags de una pregunta existente")
+    void updateTagsUpdatesExistingQuestionTags() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question existing = TestData.question(7L, "Enunciado", examType,
+                TestData.option("A", "Opción A", true),
+                TestData.option("B", "Opción B", false));
+        existing.setTag("Tema 1");
+        when(questionRepository.findById(7L)).thenReturn(Optional.of(existing));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QuestionResponse response = service.updateTags(7L, List.of("Tema 1", "Fisiología"));
+
+        assertThat(response.tags()).containsExactly("Tema 1", "Fisiología");
+        assertThat(response.tag()).isEqualTo("Tema 1, Fisiología");
+    }
+
+    @Test
     @DisplayName("rechaza una pregunta sin ninguna opción correcta")
     void createWithoutCorrectOption() {
         when(examTypeRepository.findById(1L))

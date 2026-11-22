@@ -2,7 +2,9 @@ package bir.app.api.service;
 
 import bir.app.api.dto.CreateQuestionRequest;
 import bir.app.api.dto.QuestionImportResponse;
+import bir.app.api.dto.QuestionResponse;
 import bir.app.api.entity.ExamType;
+import bir.app.api.entity.Question;
 import bir.app.api.repository.ExamTypeRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.support.TestData;
@@ -19,6 +21,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,11 +46,24 @@ class QuestionImportServiceTest {
     }
 
     private static String question(String examType, String text) {
+        return questionWithTag(examType, text, " Tema 1 ");
+    }
+
+    private static String questionWithTag(String examType, String text, String tag) {
+        String tagField = tag == null ? "" : "\"tag\":\"" + tag + "\",";
         return """
-                {"exam_type":"%s","text":"%s","category":"Anatomía","tag":" Tema 1 ",
+                {"exam_type":"%s","text":"%s","category":"Anatomía",%s
                  "answers":[{"letter":"b","text":"Opción B","is_correct":true},
                             {"letter":"a","text":"Opción A","is_correct":false}]}
-                """.formatted(examType, text);
+                """.formatted(examType, text, tagField);
+    }
+
+    private static Question existingQuestion(Long id, ExamType examType, String text, String tag) {
+        Question q = TestData.question(id, text, examType,
+                TestData.option("A", "Opción A", false),
+                TestData.option("B", "Opción B", true));
+        q.setTag(tag);
+        return q;
     }
 
     @Test
@@ -306,12 +322,12 @@ class QuestionImportServiceTest {
     }
 
     @Test
-    @DisplayName("salta las preguntas que ya existen en el mismo banco")
+    @DisplayName("salta las preguntas que ya existen en el mismo banco con las mismas tags")
     void skipsQuestionsAlreadyInTheBank() {
-        when(examTypeRepository.findByCode("BIR"))
-                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
-        when(questionRepository.findTextsByExamTypeId(2L))
-                .thenReturn(List.of("¿Qué es la mitosis?"));
+        ExamType bir = TestData.examType(2L, "BIR", "BIR");
+        when(examTypeRepository.findByCode("BIR")).thenReturn(Optional.of(bir));
+        when(questionRepository.findByExamTypeId(2L))
+                .thenReturn(List.of(existingQuestion(10L, bir, "¿Qué es la mitosis?", "Tema 1")));
 
         QuestionImportResponse response = service.importQuestions(question("BIR", "¿que es la MITOSIS?"));
 
@@ -321,6 +337,70 @@ class QuestionImportServiceTest {
         assertThat(response.skipped()).isZero();
         assertThat(response.errors()).isEmpty();
         verify(questionService, never()).create(any());
+        verify(questionService, never()).updateTags(any(), any());
+    }
+
+    @Test
+    @DisplayName("si la pregunta importada no tiene tag y la guardada tiene tag, no hace nada y la marca como duplicada")
+    void skipsDuplicateWhenImportedHasNoTagAndExistingHasTag() {
+        ExamType bir = TestData.examType(2L, "BIR", "BIR");
+        when(examTypeRepository.findByCode("BIR")).thenReturn(Optional.of(bir));
+        when(questionRepository.findByExamTypeId(2L))
+                .thenReturn(List.of(existingQuestion(10L, bir, "¿Qué es la mitosis?", "Tema 1")));
+
+        QuestionImportResponse response = service.importQuestions(
+                questionWithTag("BIR", "¿que es la MITOSIS?", null));
+
+        assertThat(response.total()).isEqualTo(1);
+        assertThat(response.imported()).isZero();
+        assertThat(response.duplicates()).isEqualTo(1);
+        assertThat(response.skipped()).isZero();
+        assertThat(response.errors()).isEmpty();
+        verify(questionService, never()).create(any());
+        verify(questionService, never()).updateTags(any(), any());
+    }
+
+    @Test
+    @DisplayName("si la pregunta duplicada trae tags que no coinciden con las de la guardada, añade las nuevas tags")
+    void addsNewTagsToExistingDuplicateQuestionWhenTagsDiffer() {
+        ExamType bir = TestData.examType(2L, "BIR", "BIR");
+        when(examTypeRepository.findByCode("BIR")).thenReturn(Optional.of(bir));
+        when(questionRepository.findByExamTypeId(2L))
+                .thenReturn(List.of(existingQuestion(10L, bir, "¿Qué es la mitosis?", "Tema 1")));
+
+        QuestionImportResponse response = service.importQuestions(
+                questionWithTag("BIR", "¿que es la MITOSIS?", "Tema 2, Fisiología"));
+
+        assertThat(response.total()).isEqualTo(1);
+        assertThat(response.imported()).isEqualTo(1);
+        assertThat(response.duplicates()).isZero();
+        assertThat(response.skipped()).isZero();
+        assertThat(response.errors()).isEmpty();
+        verify(questionService, never()).create(any());
+        verify(questionService).updateTags(eq(10L), eq(List.of("Tema 1", "Tema 2", "Fisiología")));
+    }
+
+    @Test
+    @DisplayName("añade nuevas tags si una pregunta repetida dentro del mismo fichero trae una tag distinta")
+    void addsNewTagsWhenRepeatedInsideSameFileWithDifferentTag() {
+        ExamType bir = TestData.examType(2L, "BIR", "BIR");
+        when(examTypeRepository.findByCode("BIR")).thenReturn(Optional.of(bir));
+        when(questionRepository.findByExamTypeId(2L)).thenReturn(List.of());
+        when(questionService.create(any())).thenReturn(new QuestionResponse(
+                55L, "Primera", "Anatomía", "Tema 1", List.of("Tema 1"),
+                null, "BIR", "BIR", List.of(), null, null));
+
+        QuestionImportResponse response = service.importQuestions(
+                questionWithTag("BIR", "Primera", "Tema 1")
+                        + questionWithTag("BIR", " primera ", "Tema 2")
+                        + questionWithTag("BIR", "PRIMERA", "Tema 1"));
+
+        assertThat(response.total()).isEqualTo(3);
+        assertThat(response.imported()).isEqualTo(2);
+        assertThat(response.duplicates()).isEqualTo(1);
+        assertThat(response.skipped()).isZero();
+        verify(questionService, times(1)).create(any());
+        verify(questionService, times(1)).updateTags(eq(55L), eq(List.of("Tema 1", "Tema 2")));
     }
 
     @Test
@@ -330,8 +410,8 @@ class QuestionImportServiceTest {
                 .thenReturn(Optional.of(TestData.examType(1L, "MIR", "MIR")));
         when(examTypeRepository.findByCode("BIR"))
                 .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
-        when(questionRepository.findTextsByExamTypeId(2L)).thenReturn(List.of());
-        when(questionRepository.findTextsByExamTypeId(1L)).thenReturn(List.of());
+        when(questionRepository.findByExamTypeId(2L)).thenReturn(List.of());
+        when(questionRepository.findByExamTypeId(1L)).thenReturn(List.of());
 
         QuestionImportResponse response = service.importQuestions(
                 question("MIR", "Pregunta repetida") + question("BIR", "Pregunta repetida"));
@@ -341,7 +421,7 @@ class QuestionImportServiceTest {
     }
 
     @Test
-    @DisplayName("salta las preguntas repetidas dentro del mismo fichero")
+    @DisplayName("salta las preguntas repetidas dentro del mismo fichero con la misma tag")
     void skipsRepeatedQuestionsInsideTheFile() {
         when(examTypeRepository.findByCode("BIR"))
                 .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
@@ -359,9 +439,10 @@ class QuestionImportServiceTest {
     @Test
     @DisplayName("separa las descartadas de las duplicadas en el resumen")
     void separatesSkippedFromDuplicates() {
-        when(examTypeRepository.findByCode("BIR"))
-                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
-        when(questionRepository.findTextsByExamTypeId(2L)).thenReturn(List.of("Nueva"));
+        ExamType bir = TestData.examType(2L, "BIR", "BIR");
+        when(examTypeRepository.findByCode("BIR")).thenReturn(Optional.of(bir));
+        when(questionRepository.findByExamTypeId(2L))
+                .thenReturn(List.of(existingQuestion(10L, bir, "Nueva", "Tema 1")));
 
         String broken = "{\"exam_type\": BIR, \"text\": \"Rota\"}";
         QuestionImportResponse response = service.importQuestions(

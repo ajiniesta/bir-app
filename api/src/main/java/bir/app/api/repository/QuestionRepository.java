@@ -41,6 +41,13 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     List<String> findTextsByExamTypeId(Long examTypeId);
 
     /**
+     * Preguntas de un banco (sin cargar sus opciones), para detectar duplicados
+     * al importar y poder fusionar nuevas tags si la pregunta ya existía.
+     */
+    @Query("SELECT q FROM Question q WHERE q.examType.id = :examTypeId AND q.text IS NOT NULL")
+    List<Question> findByExamTypeId(Long examTypeId);
+
+    /**
      * Todas las preguntas con sus opciones y su banco. La usa la limpieza de
      * duplicados, que compara enunciados y opciones en memoria.
      */
