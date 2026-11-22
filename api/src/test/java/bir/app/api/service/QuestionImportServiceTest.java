@@ -164,6 +164,29 @@ class QuestionImportServiceTest {
     }
 
     @Test
+    @DisplayName("importa una pregunta invalidada sin ninguna respuesta correcta")
+    void importsInvalidatedQuestionWithoutCorrectAnswer() {
+        when(examTypeRepository.findByCode("BIR"))
+                .thenReturn(Optional.of(TestData.examType(2L, "BIR", "BIR")));
+        String content = """
+                {"exam_type":"BIR","text":"Pregunta anulada","answers":[
+                  {"letter":"A","text":"Una","is_correct":false},
+                  {"letter":"B","text":"Otra","is_correct":false}]}
+                """;
+
+        QuestionImportResponse response = service.importQuestions(content);
+
+        assertThat(response.imported()).isEqualTo(1);
+        assertThat(response.skipped()).isZero();
+        assertThat(response.errors()).isEmpty();
+        ArgumentCaptor<CreateQuestionRequest> request = ArgumentCaptor.forClass(CreateQuestionRequest.class);
+        verify(questionService).create(request.capture());
+        assertThat(request.getValue().answerOptions())
+                .filteredOn(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
+                .isEmpty();
+    }
+
+    @Test
     @DisplayName("descarta una pregunta con dos respuestas correctas")
     void rejectsMoreThanOneCorrectAnswer() {
         when(examTypeRepository.findByCode("BIR"))
@@ -178,7 +201,7 @@ class QuestionImportServiceTest {
 
         assertThat(response.imported()).isZero();
         assertThat(response.errors()).anySatisfy(error ->
-                assertThat(error).contains("exactamente una respuesta correcta (hay 2)"));
+                assertThat(error).contains("no puede haber más de una respuesta correcta (hay 2)"));
         verify(questionService, never()).create(any());
     }
 

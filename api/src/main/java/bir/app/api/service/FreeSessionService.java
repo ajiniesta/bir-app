@@ -186,11 +186,18 @@ public class FreeSessionService {
 
     private List<Question> filterPool(List<Question> questions, String category, String tag) {
         return questions.stream()
+                .filter(FreeSessionService::hasCorrectOption)
                 .filter(q -> category == null
                         || (q.getCategory() != null && q.getCategory().equalsIgnoreCase(category)))
                 .filter(q -> tag == null
                         || QuestionTagSupport.containsTag(q.getTag(), tag))
                 .toList();
+    }
+
+    private static boolean hasCorrectOption(Question question) {
+        return question.getAnswerOptions() != null
+                && question.getAnswerOptions().stream()
+                        .anyMatch(o -> Boolean.TRUE.equals(o.getIsCorrect()));
     }
 
     private static String normalize(String value) {

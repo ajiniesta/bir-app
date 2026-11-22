@@ -49,7 +49,7 @@ public class MockExamAttemptItem {
     @Column(name = "selected_letter", length = 1)
     private String selectedLetter;
 
-    @Column(name = "correct_letter", nullable = false, length = 1)
+    @Column(name = "correct_letter", length = 1)
     private String correctLetter;
 
     @Column(name = "is_correct")

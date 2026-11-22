@@ -146,16 +146,37 @@ class QuestionServiceTest {
     }
 
     @Test
-    @DisplayName("rechaza una pregunta sin ninguna opción correcta")
+    @DisplayName("permite crear una pregunta invalidada sin ninguna opción correcta")
     void createWithoutCorrectOption() {
-        when(examTypeRepository.findById(1L))
-                .thenReturn(Optional.of(TestData.examType(1L, "MIR", "MIR")));
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> {
+            Question saved = invocation.getArgument(0);
+            saved.setId(12L);
+            return saved;
+        });
 
-        assertThatThrownBy(() -> service.create(request(null, false, false)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Exactly one answer must be correct");
+        QuestionResponse response = service.create(request(null, false, false));
 
-        verify(questionRepository, never()).save(any(Question.class));
+        assertThat(response.id()).isEqualTo(12L);
+        assertThat(response.answerOptions()).hasSize(2);
+        assertThat(response.answerOptions()).filteredOn(QuestionResponse.AnswerOptionResponse::isCorrect).isEmpty();
+    }
+
+    @Test
+    @DisplayName("permite actualizar una pregunta para invalidarla dejando todas las opciones como incorrectas")
+    void updateToInvalidatedQuestion() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question existing = TestData.question(7L, "Enunciado", examType,
+                TestData.option("A", "Antigua A", true),
+                TestData.option("B", "Antigua B", false));
+        when(questionRepository.findById(7L)).thenReturn(Optional.of(existing));
+        when(examTypeRepository.findById(1L)).thenReturn(Optional.of(examType));
+        when(questionRepository.save(any(Question.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        QuestionResponse response = service.update(7L, request("Anulada", false, false));
+
+        assertThat(response.answerOptions()).filteredOn(QuestionResponse.AnswerOptionResponse::isCorrect).isEmpty();
     }
 
     @Test

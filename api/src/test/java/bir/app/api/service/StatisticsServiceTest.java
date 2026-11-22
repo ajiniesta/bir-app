@@ -94,6 +94,24 @@ class StatisticsServiceTest {
         return item;
     }
 
+    private static MockExamAttemptItem invalidatedMockItem(AppUser user, String category) {
+        MockExamAttempt attempt = new MockExamAttempt();
+        attempt.setId(2L);
+        attempt.setUser(user);
+        attempt.setTotalQuestions(1);
+        attempt.setFinishedAt(LocalDateTime.now());
+        MockExamAttemptItem item = new MockExamAttemptItem();
+        item.setAttempt(attempt);
+        item.setPosition(1);
+        item.setQuestionText("Pregunta invalidada de simulacro");
+        item.setCorrectLetter(null);
+        item.setCategory(category);
+        item.setSelectedLetter("A");
+        item.setAnsweredAt(LocalDateTime.now());
+        item.setIsCorrect(null);
+        return item;
+    }
+
     @Test
     @DisplayName("combina modo libre y simulacros entregados y añade categorías sin respuestas")
     void combinesFreeAndMockByCategory() {
@@ -107,7 +125,8 @@ class StatisticsServiceTest {
         when(mockExamAttemptItemRepository.findAnsweredFinishedByUsername("demo")).thenReturn(List.of(
                 mockItem(user, "Biología", true, true),
                 mockItem(user, null, false, true),
-                mockItem(user, "Bioquímica", true, false)));
+                mockItem(user, "Bioquímica", true, false),
+                invalidatedMockItem(user, "Biología")));
         when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(false);
         when(accessControlService.allowedBankCodes("demo")).thenReturn(Set.of("MIR"));
         when(questionRepository.findDistinctCategoriesByExamTypeCodeIn(anySet())).thenReturn(

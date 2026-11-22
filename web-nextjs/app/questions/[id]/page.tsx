@@ -174,6 +174,11 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
                     #{t}
                   </span>
                 ))}
+                {!question.answerOptions.some((opt) => opt.isCorrect) && (
+                  <span className="inline-flex items-center rounded-md bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                    Invalidada
+                  </span>
+                )}
               </div>
               <p className="text-lg text-slate-900 dark:text-slate-100 leading-relaxed font-normal whitespace-pre-wrap">
                 {question.text}
@@ -192,9 +197,16 @@ export default async function QuestionDetailPage(props: QuestionDetailPageProps)
 
             {/* Options list */}
             <div className="space-y-3">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Opciones de respuesta
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                  Opciones de respuesta
+                </h2>
+                {!question.answerOptions.some((opt) => opt.isCorrect) && (
+                  <span className="text-xs font-medium text-rose-700 dark:text-rose-300">
+                    Pregunta invalidada (sin respuesta correcta)
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
                 {question.answerOptions.map((opt) => (
                   <div

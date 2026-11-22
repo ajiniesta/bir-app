@@ -246,7 +246,9 @@ public class StatisticsService {
 
     private static List<MockExamAttemptItem> finishedOnly(List<MockExamAttemptItem> items) {
         return items.stream()
-                .filter(item -> item.getAttempt() != null && item.getAttempt().isFinished())
+                .filter(item -> item.getAttempt() != null
+                        && item.getAttempt().isFinished()
+                        && item.getCorrectLetter() != null)
                 .toList();
     }
 

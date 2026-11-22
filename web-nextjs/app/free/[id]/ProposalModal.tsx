@@ -116,7 +116,7 @@ export default function ProposalModal({
               onChange={(e) => setProposedLetter(e.target.value)}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             >
-              <option value="">— Ninguna / no lo sé —</option>
+              <option value="">— Ninguna (invalidar pregunta) —</option>
               {item.options.map((opt) => (
                 <option key={opt.letter} value={opt.letter}>
                   {opt.letter}) {opt.text}

@@ -269,8 +269,8 @@ public class QuestionImportService {
             options.add(new CreateQuestionRequest.AnswerOptionRequest(letter, optionText, isCorrect));
         }
 
-        if (correct != 1) {
-            errors.add(prefix + "debe haber exactamente una respuesta correcta (hay " + correct + ").");
+        if (correct > 1) {
+            errors.add(prefix + "no puede haber más de una respuesta correcta (hay " + correct + ").");
         }
 
         if (text == null || examTypeId == null || !errors.isEmpty()) {

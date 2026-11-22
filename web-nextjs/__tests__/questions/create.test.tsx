@@ -257,4 +257,59 @@ describe('CreateQuestionPage (/questions/create)', () => {
       expect(screen.getByText(/error al crear la pregunta/i)).toBeInTheDocument();
     });
   });
+
+  it('allows creating an invalidated question without any correct answer option', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'creator', role: 'CREATOR', roles: ['ROLE_CREATOR'], accessToken: 'token-creator' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_EXAM_TYPES })
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_TAGS });
+
+    const Component = await CreateQuestionPage();
+    render(Component);
+
+    await user.selectOptions(screen.getByLabelText(/tipo de examen/i), '1');
+    await user.type(screen.getByLabelText(/texto de la pregunta/i), 'Pregunta anulada oficial');
+    const optionInputs = screen.getAllByPlaceholderText(/texto de la opción/i);
+    await user.type(optionInputs[0], 'Opción A');
+    await user.type(optionInputs[1], 'Opción B');
+    await user.type(optionInputs[2], 'Opción C');
+    await user.type(optionInputs[3], 'Opción D');
+
+    expect(screen.getByText(/pregunta invalidada/i)).toBeInTheDocument();
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ id: 105, text: 'Pregunta anulada oficial' }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /crear pregunta/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/questions'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            text: 'Pregunta anulada oficial',
+            category: null,
+            tag: null,
+            tags: [],
+            explanation: null,
+            examTypeId: 1,
+            answerOptions: [
+              { letter: 'A', text: 'Opción A', isCorrect: false },
+              { letter: 'B', text: 'Opción B', isCorrect: false },
+              { letter: 'C', text: 'Opción C', isCorrect: false },
+              { letter: 'D', text: 'Opción D', isCorrect: false },
+            ],
+          }),
+        })
+      );
+      expect(mockPush).toHaveBeenCalledWith('/questions');
+    });
+  });
 });

@@ -202,6 +202,32 @@ class FreeSessionServiceTest {
     }
 
     @Test
+    @DisplayName("excluye las preguntas invalidadas (sin respuesta correcta) del modo libre")
+    void createExcludesInvalidatedQuestionsFromPool() {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question valid = question(1L, examType, "Anatomía", "Tema 1");
+        Question invalidated = TestData.question(2L, "Pregunta invalidada", examType,
+                TestData.option("A", "Opción A", false),
+                TestData.option("B", "Opción B", false));
+        invalidated.setCategory("Anatomía");
+        invalidated.setTag("Tema 1");
+
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(examType));
+        when(questionRepository.findByExamTypeCode("MIR"))
+                .thenReturn(List.of(valid, invalidated));
+        stubSavedSession();
+
+        FreeSessionResponse response = service.create("demo",
+                new CreateFreeSessionRequest("MIR", "Anatomía", "Tema 1", 10));
+
+        assertThat(response.totalQuestions()).isEqualTo(1);
+        assertThat(response.items()).extracting(FreeSessionResponse.Item::questionId).containsExactly(1L);
+    }
+
+    @Test
     @DisplayName("falla si el filtro no deja ninguna pregunta")
     void createWithoutMatchingQuestions() {
         ExamType examType = TestData.examType(1L, "MIR", "MIR");

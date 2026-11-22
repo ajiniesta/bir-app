@@ -259,7 +259,11 @@ export default function MockExamResultClient({
                         className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                       />
                     )}
-                    {!item.answered ? (
+                    {item.correctLetter === null ? (
+                      <span className="inline-flex items-center rounded-md bg-amber-50 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-semibold">
+                        Invalidada
+                      </span>
+                    ) : !item.answered ? (
                       <span className="inline-flex items-center rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
                         En blanco
                       </span>
@@ -278,12 +282,15 @@ export default function MockExamResultClient({
                 {/* Options Review */}
                 <div className="space-y-1.5 pt-1">
                   {item.options.map((opt) => {
-                    const isCorrect = opt.letter === item.correctLetter;
+                    const isInvalidated = item.correctLetter === null;
+                    const isCorrect = !isInvalidated && opt.letter === item.correctLetter;
                     const isSelected = opt.letter === item.selectedLetter;
 
                     let rowStyle = "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200";
                     if (isCorrect) {
                       rowStyle = "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-950 dark:text-emerald-100 font-medium";
+                    } else if (isSelected && isInvalidated) {
+                      rowStyle = "border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-950/20 text-amber-950 dark:text-amber-100";
                     } else if (isSelected && !isCorrect) {
                       rowStyle = "border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 text-red-950 dark:text-red-100";
                     }
@@ -303,7 +310,12 @@ export default function MockExamResultClient({
                               Correcta
                             </span>
                           )}
-                          {isSelected && !isCorrect && (
+                          {isSelected && isInvalidated && (
+                            <span className="rounded bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white ml-1">
+                              Tu respuesta (no puntúa)
+                            </span>
+                          )}
+                          {isSelected && !isInvalidated && !isCorrect && (
                             <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white ml-1">
                               Tu respuesta
                             </span>
@@ -366,7 +378,7 @@ export default function MockExamResultClient({
                             }
                             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:outline-none transition-colors"
                           >
-                            <option value="">— Ninguna / no lo sé —</option>
+                            <option value="">— Ninguna (invalidar pregunta) —</option>
                             {item.options.map((opt) => (
                               <option key={opt.letter} value={opt.letter}>
                                 {opt.letter}) {opt.text}

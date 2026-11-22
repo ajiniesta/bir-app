@@ -176,4 +176,56 @@ describe('EditQuestionPage (/questions/[id]/edit)', () => {
 
     expect(screen.getByText(/pregunta no encontrada/i)).toBeInTheDocument();
   });
+
+  it('allows unmarking the correct answer to invalidate an existing question', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'admin', role: 'ADMIN', roles: ['ROLE_ADMIN'], accessToken: 'token-admin' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_QUESTION })
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_EXAM_TYPES })
+      .mockResolvedValueOnce({ ok: true, json: async () => MOCK_TAGS });
+
+    const Component = await EditQuestionPage({ params: Promise.resolve({ id: '15' }) });
+    render(Component);
+
+    const invalidateBtn = screen.getByRole('button', { name: /sin respuesta correcta \(invalidada\)/i });
+    await user.click(invalidateBtn);
+
+    const radios = screen.getAllByRole('radio', { name: /correcta/i });
+    expect(radios.every((r) => !(r as HTMLInputElement).checked)).toBe(true);
+    expect(screen.getByText(/pregunta invalidada/i)).toBeInTheDocument();
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...MOCK_QUESTION }),
+    });
+
+    await user.click(screen.getByRole('button', { name: /guardar cambios/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/questions/15'),
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({
+            text: '¿Cuál es el principal catión extracelular?',
+            category: 'Fisiología',
+            tag: 'electrolitos',
+            tags: ['electrolitos'],
+            explanation: 'El sodio es el principal catión del líquido extracelular.',
+            examTypeId: 2,
+            answerOptions: [
+              { letter: 'A', text: 'Potasio', isCorrect: false },
+              { letter: 'B', text: 'Sodio', isCorrect: false },
+              { letter: 'C', text: 'Calcio', isCorrect: false },
+              { letter: 'D', text: 'Magnesio', isCorrect: false },
+            ],
+          }),
+        })
+      );
+    });
+  });
 });

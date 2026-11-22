@@ -74,9 +74,6 @@ public class AnswerProposalService {
 
         String proposedLetter = normalizeLetter(request.proposedLetter());
         String proposedText = normalizeText(request.proposedText());
-        if (proposedLetter == null && proposedText == null) {
-            throw new IllegalArgumentException("Indica una opción o un texto alternativo");
-        }
         if (proposedLetter != null && question.getAnswerOptions().stream()
                 .noneMatch(o -> o.getLetter().equalsIgnoreCase(proposedLetter))) {
             throw new IllegalArgumentException("La opción propuesta no existe: " + proposedLetter);
@@ -204,10 +201,30 @@ public class AnswerProposalService {
                 .filter(o -> Boolean.TRUE.equals(o.getIsCorrect()))
                 .map(AnswerOption::getLetter)
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("La pregunta no tiene una opción correcta"));
+                .orElse(null);
+
+        if (proposal.getProposedLetter() == null && proposal.getProposedText() == null) {
+            if (currentCorrect == null) {
+                return false;
+            }
+            List<CreateQuestionRequest.AnswerOptionRequest> invalidatedOptions = options.stream()
+                    .map(o -> new CreateQuestionRequest.AnswerOptionRequest(o.getLetter(), o.getText(), false))
+                    .toList();
+            questionService.update(question.getId(), new CreateQuestionRequest(
+                    question.getText(), question.getCategory(), question.getTag(), question.getExplanation(),
+                    question.getExamType().getId(), invalidatedOptions));
+            proposal.setAppliedBy(appUserService.requireByUsername(username));
+            proposal.setAppliedAt(LocalDateTime.now());
+            return true;
+        }
+
         String targetLetter = proposal.getProposedLetter() != null
                 ? proposal.getProposedLetter()
                 : currentCorrect;
+        if (targetLetter == null) {
+            throw new IllegalArgumentException(
+                    "La pregunta está invalidada; indica qué opción debe ser la correcta");
+        }
 
         AnswerOption target = options.stream()
                 .filter(o -> o.getLetter().equalsIgnoreCase(targetLetter))

@@ -110,11 +110,6 @@ export default function QuestionForm({
       return;
     }
 
-    if (!correctLetter) {
-      setError("Por favor, marca cuál es la respuesta correcta.");
-      return;
-    }
-
     const finalTags = mergeUniqueTags(selectedTags, [tagInput]);
 
     const payload = {
@@ -312,14 +307,33 @@ export default function QuestionForm({
 
       {/* Opciones de respuesta */}
       <div className="space-y-3">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-            Opciones de respuesta
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Solo una opción debe ser la correcta.
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+              Opciones de respuesta
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Marca la opción correcta o déjala sin respuesta correcta si la pregunta está invalidada.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCorrectLetter("")}
+            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
+              !correctLetter
+                ? "border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-700 text-amber-800 dark:text-amber-300"
+                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            }`}
+          >
+            Sin respuesta correcta (invalidada)
+          </button>
         </div>
+
+        {!correctLetter && (
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-300">
+            <strong>Pregunta invalidada:</strong> ninguna opción está marcada como correcta. No se incluirá en el modo libre y no puntuará en los simulacros.
+          </div>
+        )}
 
         <div className="space-y-3">
           {options.map((opt) => (
@@ -342,7 +356,6 @@ export default function QuestionForm({
                   value={opt.letter}
                   checked={correctLetter === opt.letter}
                   onChange={() => setCorrectLetter(opt.letter)}
-                  required
                   className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                 />
                 Correcta

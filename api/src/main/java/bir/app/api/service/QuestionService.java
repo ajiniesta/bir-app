@@ -67,11 +67,14 @@ public class QuestionService {
         ExamType examType = examTypeRepository.findById(request.examTypeId())
                 .orElseThrow(() -> new NoSuchElementException("Exam type not found: " + request.examTypeId()));
 
+        if (request.answerOptions() == null || request.answerOptions().isEmpty()) {
+            throw new IllegalArgumentException("At least one answer option is required");
+        }
         long correctCount = request.answerOptions().stream()
                 .filter(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
                 .count();
-        if (correctCount != 1) {
-            throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
+        if (correctCount > 1) {
+            throw new IllegalArgumentException("At most one answer can be correct, but found " + correctCount);
         }
 
         List<String> resolvedTags = validateAndResolveTags(request);
@@ -101,11 +104,14 @@ public class QuestionService {
         ExamType examType = examTypeRepository.findById(request.examTypeId())
                 .orElseThrow(() -> new NoSuchElementException("Exam type not found: " + request.examTypeId()));
 
+        if (request.answerOptions() == null || request.answerOptions().isEmpty()) {
+            throw new IllegalArgumentException("At least one answer option is required");
+        }
         long correctCount = request.answerOptions().stream()
                 .filter(CreateQuestionRequest.AnswerOptionRequest::isCorrect)
                 .count();
-        if (correctCount != 1) {
-            throw new IllegalArgumentException("Exactly one answer must be correct, but found " + correctCount);
+        if (correctCount > 1) {
+            throw new IllegalArgumentException("At most one answer can be correct, but found " + correctCount);
         }
 
         List<String> resolvedTags = validateAndResolveTags(request);

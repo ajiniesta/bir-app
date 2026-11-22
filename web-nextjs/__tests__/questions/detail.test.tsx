@@ -120,6 +120,26 @@ describe('QuestionDetailPage (/questions/[id])', () => {
     expect(screen.getByText(/pregunta no encontrada/i)).toBeInTheDocument();
   });
 
+  it('renders Invalidada badge and notice when question has no correct answer option', async () => {
+    mockAuth.mockResolvedValue({
+      user: { name: 'admin', role: 'ADMIN', roles: ['ROLE_ADMIN'], accessToken: 'token-admin' },
+    });
+
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        ...MOCK_QUESTION,
+        answerOptions: MOCK_QUESTION.answerOptions.map((o) => ({ ...o, isCorrect: false })),
+      }),
+    });
+
+    const Component = await QuestionDetailPage({ params: Promise.resolve({ id: '42' }) });
+    render(Component);
+
+    expect(screen.getByText('Invalidada')).toBeInTheDocument();
+    expect(screen.getByText(/pregunta invalidada \(sin respuesta correcta\)/i)).toBeInTheDocument();
+  });
+
   it('renders an Estadísticas button on the question view that opens the popup with platform and user stats and concentric pie charts', async () => {
     const user = userEvent.setup();
     mockAuth.mockResolvedValue({

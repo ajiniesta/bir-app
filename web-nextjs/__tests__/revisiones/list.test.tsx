@@ -234,4 +234,39 @@ describe('ReviewPage (/revisiones)', () => {
       );
     });
   });
+
+  it('renders invalidation proposal indicator and Invalidada badge when question has no correct answer', async () => {
+    mockAuth.mockResolvedValue({
+      user: { name: 'admin', role: 'ADMIN', roles: ['ROLE_ADMIN'], accessToken: 'token-admin' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          {
+            ...MOCK_PROPOSALS[0],
+            id: 11,
+            correctLetter: null,
+            options: [
+              { letter: 'A', text: 'París', isCorrect: false },
+              { letter: 'B', text: 'Lyon', isCorrect: false },
+            ],
+            proposedLetter: null,
+            proposedText: null,
+            comment: 'Debería anularse porque ninguna es correcta.',
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => MOCK_EXAM_TYPES,
+      });
+
+    const Component = await ReviewPage({ searchParams: Promise.resolve({}) });
+    render(Component);
+
+    expect(screen.getByText('Invalidada')).toBeInTheDocument();
+    expect(screen.getByText(/invalidar pregunta \(ninguna respuesta correcta\)/i)).toBeInTheDocument();
+  });
 });
