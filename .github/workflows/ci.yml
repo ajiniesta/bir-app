@@ -80,7 +80,10 @@ jobs:
             file: ./web-nextjs/Dockerfile
     steps:
       - uses: actions/checkout@v4
-
+      - name: Habilitar emulación ARM64
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
       - name: Configurar Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -110,6 +113,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           file: ${{ matrix.file }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
