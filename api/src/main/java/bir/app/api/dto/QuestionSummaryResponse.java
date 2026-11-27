@@ -3,6 +3,7 @@ package bir.app.api.dto;
 import bir.app.api.entity.Question;
 import bir.app.api.support.QuestionTagSupport;
 import io.micronaut.core.annotation.Creator;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.serde.annotation.Serdeable;
 
 import java.util.List;
@@ -18,7 +19,8 @@ public record QuestionSummaryResponse(
     String category,
     String tag,
     List<String> tags,
-    String examTypeCode
+    String examTypeCode,
+    @Nullable String learningStatus
 ) {
     @Creator
     public QuestionSummaryResponse {
@@ -30,12 +32,27 @@ public record QuestionSummaryResponse(
         String text,
         String category,
         String tag,
+        List<String> tags,
         String examTypeCode
     ) {
-        this(id, text, category, tag, QuestionTagSupport.parse(tag), examTypeCode);
+        this(id, text, category, tag, tags, examTypeCode, null);
+    }
+
+    public QuestionSummaryResponse(
+        Long id,
+        String text,
+        String category,
+        String tag,
+        String examTypeCode
+    ) {
+        this(id, text, category, tag, QuestionTagSupport.parse(tag), examTypeCode, null);
     }
 
     public static QuestionSummaryResponse from(Question q) {
+        return from(q, null);
+    }
+
+    public static QuestionSummaryResponse from(Question q, @Nullable String learningStatus) {
         List<String> parsedTags = q.getTags();
         return new QuestionSummaryResponse(
             q.getId(),
@@ -43,7 +60,8 @@ public record QuestionSummaryResponse(
             q.getCategory(),
             QuestionTagSupport.join(parsedTags),
             parsedTags,
-            q.getExamType().getCode()
+            q.getExamType().getCode(),
+            learningStatus
         );
     }
 }

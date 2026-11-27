@@ -15,6 +15,8 @@ export interface ReviewSessionSummary {
   examTypeName: string;
   categories: string[];
   tags: string[];
+  onlyDoubt?: boolean;
+  onlyFailed?: boolean;
   answeredCount: number;
   correctCount: number;
   totalMatchingQuestions: number;
@@ -55,6 +57,8 @@ export interface ReviewSessionResponse {
   examTypeName: string;
   categories: string[];
   tags: string[];
+  onlyDoubt?: boolean;
+  onlyFailed?: boolean;
   totalMatchingQuestions: number;
   answeredCount: number;
   correctCount: number;

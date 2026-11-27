@@ -11,6 +11,7 @@ import bir.app.api.entity.AnswerOption;
 import bir.app.api.entity.AppUser;
 import bir.app.api.entity.ExamType;
 import bir.app.api.entity.Question;
+import bir.app.api.entity.QuestionLearningStatus;
 import bir.app.api.entity.ReviewSession;
 import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.exception.ForbiddenException;
@@ -19,6 +20,8 @@ import bir.app.api.repository.QuestionRepository;
 import bir.app.api.repository.ReviewSessionRepository;
 import bir.app.api.support.QuestionTagSupport;
 import bir.app.api.support.QuestionTextNormalizer;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -26,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,17 +53,30 @@ public class ReviewSessionService {
     private final ExamTypeRepository examTypeRepository;
     private final AppUserService appUserService;
     private final AccessControlService accessControlService;
+    private final UserQuestionStatusService userQuestionStatusService;
 
     public ReviewSessionService(ReviewSessionRepository reviewSessionRepository,
                                 QuestionRepository questionRepository,
                                 ExamTypeRepository examTypeRepository,
                                 AppUserService appUserService,
                                 AccessControlService accessControlService) {
+        this(reviewSessionRepository, questionRepository, examTypeRepository,
+                appUserService, accessControlService, null);
+    }
+
+    @Inject
+    public ReviewSessionService(ReviewSessionRepository reviewSessionRepository,
+                                QuestionRepository questionRepository,
+                                ExamTypeRepository examTypeRepository,
+                                AppUserService appUserService,
+                                AccessControlService accessControlService,
+                                @Nullable UserQuestionStatusService userQuestionStatusService) {
         this.reviewSessionRepository = reviewSessionRepository;
         this.questionRepository = questionRepository;
         this.examTypeRepository = examTypeRepository;
         this.appUserService = appUserService;
         this.accessControlService = accessControlService;
+        this.userQuestionStatusService = userQuestionStatusService;
     }
 
     @Transactional
@@ -120,7 +137,8 @@ public class ReviewSessionService {
                     .filter(i -> i.isAnswered() && Boolean.TRUE.equals(i.getIsCorrect()))
                     .count();
             int totalMatching = Math.max(
-                    loadMatchingPool(session.getExamType(), categories, tags).size(),
+                    loadMatchingPool(username, session.getExamType(), categories, tags,
+                            session.isOnlyDoubt(), session.isOnlyFailed()).size(),
                     session.getItems().size());
             result.add(new ReviewSessionSummaryResponse(
                     session.getId(),
@@ -128,6 +146,8 @@ public class ReviewSessionService {
                     session.getExamType().getName(),
                     categories,
                     tags,
+                    session.isOnlyDoubt(),
+                    session.isOnlyFailed(),
                     answered,
                     correct,
                     totalMatching,
@@ -148,8 +168,11 @@ public class ReviewSessionService {
 
         List<String> categories = normalizeList(request.categories());
         List<String> tags = QuestionTagSupport.parse(null, request.tags());
+        boolean onlyDoubt = Boolean.TRUE.equals(request.onlyDoubt());
+        boolean onlyFailed = Boolean.TRUE.equals(request.onlyFailed());
 
-        List<Question> pool = new ArrayList<>(loadMatchingPool(examType, categories, tags));
+        List<Question> pool = new ArrayList<>(
+                loadMatchingPool(username, examType, categories, tags, onlyDoubt, onlyFailed));
         if (pool.isEmpty()) {
             throw new IllegalArgumentException("No hay preguntas que coincidan con el filtro seleccionado");
         }
@@ -160,6 +183,8 @@ public class ReviewSessionService {
         session.setExamType(examType);
         session.setCategories(serializeList(categories));
         session.setTags(serializeList(tags));
+        session.setOnlyDoubt(onlyDoubt);
+        session.setOnlyFailed(onlyFailed);
 
         ReviewSessionItem firstItem = new ReviewSessionItem();
         firstItem.setSession(session);
@@ -176,7 +201,9 @@ public class ReviewSessionService {
         ReviewSession session = requireSession(username, sessionId);
         List<String> categories = deserializeList(session.getCategories());
         List<String> tags = deserializeList(session.getTags());
-        List<Question> pool = loadMatchingPool(session.getExamType(), categories, tags);
+        List<Question> pool = loadMatchingPool(
+                username, session.getExamType(), categories, tags,
+                session.isOnlyDoubt(), session.isOnlyFailed());
 
         if (!session.isFinished()
                 && !session.getItems().isEmpty()
@@ -218,9 +245,15 @@ public class ReviewSessionService {
         item.setIsCorrect(correct);
         item.setAnsweredAt(LocalDateTime.now());
 
+        if (userQuestionStatusService != null) {
+            userQuestionStatusService.recordAnswer(session.getUser(), item.getQuestion(), correct);
+        }
+
         List<String> categories = deserializeList(session.getCategories());
         List<String> tags = deserializeList(session.getTags());
-        List<Question> pool = loadMatchingPool(session.getExamType(), categories, tags);
+        List<Question> pool = loadMatchingPool(
+                username, session.getExamType(), categories, tags,
+                session.isOnlyDoubt(), session.isOnlyFailed());
 
         appendNextQuestionIfAvailable(session, pool);
 
@@ -233,7 +266,9 @@ public class ReviewSessionService {
         ReviewSession session = requireSession(username, sessionId);
         List<String> categories = deserializeList(session.getCategories());
         List<String> tags = deserializeList(session.getTags());
-        int totalMatching = loadMatchingPool(session.getExamType(), categories, tags).size();
+        int totalMatching = loadMatchingPool(
+                username, session.getExamType(), categories, tags,
+                session.isOnlyDoubt(), session.isOnlyFailed()).size();
 
         if (!session.isFinished()) {
             session.getItems().removeIf(item -> !item.isAnswered());
@@ -274,15 +309,39 @@ public class ReviewSessionService {
         }
     }
 
-    private List<Question> loadMatchingPool(ExamType examType, List<String> categories, List<String> tags) {
+    private List<Question> loadMatchingPool(String username,
+                                            ExamType examType,
+                                            List<String> categories,
+                                            List<String> tags,
+                                            boolean onlyDoubt,
+                                            boolean onlyFailed) {
         if (examType == null) {
             return List.of();
         }
+        boolean filterByStatus = onlyDoubt || onlyFailed;
+        Set<Long> matchingStatusIds = null;
+        if (filterByStatus) {
+            Set<QuestionLearningStatus> targetStatuses = new LinkedHashSet<>();
+            if (onlyDoubt) {
+                targetStatuses.add(QuestionLearningStatus.DOUBT);
+            }
+            if (onlyFailed) {
+                targetStatuses.add(QuestionLearningStatus.FAILED);
+            }
+            matchingStatusIds = userQuestionStatusService == null
+                    ? Set.of()
+                    : userQuestionStatusService.findQuestionIdsByStatuses(username, targetStatuses);
+            if (matchingStatusIds.isEmpty()) {
+                return List.of();
+            }
+        }
+        final Set<Long> allowedStatusIds = matchingStatusIds;
         List<Question> questions = questionRepository.findByExamTypeCode(examType.getCode());
         return questions.stream()
                 .filter(ReviewSessionService::hasCorrectOption)
                 .filter(q -> matchesCategories(q, categories))
                 .filter(q -> matchesTags(q, tags))
+                .filter(q -> !filterByStatus || allowedStatusIds.contains(q.getId()))
                 .toList();
     }
 
@@ -355,6 +414,8 @@ public class ReviewSessionService {
                 session.getExamType() == null ? null : session.getExamType().getName(),
                 categories,
                 tags,
+                session.isOnlyDoubt(),
+                session.isOnlyFailed(),
                 effectiveTotal,
                 answered,
                 correct,

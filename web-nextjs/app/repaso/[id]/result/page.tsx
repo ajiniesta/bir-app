@@ -154,6 +154,16 @@ export default async function RepasoResultPage(props: RepasoResultPageProps) {
                   </strong>
                 </span>
               )}
+              {reviewSession.onlyDoubt && (
+                <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                  Preguntas en duda
+                </span>
+              )}
+              {reviewSession.onlyFailed && (
+                <span className="inline-flex items-center rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-2 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+                  Preguntas fallidas
+                </span>
+              )}
             </div>
 
             {/* Category statistics section */}

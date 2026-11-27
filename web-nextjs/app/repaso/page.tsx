@@ -6,13 +6,28 @@ import { ExamType, ReviewFiltersResponse, ReviewSessionSummary } from "./types";
 
 export const instant = false;
 
-export default async function RepasoConfigPage() {
+interface RepasoConfigPageProps {
+  searchParams?: Promise<{
+    examType?: string;
+    onlyDoubt?: string;
+    onlyFailed?: string;
+  }>;
+}
+
+export default async function RepasoConfigPage(props?: RepasoConfigPageProps) {
   const session = await auth();
 
   if (!session?.user) {
     redirect("/login");
     return null;
   }
+
+  const resolvedParams = props?.searchParams ? await props.searchParams : {};
+  const initialExamType = resolvedParams.examType || "";
+  const initialOnlyDoubt =
+    resolvedParams.onlyDoubt === "true" || resolvedParams.onlyDoubt === "1";
+  const initialOnlyFailed =
+    resolvedParams.onlyFailed === "true" || resolvedParams.onlyFailed === "1";
 
   const user = session.user as {
     name?: string | null;
@@ -92,6 +107,9 @@ export default async function RepasoConfigPage() {
           activeSessions={activeSessions}
           initialCategories={initialCategories}
           initialTags={initialTags}
+          initialExamType={initialExamType}
+          initialOnlyDoubt={initialOnlyDoubt}
+          initialOnlyFailed={initialOnlyFailed}
           accessToken={user.accessToken}
         />
       </main>

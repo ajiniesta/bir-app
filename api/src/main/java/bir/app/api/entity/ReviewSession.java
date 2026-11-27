@@ -34,6 +34,14 @@ public class ReviewSession {
     @Column(columnDefinition = "TEXT")
     private String tags;
 
+    /** Si es true, el repaso incluye preguntas en estado DOUBT del usuario. */
+    @Column(name = "only_doubt", nullable = false)
+    private boolean onlyDoubt;
+
+    /** Si es true, el repaso incluye preguntas en estado FAILED del usuario. */
+    @Column(name = "only_failed", nullable = false)
+    private boolean onlyFailed;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -69,6 +77,12 @@ public class ReviewSession {
 
     public String getTags() { return tags; }
     public void setTags(String tags) { this.tags = tags; }
+
+    public boolean isOnlyDoubt() { return onlyDoubt; }
+    public void setOnlyDoubt(boolean onlyDoubt) { this.onlyDoubt = onlyDoubt; }
+
+    public boolean isOnlyFailed() { return onlyFailed; }
+    public void setOnlyFailed(boolean onlyFailed) { this.onlyFailed = onlyFailed; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

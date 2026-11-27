@@ -166,6 +166,9 @@ export default function Navbar({
                 <Link href="/repaso" className={navItemClass("/repaso")}>
                   Modo repaso
                 </Link>
+                <Link href="/dudas" className={navItemClass("/dudas")}>
+                  Mis dudas
+                </Link>
                 <Link href="/simulacros" className={navItemClass("/simulacros")}>
                   Simulacros
                 </Link>
@@ -388,6 +391,9 @@ export default function Navbar({
                 </Link>
                 <Link href="/repaso" className={mobileNavItemClass("/repaso")}>
                   Modo repaso
+                </Link>
+                <Link href="/dudas" className={mobileNavItemClass("/dudas")}>
+                  Mis dudas
                 </Link>
                 <Link
                   href="/simulacros"

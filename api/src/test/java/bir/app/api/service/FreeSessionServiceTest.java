@@ -52,13 +52,15 @@ class FreeSessionServiceTest {
     AppUserService appUserService;
     @Mock
     AccessControlService accessControlService;
+    @Mock
+    UserQuestionStatusService userQuestionStatusService;
 
     FreeSessionService service;
 
     @BeforeEach
     void setUp() {
         service = new FreeSessionService(freeSessionRepository, sessionItemRepository, questionRepository,
-                examTypeRepository, appUserService, accessControlService);
+                examTypeRepository, appUserService, accessControlService, userQuestionStatusService);
     }
 
     private static Question question(long id, ExamType examType, String category, String tag) {
@@ -283,6 +285,7 @@ class FreeSessionServiceTest {
         assertThat(item.explanation()).isEqualTo("Explicación 1");
         assertThat(response.finished()).isTrue();
         verify(freeSessionRepository).save(session);
+        verify(userQuestionStatusService).recordAnswer(session.getUser(), item.questionId() == null ? null : session.getItems().get(0).getQuestion(), false);
     }
 
     @Test

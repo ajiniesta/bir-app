@@ -10,6 +10,7 @@ import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.entity.AppUser;
 import bir.app.api.entity.ExamType;
 import bir.app.api.entity.Question;
+import bir.app.api.entity.QuestionLearningStatus;
 import bir.app.api.entity.ReviewSession;
 import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.entity.UserRole;
@@ -54,6 +55,8 @@ class ReviewSessionServiceTest {
     AppUserService appUserService;
     @Mock
     AccessControlService accessControlService;
+    @Mock
+    UserQuestionStatusService userQuestionStatusService;
 
     ReviewSessionService service;
 
@@ -64,7 +67,8 @@ class ReviewSessionServiceTest {
                 questionRepository,
                 examTypeRepository,
                 appUserService,
-                accessControlService);
+                accessControlService,
+                userQuestionStatusService);
     }
 
     private static Question question(long id, ExamType examType, String category, String tag) {
@@ -411,5 +415,76 @@ class ReviewSessionServiceTest {
         assertThatThrownBy(() -> service.get("demo", 10L))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessageContaining("Repaso no encontrado");
+    }
+
+    @Test
+    @DisplayName("create con onlyDoubt=true filtra únicamente las preguntas que el usuario tiene en estado DOUBT")
+    void createWithOnlyDoubtFiltersByUserDoubtQuestions() {
+        ExamType mir = TestData.examType(1L, "MIR", "Médico Interno Residente");
+        Question q1 = question(1L, mir, "Anatomía", "Tema 1");
+        Question q2 = question(2L, mir, "Anatomía", "Tema 2");
+
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(mir));
+        when(questionRepository.findByExamTypeCode("MIR")).thenReturn(List.of(q1, q2));
+        when(userQuestionStatusService.findQuestionIdsByStatuses("demo", Set.of(QuestionLearningStatus.DOUBT)))
+                .thenReturn(Set.of(2L));
+        stubSavedSession();
+
+        ReviewSessionResponse response = service.create("demo",
+                new CreateReviewSessionRequest("MIR", List.of(), List.of(), true));
+
+        assertThat(response.onlyDoubt()).isTrue();
+        assertThat(response.onlyFailed()).isFalse();
+        assertThat(response.totalMatchingQuestions()).isEqualTo(1);
+        assertThat(response.items()).singleElement().satisfies(item -> {
+            assertThat(item.questionId()).isEqualTo(2L);
+        });
+    }
+
+    @Test
+    @DisplayName("create con onlyDoubt=true y onlyFailed=true incluye preguntas tanto en DOUBT como en FAILED")
+    void createWithOnlyDoubtAndOnlyFailedIncludesBothStatuses() {
+        ExamType mir = TestData.examType(1L, "MIR", "Médico Interno Residente");
+        Question q1 = question(1L, mir, "Anatomía", "Tema 1");
+        Question q2 = question(2L, mir, "Anatomía", "Tema 2");
+        Question q3 = question(3L, mir, "Anatomía", "Tema 3");
+
+        when(appUserService.requireByUsername("demo"))
+                .thenReturn(TestData.user(1L, "demo", UserRole.USER));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(true);
+        when(examTypeRepository.findByCode("MIR")).thenReturn(Optional.of(mir));
+        when(questionRepository.findByExamTypeCode("MIR")).thenReturn(List.of(q1, q2, q3));
+        when(userQuestionStatusService.findQuestionIdsByStatuses(
+                "demo", Set.of(QuestionLearningStatus.DOUBT, QuestionLearningStatus.FAILED)))
+                .thenReturn(Set.of(2L, 3L));
+        stubSavedSession();
+
+        ReviewSessionResponse response = service.create("demo",
+                new CreateReviewSessionRequest("MIR", List.of(), List.of(), true, true));
+
+        assertThat(response.onlyDoubt()).isTrue();
+        assertThat(response.onlyFailed()).isTrue();
+        assertThat(response.totalMatchingQuestions()).isEqualTo(2);
+        assertThat(response.items().get(0).questionId()).isIn(2L, 3L);
+    }
+
+    @Test
+    @DisplayName("answer registra el resultado en UserQuestionStatusService")
+    void answerRecordsStatusInUserQuestionStatusService() {
+        ExamType mir = TestData.examType(1L, "MIR", "Médico Interno Residente");
+        AppUser user = TestData.user(1L, "demo", UserRole.USER);
+        Question q1 = question(1L, mir, "Anatomía", "Tema 1");
+
+        ReviewSession session = reviewSession(10L, user, mir, null, null, q1);
+        when(reviewSessionRepository.findById(10L)).thenReturn(Optional.of(session));
+        when(questionRepository.findByExamTypeCode("MIR")).thenReturn(List.of(q1));
+        stubSavedSession();
+
+        service.answer("demo", 10L, new AnswerRequest(1, "A"));
+
+        verify(userQuestionStatusService).recordAnswer(user, q1, true);
     }
 }

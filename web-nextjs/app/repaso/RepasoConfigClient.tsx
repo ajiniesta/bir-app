@@ -10,6 +10,9 @@ interface RepasoConfigClientProps {
   activeSessions: ReviewSessionSummary[];
   initialCategories: string[];
   initialTags: string[];
+  initialExamType?: string;
+  initialOnlyDoubt?: boolean;
+  initialOnlyFailed?: boolean;
   accessToken?: string;
 }
 
@@ -18,14 +21,19 @@ export default function RepasoConfigClient({
   activeSessions,
   initialCategories,
   initialTags,
+  initialExamType = "",
+  initialOnlyDoubt = false,
+  initialOnlyFailed = false,
   accessToken,
 }: RepasoConfigClientProps) {
   const router = useRouter();
-  const [examTypeCode, setExamTypeCode] = useState("");
+  const [examTypeCode, setExamTypeCode] = useState(initialExamType);
   const [availableCategories, setAvailableCategories] = useState<string[]>(initialCategories);
   const [availableTags, setAvailableTags] = useState<string[]>(initialTags);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [onlyDoubt, setOnlyDoubt] = useState<boolean>(initialOnlyDoubt);
+  const [onlyFailed, setOnlyFailed] = useState<boolean>(initialOnlyFailed);
   const [loading, setLoading] = useState(false);
   const [finishingId, setFinishingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -112,14 +120,22 @@ export default function RepasoConfigClient({
         headers.Authorization = `Bearer ${accessToken}`;
       }
 
+      const payload: Record<string, unknown> = {
+        examTypeCode,
+        categories: selectedCategories,
+        tags: selectedTags,
+      };
+      if (onlyDoubt) {
+        payload.onlyDoubt = true;
+      }
+      if (onlyFailed) {
+        payload.onlyFailed = true;
+      }
+
       const res = await fetch("/api/review-sessions", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          examTypeCode,
-          categories: selectedCategories,
-          tags: selectedTags,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -167,8 +183,20 @@ export default function RepasoConfigClient({
                 className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="space-y-1">
-                  <div className="font-semibold text-sm text-slate-900 dark:text-white">
-                    {s.examTypeCode} - {s.examTypeName}
+                  <div className="font-semibold text-sm text-slate-900 dark:text-white flex flex-wrap items-center gap-2">
+                    <span>
+                      {s.examTypeCode} - {s.examTypeName}
+                    </span>
+                    {s.onlyDoubt && (
+                      <span className="inline-flex items-center rounded-md bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        En duda
+                      </span>
+                    )}
+                    {s.onlyFailed && (
+                      <span className="inline-flex items-center rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 px-2 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-300">
+                        Fallidas
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-slate-600 dark:text-slate-400">
                     {s.categories?.length
@@ -318,6 +346,66 @@ export default function RepasoConfigClient({
               Todavía no hay tags registrados.
             </p>
           )}
+        </div>
+
+        {/* Filtro adicional: Preguntas en duda y/o fallidas */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Filtrar por estado de aprendizaje
+            </span>
+            <Link
+              href="/dudas"
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+            >
+              Ver listado de preguntas en duda y fallidas &rarr;
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label
+              htmlFor="onlyDoubt"
+              className="flex items-start gap-3 cursor-pointer rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
+            >
+              <input
+                id="onlyDoubt"
+                name="onlyDoubt"
+                type="checkbox"
+                checked={onlyDoubt}
+                onChange={(e) => setOnlyDoubt(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-800 dark:text-slate-200">
+                <span className="font-medium block">
+                  Incluir sólo preguntas en duda
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Preguntas en estado de duda (pendientes de 3 aciertos seguidos).
+                </span>
+              </span>
+            </label>
+
+            <label
+              htmlFor="onlyFailed"
+              className="flex items-start gap-3 cursor-pointer rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
+            >
+              <input
+                id="onlyFailed"
+                name="onlyFailed"
+                type="checkbox"
+                checked={onlyFailed}
+                onChange={(e) => setOnlyFailed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-slate-800 dark:text-slate-200">
+                <span className="font-medium block">
+                  Incluir sólo preguntas fallidas
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Preguntas falladas que todavía no has acertado ninguna vez.
+                </span>
+              </span>
+            </label>
+          </div>
         </div>
 
         <button

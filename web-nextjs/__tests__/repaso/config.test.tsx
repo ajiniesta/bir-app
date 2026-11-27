@@ -196,4 +196,48 @@ describe('RepasoConfigPage (/repaso)', () => {
       expect(mockPush).toHaveBeenCalledWith('/repaso/105');
     });
   });
+
+  it('allows toggling "Incluir sólo preguntas en duda" and "Incluir sólo preguntas fallidas" and sends onlyDoubt/onlyFailed to POST /api/review-sessions', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
+    });
+    mockFetchEndpoints({
+      postResponse: { id: 210, totalMatchingQuestions: 4, onlyDoubt: true, onlyFailed: true },
+    });
+
+    const Component = await RepasoConfigPage();
+    render(Component);
+
+    await user.selectOptions(screen.getByLabelText(/banco de preguntas/i), 'BIR');
+
+    const doubtCheckbox = screen.getByRole('checkbox', { name: /incluir sólo preguntas en duda/i });
+    const failedCheckbox = screen.getByRole('checkbox', { name: /incluir sólo preguntas fallidas/i });
+    expect(doubtCheckbox).not.toBeChecked();
+    expect(failedCheckbox).not.toBeChecked();
+
+    await user.click(doubtCheckbox);
+    await user.click(failedCheckbox);
+    expect(doubtCheckbox).toBeChecked();
+    expect(failedCheckbox).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: /empezar repaso/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/review-sessions'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            examTypeCode: 'BIR',
+            categories: [],
+            tags: [],
+            onlyDoubt: true,
+            onlyFailed: true,
+          }),
+        })
+      );
+      expect(mockPush).toHaveBeenCalledWith('/repaso/210');
+    });
+  });
 });

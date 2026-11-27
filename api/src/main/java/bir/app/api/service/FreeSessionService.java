@@ -11,6 +11,8 @@ import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.repository.SessionItemRepository;
 import bir.app.api.support.QuestionTagSupport;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -30,6 +32,7 @@ public class FreeSessionService {
     private final ExamTypeRepository examTypeRepository;
     private final AppUserService appUserService;
     private final AccessControlService accessControlService;
+    private final UserQuestionStatusService userQuestionStatusService;
 
     public FreeSessionService(FreeSessionRepository freeSessionRepository,
                               SessionItemRepository sessionItemRepository,
@@ -37,12 +40,25 @@ public class FreeSessionService {
                               ExamTypeRepository examTypeRepository,
                               AppUserService appUserService,
                               AccessControlService accessControlService) {
+        this(freeSessionRepository, sessionItemRepository, questionRepository,
+                examTypeRepository, appUserService, accessControlService, null);
+    }
+
+    @Inject
+    public FreeSessionService(FreeSessionRepository freeSessionRepository,
+                              SessionItemRepository sessionItemRepository,
+                              QuestionRepository questionRepository,
+                              ExamTypeRepository examTypeRepository,
+                              AppUserService appUserService,
+                              AccessControlService accessControlService,
+                              @Nullable UserQuestionStatusService userQuestionStatusService) {
         this.freeSessionRepository = freeSessionRepository;
         this.sessionItemRepository = sessionItemRepository;
         this.questionRepository = questionRepository;
         this.examTypeRepository = examTypeRepository;
         this.appUserService = appUserService;
         this.accessControlService = accessControlService;
+        this.userQuestionStatusService = userQuestionStatusService;
     }
 
     @Transactional
@@ -105,6 +121,10 @@ public class FreeSessionService {
         item.setSelectedLetter(letter);
         item.setIsCorrect(correct);
         item.setAnsweredAt(LocalDateTime.now());
+
+        if (userQuestionStatusService != null) {
+            userQuestionStatusService.recordAnswer(session.getUser(), item.getQuestion(), correct);
+        }
 
         if (session.getItems().stream().allMatch(SessionItem::isAnswered)) {
             session.setFinishedAt(LocalDateTime.now());
