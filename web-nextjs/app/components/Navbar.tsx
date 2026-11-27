@@ -163,6 +163,9 @@ export default function Navbar({
                 <Link href="/free" className={navItemClass("/free")}>
                   Modo libre
                 </Link>
+                <Link href="/repaso" className={navItemClass("/repaso")}>
+                  Modo repaso
+                </Link>
                 <Link href="/simulacros" className={navItemClass("/simulacros")}>
                   Simulacros
                 </Link>
@@ -382,6 +385,9 @@ export default function Navbar({
               <nav className="space-y-1">
                 <Link href="/free" className={mobileNavItemClass("/free")}>
                   Modo libre
+                </Link>
+                <Link href="/repaso" className={mobileNavItemClass("/repaso")}>
+                  Modo repaso
                 </Link>
                 <Link
                   href="/simulacros"

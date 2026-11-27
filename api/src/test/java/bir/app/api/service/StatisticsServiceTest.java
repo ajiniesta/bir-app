@@ -8,12 +8,15 @@ import bir.app.api.entity.FreeSession;
 import bir.app.api.entity.MockExamAttempt;
 import bir.app.api.entity.MockExamAttemptItem;
 import bir.app.api.entity.Question;
+import bir.app.api.entity.ReviewSession;
+import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.entity.SessionItem;
 import bir.app.api.entity.UserRole;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.MockExamAttemptItemRepository;
 import bir.app.api.repository.MockExamAttemptRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.repository.ReviewSessionItemRepository;
 import bir.app.api.repository.SessionItemRepository;
 import bir.app.api.support.TestData;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +50,8 @@ class StatisticsServiceTest {
     MockExamAttemptRepository mockExamAttemptRepository;
     @Mock
     MockExamAttemptItemRepository mockExamAttemptItemRepository;
+    @Mock
+    ReviewSessionItemRepository reviewSessionItemRepository;
     @Mock
     QuestionRepository questionRepository;
     @Mock
@@ -109,6 +114,26 @@ class StatisticsServiceTest {
         item.setSelectedLetter("A");
         item.setAnsweredAt(LocalDateTime.now());
         item.setIsCorrect(null);
+        return item;
+    }
+
+    private static ReviewSessionItem reviewItem(AppUser user, String category, boolean correct) {
+        ExamType examType = TestData.examType(1L, "MIR", "MIR");
+        Question question = TestData.question(1L, "Pregunta repaso", examType,
+                TestData.option("A", "Opción A", true),
+                TestData.option("B", "Opción B", false));
+        question.setCategory(category);
+        ReviewSession session = new ReviewSession();
+        session.setId(1L);
+        session.setUser(user);
+        session.setExamType(examType);
+        ReviewSessionItem item = new ReviewSessionItem();
+        item.setSession(session);
+        item.setQuestion(question);
+        item.setPosition(1);
+        item.setSelectedLetter(correct ? "A" : "B");
+        item.setAnsweredAt(LocalDateTime.now());
+        item.setIsCorrect(correct);
         return item;
     }
 
@@ -290,5 +315,94 @@ class StatisticsServiceTest {
         assertThatThrownBy(() -> service.questionStats(999L, "demo"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessageContaining("999");
+    }
+
+    @Test
+    @DisplayName("suma las respuestas del modo repaso en overview (totales, byCategory y global) y en questionStats")
+    void includesReviewSessionItemsInOverviewAndQuestionStats() {
+        StatisticsService serviceWithReviews = new StatisticsService(
+                freeSessionRepository,
+                sessionItemRepository,
+                mockExamAttemptRepository,
+                mockExamAttemptItemRepository,
+                reviewSessionItemRepository,
+                questionRepository,
+                accessControlService);
+
+        AppUser admin = TestData.user(1L, "admin", UserRole.ADMIN);
+        AppUser demo = TestData.user(2L, "demo", UserRole.USER);
+
+        when(freeSessionRepository.countByUserUsername("admin")).thenReturn(1L);
+        when(mockExamAttemptRepository.countFinishedByUsername("admin")).thenReturn(1L);
+        when(sessionItemRepository.findAnsweredByUsername("admin")).thenReturn(List.of(
+                freeItem(admin, "Anatomía", true)));
+        when(mockExamAttemptItemRepository.findAnsweredFinishedByUsername("admin")).thenReturn(List.of(
+                mockItem(admin, "Anatomía", false, true)));
+        when(reviewSessionItemRepository.findAnsweredByUsername("admin")).thenReturn(List.of(
+                reviewItem(admin, "Anatomía", true),
+                reviewItem(admin, "Genética", false)));
+
+        when(sessionItemRepository.findAllAnswered()).thenReturn(List.of(
+                freeItem(admin, "Anatomía", true)));
+        when(mockExamAttemptItemRepository.findAllAnsweredFinished()).thenReturn(List.of(
+                mockItem(admin, "Anatomía", false, true)));
+        when(reviewSessionItemRepository.findAllAnswered()).thenReturn(List.of(
+                reviewItem(admin, "Anatomía", true),
+                reviewItem(demo, "Genética", true)));
+
+        when(freeSessionRepository.count()).thenReturn(1L);
+        when(mockExamAttemptRepository.countFinished()).thenReturn(1L);
+        when(accessControlService.hasGlobalBankAccess("admin")).thenReturn(true);
+        when(questionRepository.findDistinctCategories()).thenReturn(List.of("Anatomía", "Genética"));
+
+        StatsOverviewResponse overview = serviceWithReviews.overview("admin");
+
+        // Personal (admin): 1 libre (ok) + 1 simulacro (fallo) + 2 repaso (1 ok, 1 fallo) = 4 respondidas, 2 acertadas (50%)
+        assertThat(overview.mine().answered()).isEqualTo(4L);
+        assertThat(overview.mine().correct()).isEqualTo(2L);
+        assertThat(overview.mine().accuracy()).isEqualTo(50d);
+        assertThat(overview.mine().byCategory())
+                .filteredOn(c -> c.category().equals("Anatomía"))
+                .singleElement()
+                .satisfies(c -> {
+                    assertThat(c.answered()).isEqualTo(3L);
+                    assertThat(c.correct()).isEqualTo(2L);
+                });
+        assertThat(overview.mine().byCategory())
+                .filteredOn(c -> c.category().equals("Genética"))
+                .singleElement()
+                .satisfies(c -> {
+                    assertThat(c.answered()).isEqualTo(1L);
+                    assertThat(c.correct()).isZero();
+                });
+
+        // Global: admin (3 respondidas, 2 acertadas) + demo (1 en repaso, 1 acertada) = 2 usuarios, 4 respondidas, 3 acertadas (75%)
+        assertThat(overview.global()).isNotNull();
+        assertThat(overview.global().users()).isEqualTo(2L);
+        assertThat(overview.global().answered()).isEqualTo(4L);
+        assertThat(overview.global().correct()).isEqualTo(3L);
+        assertThat(overview.global().accuracy()).isEqualTo(75d);
+        assertThat(overview.global().byUser())
+                .extracting(StatsOverviewResponse.UserStats::username)
+                .containsExactly("admin", "demo");
+
+        // questionStats con ReviewSessionItem
+        when(questionRepository.existsById(42L)).thenReturn(true);
+        when(sessionItemRepository.findAnsweredByQuestionId(42L)).thenReturn(List.of(
+                freeItem(admin, "Anatomía", true)));
+        when(mockExamAttemptItemRepository.findAnsweredFinishedByQuestionId(42L)).thenReturn(List.of());
+        when(reviewSessionItemRepository.findAnsweredByQuestionId(42L)).thenReturn(List.of(
+                reviewItem(admin, "Anatomía", false),
+                reviewItem(demo, "Anatomía", true)));
+
+        QuestionStatsResponse qStats = serviceWithReviews.questionStats(42L, "admin");
+
+        assertThat(qStats.platform().answered()).isEqualTo(3L);
+        assertThat(qStats.platform().correct()).isEqualTo(2L);
+        assertThat(qStats.platform().incorrect()).isEqualTo(1L);
+        assertThat(qStats.user().answered()).isEqualTo(2L);
+        assertThat(qStats.user().correct()).isEqualTo(1L);
+        assertThat(qStats.user().incorrect()).isEqualTo(1L);
+        assertThat(qStats.user().accuracy()).isEqualTo(50d);
     }
 }

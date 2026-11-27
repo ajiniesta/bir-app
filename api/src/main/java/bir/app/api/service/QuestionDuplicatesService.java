@@ -9,8 +9,11 @@ import bir.app.api.entity.Question;
 import bir.app.api.repository.AnswerProposalRepository;
 import bir.app.api.repository.MockExamQuestionRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.repository.ReviewSessionItemRepository;
 import bir.app.api.repository.SessionItemRepository;
 import bir.app.api.support.QuestionTextNormalizer;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
@@ -18,10 +21,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
  * <p>De cada grupo se conserva la pregunta <strong>más completa</strong> (con
  * explicación, luego con más opciones, y a igualdad la más antigua) y el
  * historial de las que se borran se re-apunta a la conservada: apariciones en
- * simulacros, propuestas de respuesta e ítems de sesiones libres. Cuando el
+ * simulacros, propuestas de respuesta e ítems de sesiones libres y de repaso. Cuando el
  * re-apuntado choca con una restricción única (el simulacro ya tiene la
  * conservada, o el usuario ya propuso una respuesta sobre ella) se elimina la
  * fila duplicada y se informa en el resumen.</p>
@@ -66,15 +67,27 @@ public class QuestionDuplicatesService {
     private final MockExamQuestionRepository mockExamQuestionRepository;
     private final AnswerProposalRepository answerProposalRepository;
     private final SessionItemRepository sessionItemRepository;
+    private final ReviewSessionItemRepository reviewSessionItemRepository;
 
     public QuestionDuplicatesService(QuestionRepository questionRepository,
                                      MockExamQuestionRepository mockExamQuestionRepository,
                                      AnswerProposalRepository answerProposalRepository,
                                      SessionItemRepository sessionItemRepository) {
+        this(questionRepository, mockExamQuestionRepository, answerProposalRepository,
+                sessionItemRepository, null);
+    }
+
+    @Inject
+    public QuestionDuplicatesService(QuestionRepository questionRepository,
+                                     MockExamQuestionRepository mockExamQuestionRepository,
+                                     AnswerProposalRepository answerProposalRepository,
+                                     SessionItemRepository sessionItemRepository,
+                                     @Nullable ReviewSessionItemRepository reviewSessionItemRepository) {
         this.questionRepository = questionRepository;
         this.mockExamQuestionRepository = mockExamQuestionRepository;
         this.answerProposalRepository = answerProposalRepository;
         this.sessionItemRepository = sessionItemRepository;
+        this.reviewSessionItemRepository = reviewSessionItemRepository;
     }
 
     /** Vista previa (solo lectura) de los duplicados que se borrarían. */
@@ -95,6 +108,9 @@ public class QuestionDuplicatesService {
         Set<Long> inMockExams = new HashSet<>(mockExamQuestionRepository.findQuestionIdsIn(previewIds));
         Set<Long> withProposals = new HashSet<>(answerProposalRepository.findQuestionIdsIn(previewIds));
         Set<Long> inSessions = new HashSet<>(sessionItemRepository.findQuestionIdsIn(previewIds));
+        if (reviewSessionItemRepository != null && !previewIds.isEmpty()) {
+            inSessions.addAll(reviewSessionItemRepository.findQuestionIdsIn(previewIds));
+        }
 
         List<DuplicateQuestionsResponse.DuplicateQuestionGroup> groups = new ArrayList<>();
         for (List<Question> group : preview) {
@@ -178,9 +194,13 @@ public class QuestionDuplicatesService {
                     }
                 }
 
-                // 3) Sesiones libres: el ítem conserva posición y snapshot.
+                // 3) Sesiones libres y de repaso: el ítem conserva posición y snapshot.
                 sessionItemsRepointed += sessionItemRepository.rePointQuestion(
                         duplicate.getId(), keeper.getId());
+                if (reviewSessionItemRepository != null) {
+                    sessionItemsRepointed += reviewSessionItemRepository.rePointQuestion(
+                            duplicate.getId(), keeper.getId());
+                }
 
                 // 4) Borrar la duplicada (cascade de opciones; los intentos guardan snapshot).
                 questionRepository.delete(duplicate);

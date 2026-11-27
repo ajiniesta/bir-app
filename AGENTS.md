@@ -157,7 +157,7 @@ Notes:
 | GET | `/api/exam-types` | authenticated | Exam types; for USER only the assigned banks |
 | GET | `/api/questions` | ADMIN/CREATOR | List questions |
 | GET | `/api/questions/page{?page,size,q,examType,category,tag}` | ADMIN/CREATOR | Paginated search (20/page by default, `size` max 100) by statement text, bank, category and tag; `__NONE__` = without category/tag |
-| GET | `/api/questions/categories` | ADMIN/CREATOR | Distinct categories |
+| GET | `/api/questions/categories` | authenticated | Distinct categories |
 | GET | `/api/tags` | authenticated | Distinct question tags (also needed by USER for the free-mode filter) |
 | GET | `/api/questions/{id}` | ADMIN/CREATOR | Single question |
 | GET | `/api/questions/filter{?examType}` | ADMIN/CREATOR | Filter by exam type |
@@ -170,6 +170,12 @@ Notes:
 | POST | `/api/free-sessions` | authenticated | Start a free-mode session (USER limited to assigned banks) |
 | GET | `/api/free-sessions/{id}` | authenticated | Session detail |
 | POST | `/api/free-sessions/{id}/answers` | authenticated | Answer one item |
+| GET | `/api/review-sessions/filters{?examType}` | authenticated | Distinct categories and tags available for review mode (filtered by bank and user permissions) |
+| GET | `/api/review-sessions` | authenticated | Current user's active (unfinished) review sessions (`List<ReviewSessionSummaryResponse>`) |
+| POST | `/api/review-sessions` | authenticated | Start a new review-mode session filtered by bank, multiple categories and multiple tags (`201 Created`) |
+| GET | `/api/review-sessions/{id}` | owner | Review session state and statistics (appends next random question if current items are answered) |
+| POST | `/api/review-sessions/{id}/answers` | owner | Answer the current review item with instant correction and append next random question from pool |
+| POST | `/api/review-sessions/{id}/finish` | owner | Finish the review session, discard any unanswered pending item, and return summary + category breakdown |
 | GET | `/api/mock-exams` | authenticated | Mock exams visible to the user (filtered by banks) |
 | GET | `/api/mock-exams/{id}` | authenticated | Mock exam detail: each question with its options (letter + text, **never** the correct one) |
 | POST | `/api/mock-exams` | ADMIN/CREATOR | Create a mock exam |
@@ -216,6 +222,9 @@ The official frontend lives in `web-nextjs/` as a standalone Node/npm applicatio
 | `/free` | `app/free/page.tsx`, `FreeConfigForm.tsx` | authenticated | Configure and start a free-mode session (bank, category, tag, question count) |
 | `/free/[id]` | `app/free/[id]/page.tsx`, `FreePlayClient.tsx`, `ProposalModal.tsx` | authenticated | Play a free-mode session one question at a time with instant correction, explanation, and answer proposal modal |
 | `/free/[id]/result` | `app/free/[id]/result/page.tsx` | authenticated | Free-mode session summary, accuracy, and question-by-question review |
+| `/repaso` | `app/repaso/page.tsx`, `RepasoConfigClient.tsx`, `types.ts` | authenticated | Configure and start an unlimited review-mode session (mandatory bank, multi-select categories and tags) or resume/finish active review sessions |
+| `/repaso/[id]` | `app/repaso/[id]/page.tsx`, `RepasoPlayClient.tsx` | owner | Play a review-mode session one random question at a time with instant correction, explanation, question stats popup, and option to finish anytime |
+| `/repaso/[id]/result` | `app/repaso/[id]/result/page.tsx` | owner | Review-mode session summary (answered, correct, failed, accuracy %), statistics breakdown by category, and resolved questions list |
 | `/simulacros` | `app/simulacros/page.tsx`, `MockExamListClient.tsx` | authenticated | List of mock exams visible to the user, with create/delete actions for ADMIN/CREATOR and printable PDF link |
 | `/simulacros/new` | `app/simulacros/new/page.tsx`, `MockExamForm.tsx` | ADMIN/CREATOR | Create a mock exam with client-side bank/category/tag/text filtering, random N selection, up to 210 ordered questions |
 | `/simulacros/[id]` | `app/simulacros/[id]/page.tsx`, `MockExamDetailClient.tsx` | authenticated | Mock exam detail, attempt history, start new attempt, and link to printable sheet |
