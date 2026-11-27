@@ -100,7 +100,7 @@ describe('RepasoConfigPage (/repaso)', () => {
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
-  it('renders new review form with mandatory bank selector, categories, tags, and submit button', async () => {
+  it('renders new review form with mandatory bank selector, category/tag textboxes (without showing all options upfront), and submit button', async () => {
     mockAuth.mockResolvedValue({
       user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
     });
@@ -111,10 +111,17 @@ describe('RepasoConfigPage (/repaso)', () => {
 
     expect(screen.getByRole('heading', { name: /modo repaso/i, level: 1 })).toBeInTheDocument();
     expect(screen.getByLabelText(/banco de preguntas/i)).toBeInTheDocument();
-    expect(screen.getByText('Farmacología')).toBeInTheDocument();
-    expect(screen.getByText('Bioquímica')).toBeInTheDocument();
-    expect(screen.getByText('antibioticos')).toBeInTheDocument();
-    expect(screen.getByText('enzimas')).toBeInTheDocument();
+    expect(screen.getByLabelText(/categorías/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/tags/i)).toBeInTheDocument();
+
+    // Categories and tags are NOT all listed upfront before typing
+    expect(screen.queryByRole('button', { name: 'Farmacología' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bioquímica' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'antibioticos' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'enzimas' })).not.toBeInTheDocument();
+
+    expect(screen.getByText(/todas las categorías/i)).toBeInTheDocument();
+    expect(screen.getByText(/todos los tags/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /empezar repaso/i })).toBeInTheDocument();
   });
 
@@ -154,7 +161,7 @@ describe('RepasoConfigPage (/repaso)', () => {
     expect(postCalls).toHaveLength(0);
   });
 
-  it('submits selected bank, multiple categories, and multiple tags to POST /api/review-sessions and redirects to /repaso/{id}', async () => {
+  it('filters categories and tags as the user types in the textboxes, allows selecting/removing them, and submits to POST /api/review-sessions', async () => {
     const user = userEvent.setup();
     mockAuth.mockResolvedValue({
       user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
@@ -166,14 +173,33 @@ describe('RepasoConfigPage (/repaso)', () => {
 
     await user.selectOptions(screen.getByLabelText(/banco de preguntas/i), 'BIR');
 
-    await waitFor(() => {
-      expect(screen.getByText('Farmacología')).toBeInTheDocument();
-    });
+    const categoryInput = screen.getByLabelText(/categorías/i);
+    const tagInput = screen.getByLabelText(/tags/i);
 
-    await user.click(screen.getByText('Farmacología'));
-    await user.click(screen.getByText('Bioquímica'));
-    await user.click(screen.getByText('antibioticos'));
-    await user.click(screen.getByText('enzimas'));
+    // Type in category textbox -> matching category appears
+    await user.type(categoryInput, 'Farma');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Farmacología' })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: 'Bioquímica' })).not.toBeInTheDocument();
+
+    // Select 'Farmacología'
+    await user.click(screen.getByRole('button', { name: 'Farmacología' }));
+    expect(categoryInput).toHaveValue('');
+
+    // Type and select 'Bioquímica'
+    await user.type(categoryInput, 'Bio');
+    await user.click(screen.getByRole('button', { name: 'Bioquímica' }));
+
+    // Type in tag textbox -> matching tag appears
+    await user.type(tagInput, 'anti');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /antibioticos/i })).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole('button', { name: /antibioticos/i }));
+
+    await user.type(tagInput, 'enzi');
+    await user.click(screen.getByRole('button', { name: /enzimas/i }));
 
     await user.click(screen.getByRole('button', { name: /empezar repaso/i }));
 

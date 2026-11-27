@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExamType, ReviewFiltersResponse, ReviewSessionSummary } from "./types";
@@ -16,6 +16,14 @@ interface RepasoConfigClientProps {
   accessToken?: string;
 }
 
+function normalizeSearch(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export default function RepasoConfigClient({
   examTypes,
   activeSessions,
@@ -28,10 +36,13 @@ export default function RepasoConfigClient({
 }: RepasoConfigClientProps) {
   const router = useRouter();
   const [examTypeCode, setExamTypeCode] = useState(initialExamType);
-  const [availableCategories, setAvailableCategories] = useState<string[]>(initialCategories);
+  const [availableCategories, setAvailableCategories] =
+    useState<string[]>(initialCategories);
   const [availableTags, setAvailableTags] = useState<string[]>(initialTags);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [tagQuery, setTagQuery] = useState("");
   const [onlyDoubt, setOnlyDoubt] = useState<boolean>(initialOnlyDoubt);
   const [onlyFailed, setOnlyFailed] = useState<boolean>(initialOnlyFailed);
   const [loading, setLoading] = useState(false);
@@ -42,6 +53,8 @@ export default function RepasoConfigClient({
     setExamTypeCode(newCode);
     setSelectedCategories([]);
     setSelectedTags([]);
+    setCategoryQuery("");
+    setTagQuery("");
     setError(null);
 
     try {
@@ -59,22 +72,70 @@ export default function RepasoConfigClient({
       });
       if (res.ok) {
         const data: ReviewFiltersResponse = await res.json();
-        setAvailableCategories(Array.isArray(data?.categories) ? data.categories : []);
+        setAvailableCategories(
+          Array.isArray(data?.categories) ? data.categories : []
+        );
         setAvailableTags(Array.isArray(data?.tags) ? data.tags : []);
       }
     } catch {}
   }
 
-  function toggleCategory(cat: string) {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+  const matchingCategories = useMemo(() => {
+    const q = normalizeSearch(categoryQuery);
+    if (!q) return [];
+    return availableCategories.filter(
+      (cat) =>
+        !selectedCategories.includes(cat) &&
+        normalizeSearch(cat).includes(q)
     );
+  }, [availableCategories, selectedCategories, categoryQuery]);
+
+  const matchingTags = useMemo(() => {
+    const q = normalizeSearch(tagQuery);
+    if (!q) return [];
+    return availableTags.filter(
+      (t) =>
+        !selectedTags.includes(t) &&
+        normalizeSearch(t).includes(q)
+    );
+  }, [availableTags, selectedTags, tagQuery]);
+
+  function addCategory(cat: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev : [...prev, cat]
+    );
+    setCategoryQuery("");
   }
 
-  function toggleTag(tag: string) {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+  function removeCategory(cat: string) {
+    setSelectedCategories((prev) => prev.filter((c) => c !== cat));
+  }
+
+  function handleCategoryKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && categoryQuery.trim()) {
+      e.preventDefault();
+      if (matchingCategories.length > 0) {
+        addCategory(matchingCategories[0]);
+      }
+    }
+  }
+
+  function addTag(tag: string) {
+    setSelectedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+    setTagQuery("");
+  }
+
+  function removeTag(tag: string) {
+    setSelectedTags((prev) => prev.filter((t) => t !== tag));
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && tagQuery.trim()) {
+      e.preventDefault();
+      if (matchingTags.length > 0) {
+        addTag(matchingTags[0]);
+      }
+    }
   }
 
   async function handleFinishActiveSession(sessionId: number) {
@@ -147,7 +208,9 @@ export default function RepasoConfigClient({
       router.push(`/repaso/${data.id}`);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Error inesperado al iniciar el repaso"
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al iniciar el repaso"
       );
     } finally {
       setLoading(false);
@@ -235,7 +298,7 @@ export default function RepasoConfigClient({
       )}
 
       <p className="text-sm text-slate-600 dark:text-slate-400">
-        Elige un banco de preguntas y filtra opcionalmente por varias categorías y tags. Las preguntas saldrán al azar una a una y podrás finalizar el repaso cuando quieras.
+        Elige un banco de preguntas y filtra opcionalmente por varias categorías y tags escribiendo en los buscadores. Si no seleccionas ninguna, se incluirán todas.
       </p>
 
       <form
@@ -268,83 +331,145 @@ export default function RepasoConfigClient({
           </select>
         </div>
 
-        {/* Categorías (selección múltiple) */}
+        {/* Categorías (textbox con autocompletado según el banco) */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="categoryInput"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
               Categorías
-            </span>
+            </label>
             <span className="text-xs text-slate-500 dark:text-slate-400">
               {selectedCategories.length > 0
                 ? `${selectedCategories.length} seleccionadas`
                 : "Todas las categorías"}
             </span>
           </div>
-          {availableCategories.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {availableCategories.map((cat) => {
-                const isSelected = selectedCategories.includes(cat);
-                return (
+
+          {selectedCategories.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedCategories.map((cat) => (
+                <span
+                  key={cat}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 px-2.5 py-1 text-xs font-medium text-blue-800 dark:text-blue-200"
+                >
+                  <span>{cat}</span>
                   <button
-                    key={cat}
                     type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggleCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      isSelected
-                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    }`}
+                    onClick={() => removeCategory(cat)}
+                    aria-label={`Quitar categoría ${cat}`}
+                    className="text-blue-600 dark:text-blue-300 hover:text-blue-900 dark:hover:text-white font-bold leading-none focus:outline-none"
                   >
-                    {cat}
+                    ×
                   </button>
-                );
-              })}
+                </span>
+              ))}
             </div>
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Todavía no hay categorías registradas.
-            </p>
+          )}
+
+          <input
+            id="categoryInput"
+            type="text"
+            value={categoryQuery}
+            onChange={(e) => setCategoryQuery(e.target.value)}
+            onKeyDown={handleCategoryKeyDown}
+            placeholder="Escribe para buscar y añadir categorías (vacío = todas)..."
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+
+          {categoryQuery.trim().length > 0 && (
+            <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-2 max-h-48 overflow-y-auto">
+              {matchingCategories.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {matchingCategories.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => addCategory(cat)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400 px-1 py-0.5">
+                  No hay categorías que coincidan con «{categoryQuery}».
+                </p>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Tags (selección múltiple) */}
+        {/* Tags (textbox con autocompletado según el banco) */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="tagInput"
+              className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
               Tags
-            </span>
+            </label>
             <span className="text-xs text-slate-500 dark:text-slate-400">
               {selectedTags.length > 0
                 ? `${selectedTags.length} seleccionados`
                 : "Todos los tags"}
             </span>
           </div>
-          {availableTags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((t) => {
-                const isSelected = selectedTags.includes(t);
-                return (
+
+          {selectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedTags.map((t) => (
+                <span
+                  key={t}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 px-2.5 py-1 text-xs font-medium text-amber-800 dark:text-amber-200"
+                >
+                  <span>#{t}</span>
                   <button
-                    key={t}
                     type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggleTag(t)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                      isSelected
-                        ? "bg-amber-600 text-white border-amber-600 shadow-xs"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
-                    }`}
+                    onClick={() => removeTag(t)}
+                    aria-label={`Quitar tag ${t}`}
+                    className="text-amber-700 dark:text-amber-300 hover:text-amber-950 dark:hover:text-white font-bold leading-none focus:outline-none"
                   >
-                    {t}
+                    ×
                   </button>
-                );
-              })}
+                </span>
+              ))}
             </div>
-          ) : (
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Todavía no hay tags registrados.
-            </p>
+          )}
+
+          <input
+            id="tagInput"
+            type="text"
+            value={tagQuery}
+            onChange={(e) => setTagQuery(e.target.value)}
+            onKeyDown={handleTagKeyDown}
+            placeholder="Escribe para buscar y añadir tags (vacío = todos)..."
+            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+
+          {tagQuery.trim().length > 0 && (
+            <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-2 max-h-48 overflow-y-auto">
+              {matchingTags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {matchingTags.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => addTag(t)}
+                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 hover:border-amber-300 dark:hover:border-amber-700 transition-colors"
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400 px-1 py-0.5">
+                  No hay tags que coincidan con «{tagQuery}».
+                </p>
+              )}
+            </div>
           )}
         </div>
 
