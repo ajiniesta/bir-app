@@ -13,12 +13,15 @@ import bir.app.api.entity.MockExamAttempt;
 import bir.app.api.entity.ProposalSource;
 import bir.app.api.entity.ProposalStatus;
 import bir.app.api.entity.Question;
+import bir.app.api.entity.ReviewSession;
+import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.entity.SessionItem;
 import bir.app.api.entity.UserRole;
 import bir.app.api.repository.AnswerProposalRepository;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.MockExamAttemptRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.repository.ReviewSessionRepository;
 import bir.app.api.support.TestData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +57,8 @@ class AnswerProposalServiceTest {
     @Mock
     MockExamAttemptRepository attemptRepository;
     @Mock
+    ReviewSessionRepository reviewSessionRepository;
+    @Mock
     AppUserService appUserService;
     @Mock
     QuestionService questionService;
@@ -66,7 +71,8 @@ class AnswerProposalServiceTest {
     @BeforeEach
     void setUp() {
         service = new AnswerProposalService(proposalRepository, questionRepository,
-                freeSessionRepository, attemptRepository, appUserService, questionService);
+                freeSessionRepository, attemptRepository, reviewSessionRepository,
+                appUserService, questionService);
     }
 
     private static Question question() {
@@ -479,5 +485,46 @@ class AnswerProposalServiceTest {
         assertThat(service.mine("demo", List.of())).isEmpty();
         verify(proposalRepository, never())
                 .findByQuestionIdInAndProposedByUsername(any(), any());
+    }
+
+    @Test
+    @DisplayName("permite crear una propuesta desde una sesión de modo repaso (REVIEW_SESSION) respondida por el usuario")
+    void proposeFromReviewSessionCreatesPendingProposal() {
+        Question question = question();
+        ReviewSession reviewSession = new ReviewSession();
+        reviewSession.setId(77L);
+        reviewSession.setUser(demo);
+        reviewSession.setExamType(question.getExamType());
+        ReviewSessionItem item = new ReviewSessionItem();
+        item.setSession(reviewSession);
+        item.setQuestion(question);
+        item.setPosition(1);
+        item.setSelectedLetter("A");
+        item.setIsCorrect(true);
+        item.setAnsweredAt(LocalDateTime.now());
+        reviewSession.getItems().add(item);
+
+        when(appUserService.requireByUsername("demo")).thenReturn(demo);
+        when(questionRepository.findById(1L)).thenReturn(Optional.of(question));
+        when(reviewSessionRepository.findById(77L)).thenReturn(Optional.of(reviewSession));
+        when(proposalRepository.findByQuestionIdAndProposedByUsername(1L, "demo"))
+                .thenReturn(Optional.empty());
+        when(proposalRepository.save(any(AnswerProposal.class))).thenAnswer(inv -> {
+            AnswerProposal saved = inv.getArgument(0);
+            saved.setId(88L);
+            return saved;
+        });
+
+        CreateAnswerProposalRequest req = new CreateAnswerProposalRequest(
+                1L, "B", "Texto corregido", "Motivo desde repaso",
+                "REVIEW_SESSION", 77L, 1, "A");
+
+        AnswerProposalResponse response = service.propose("demo", req);
+
+        assertThat(response.id()).isEqualTo(88L);
+        assertThat(response.source()).isEqualTo("REVIEW_SESSION");
+        assertThat(response.sourceId()).isEqualTo(77L);
+        assertThat(response.proposedLetter()).isEqualTo("B");
+        assertThat(response.comment()).isEqualTo("Motivo desde repaso");
     }
 }

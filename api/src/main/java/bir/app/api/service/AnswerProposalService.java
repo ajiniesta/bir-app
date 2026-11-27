@@ -14,11 +14,16 @@ import bir.app.api.entity.MockExamAttemptItem;
 import bir.app.api.entity.ProposalSource;
 import bir.app.api.entity.ProposalStatus;
 import bir.app.api.entity.Question;
+import bir.app.api.entity.ReviewSession;
+import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.entity.SessionItem;
 import bir.app.api.repository.AnswerProposalRepository;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.MockExamAttemptRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.repository.ReviewSessionRepository;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -42,6 +47,7 @@ public class AnswerProposalService {
     private final QuestionRepository questionRepository;
     private final FreeSessionRepository freeSessionRepository;
     private final MockExamAttemptRepository attemptRepository;
+    private final ReviewSessionRepository reviewSessionRepository;
     private final AppUserService appUserService;
     private final QuestionService questionService;
 
@@ -51,10 +57,23 @@ public class AnswerProposalService {
                                  MockExamAttemptRepository attemptRepository,
                                  AppUserService appUserService,
                                  QuestionService questionService) {
+        this(proposalRepository, questionRepository, freeSessionRepository,
+                attemptRepository, null, appUserService, questionService);
+    }
+
+    @Inject
+    public AnswerProposalService(AnswerProposalRepository proposalRepository,
+                                 QuestionRepository questionRepository,
+                                 FreeSessionRepository freeSessionRepository,
+                                 MockExamAttemptRepository attemptRepository,
+                                 @Nullable ReviewSessionRepository reviewSessionRepository,
+                                 AppUserService appUserService,
+                                 QuestionService questionService) {
         this.proposalRepository = proposalRepository;
         this.questionRepository = questionRepository;
         this.freeSessionRepository = freeSessionRepository;
         this.attemptRepository = attemptRepository;
+        this.reviewSessionRepository = reviewSessionRepository;
         this.appUserService = appUserService;
         this.questionService = questionService;
     }
@@ -286,6 +305,25 @@ public class AnswerProposalService {
             }
             if (!item.getQuestion().getId().equals(questionId)) {
                 throw new IllegalArgumentException("La pregunta no coincide con la partida");
+            }
+        } else if (source == ProposalSource.REVIEW_SESSION) {
+            if (reviewSessionRepository == null) {
+                throw new NoSuchElementException("Repaso no encontrado: " + sourceId);
+            }
+            ReviewSession session = reviewSessionRepository.findById(sourceId)
+                    .orElseThrow(() -> new NoSuchElementException("Repaso no encontrado: " + sourceId));
+            if (session.getUser() == null || !session.getUser().getUsername().equals(username)) {
+                throw new NoSuchElementException("Repaso no encontrado: " + sourceId);
+            }
+            ReviewSessionItem item = session.getItems().stream()
+                    .filter(i -> i.getPosition().equals(position))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("La pregunta no pertenece al repaso"));
+            if (!item.isAnswered()) {
+                throw new IllegalArgumentException("Debes responder la pregunta antes de proponer");
+            }
+            if (!item.getQuestion().getId().equals(questionId)) {
+                throw new IllegalArgumentException("La pregunta no coincide con el repaso");
             }
         } else {
             MockExamAttempt attempt = attemptRepository.findByIdAndUsername(sourceId, username)

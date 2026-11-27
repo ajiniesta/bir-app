@@ -314,7 +314,7 @@ export default function ReviewListClient({
                     <span> ({p.proposedBy})</span>
                   )}
                   <span> · {formatDate(p.createdAt)}</span>
-                  <span> · {p.source === "FREE_SESSION" ? "Modo libre" : "Simulacro"}</span>
+                  <span> · {p.source === "FREE_SESSION" ? "Modo libre" : p.source === "REVIEW_SESSION" ? "Modo repaso" : "Simulacro"}</span>
                   {p.position && <span> · pregunta nº {p.position}</span>}
                   {p.selectedLetter && <span> · respondió <strong>{p.selectedLetter}</strong></span>}
                 </div>

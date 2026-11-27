@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FreeSessionResponse, FreeSessionItem, MyProposalResponse } from "../types";
-import ProposalModal from "./ProposalModal";
+import { QuestionProposalSection } from "./ProposalModal";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
 import { getQuestionTags } from "@/app/lib/questionTags";
 
@@ -31,8 +31,7 @@ export default function FreePlayClient({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Proposal modal & state
-  const [showModal, setShowModal] = useState(false);
+  // Proposal state
   const [proposals, setProposals] = useState<Record<number, MyProposalResponse>>(() => {
     const map: Record<number, MyProposalResponse> = {};
     for (const p of initialProposals) {
@@ -270,51 +269,14 @@ export default function FreePlayClient({
                 )}
               </div>
 
-              {/* Proposal notifications */}
-              {proposalSuccessMessage && (
-                <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
-                  {proposalSuccessMessage}
-                </div>
-              )}
-
-              {currentProposal && (
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
-                  Ya enviaste una propuesta:{" "}
-                  <strong>
-                    {currentProposal.status === "PENDING"
-                      ? "pendiente de revisión"
-                      : currentProposal.status === "ACCEPTED"
-                      ? "aceptada"
-                      : "rechazada"}
-                  </strong>
-                  {currentProposal.proposedLetter && (
-                    <span> (Opción propuesta: {currentProposal.proposedLetter})</span>
-                  )}
-                </div>
-              )}
-
-              {/* Proposal card button */}
-              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
-                <span className="text-xs text-slate-600 dark:text-slate-400">
-                  ¿Crees que la respuesta correcta es errónea o conflictiva?
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(true)}
-                  className="rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 text-xs font-medium text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors focus:outline-none"
-                >
-                  Proponer cambio
-                </button>
-              </div>
-
-              {/* Proposal Modal */}
-              <ProposalModal
-                isOpen={showModal}
-                onClose={() => setShowModal(false)}
+              <QuestionProposalSection
                 item={shownItem}
                 sessionId={session.id}
+                source="FREE_SESSION"
                 accessToken={accessToken}
-                onSuccess={(newProposal) => {
+                currentProposal={currentProposal}
+                proposalSuccessMessage={proposalSuccessMessage}
+                onProposalSuccess={(newProposal) => {
                   setProposals((prev) => ({
                     ...prev,
                     [newProposal.questionId]: newProposal,

@@ -229,4 +229,80 @@ describe('RepasoPlayPage (/repaso/[id])', () => {
       expect(mockPush).toHaveBeenCalledWith('/repaso/88/result');
     });
   });
+
+  it('allows opening the proposal modal after answering a question and submits a REVIEW_SESSION proposal to POST /api/proposals', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
+    });
+
+    (global.fetch as jest.Mock).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = init?.method?.toUpperCase() ?? 'GET';
+
+      if (url.includes('/api/review-sessions/88/answers') && method === 'POST') {
+        return { ok: true, status: 200, json: async () => MOCK_REVIEW_AFTER_ANSWER_1 };
+      }
+      if (url.includes('/api/proposals') && method === 'POST') {
+        return {
+          ok: true,
+          status: 201,
+          json: async () => ({
+            id: 501,
+            questionId: 201,
+            status: 'PENDING',
+            proposedLetter: 'B',
+            proposedText: 'Vmax corregida',
+            comment: 'La respuesta oficial es B',
+          }),
+        };
+      }
+      if (url.includes('/api/review-sessions/88') && method === 'GET') {
+        return { ok: true, status: 200, json: async () => MOCK_REVIEW_SESSION_ACTIVE };
+      }
+      return { ok: true, status: 200, json: async () => [] };
+    });
+
+    const Component = await RepasoPlayPage({ params: Promise.resolve({ id: '88' }) });
+    render(Component);
+
+    // Answer the question first so feedback screen is shown
+    await user.click(screen.getByRole('radio', { name: /km/i }));
+    await user.click(screen.getByRole('button', { name: /responder/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /proponer cambio/i })).toBeInTheDocument();
+    });
+
+    // Open proposal modal
+    await user.click(screen.getByRole('button', { name: /proponer cambio/i }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/creo que la opción correcta es/i), 'B');
+    await user.type(screen.getByLabelText(/otra respuesta alternativa/i), 'Vmax corregida');
+    await user.type(screen.getByLabelText(/motivo/i), 'La respuesta oficial es B');
+
+    await user.click(screen.getByRole('button', { name: /enviar propuesta/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/proposals'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            questionId: 201,
+            proposedLetter: 'B',
+            proposedText: 'Vmax corregida',
+            comment: 'La respuesta oficial es B',
+            source: 'REVIEW_SESSION',
+            sourceId: 88,
+            position: 1,
+            selectedLetter: 'A',
+          }),
+        })
+      );
+      expect(screen.getByText(/propuesta enviada/i)).toBeInTheDocument();
+      expect(screen.getByText(/pendiente de revisión/i)).toBeInTheDocument();
+    });
+  });
 });

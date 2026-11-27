@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ReviewSessionResponse, ReviewSessionItem } from "../types";
+import { MyProposalResponse } from "@/app/free/types";
+import { QuestionProposalSection } from "@/app/free/[id]/ProposalModal";
 import QuestionStatsButton from "@/app/components/QuestionStatsButton";
 import { getQuestionTags } from "@/app/lib/questionTags";
 
 interface RepasoPlayClientProps {
   initialSession: ReviewSessionResponse;
+  initialProposals?: MyProposalResponse[];
   accessToken?: string;
 }
 
 export default function RepasoPlayClient({
   initialSession,
+  initialProposals = [],
   accessToken,
 }: RepasoPlayClientProps) {
   const router = useRouter();
@@ -29,6 +33,15 @@ export default function RepasoPlayClient({
   const [submitting, setSubmitting] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [proposals, setProposals] = useState<Record<number, MyProposalResponse>>(() => {
+    const map: Record<number, MyProposalResponse> = {};
+    for (const p of initialProposals) {
+      map[p.questionId] = p;
+    }
+    return map;
+  });
+  const [proposalSuccessMessage, setProposalSuccessMessage] = useState<string | null>(null);
 
   const shownItem: ReviewSessionItem | undefined =
     feedbackPosition !== null
@@ -79,6 +92,7 @@ export default function RepasoPlayClient({
 
   function handleNextQuestion() {
     setError(null);
+    setProposalSuccessMessage(null);
     const nextUnanswered = session.items.find((i) => !i.answered);
     if (nextUnanswered) {
       setActivePosition(nextUnanswered.position);
@@ -118,6 +132,7 @@ export default function RepasoPlayClient({
     }
   }
 
+  const currentProposal = shownItem ? proposals[shownItem.questionId] : undefined;
   const hasRemainingUnanswered = session.items.some((i) => !i.answered);
 
   return (
@@ -294,6 +309,24 @@ export default function RepasoPlayClient({
                   {finishing ? "Finalizando..." : "Finalizar repaso"}
                 </button>
               </div>
+
+              <QuestionProposalSection
+                item={shownItem}
+                sessionId={session.id}
+                source="REVIEW_SESSION"
+                accessToken={accessToken}
+                currentProposal={currentProposal}
+                proposalSuccessMessage={proposalSuccessMessage}
+                onProposalSuccess={(newProposal) => {
+                  setProposals((prev) => ({
+                    ...prev,
+                    [newProposal.questionId]: newProposal,
+                  }));
+                  setProposalSuccessMessage(
+                    "Propuesta enviada. Gracias, un revisor la valorará."
+                  );
+                }}
+              />
             </div>
           ) : (
             /* Pending question answer form */

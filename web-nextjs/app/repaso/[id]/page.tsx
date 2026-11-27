@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import Navbar from "@/app/components/Navbar";
 import RepasoPlayClient from "./RepasoPlayClient";
 import { ReviewSessionResponse } from "../types";
+import { MyProposalResponse } from "@/app/free/types";
 
 export const instant = false;
 
@@ -69,6 +70,30 @@ export default async function RepasoPlayPage(props: RepasoPlayPageProps) {
     return null;
   }
 
+  let proposals: MyProposalResponse[] = [];
+  if (reviewSession && reviewSession.items?.length) {
+    const qIds = reviewSession.items
+      .map((i) => i.questionId)
+      .filter((qId): qId is number => typeof qId === "number");
+
+    if (qIds.length > 0) {
+      try {
+        const query = qIds.map((qid) => `questionIds=${qid}`).join("&");
+        const res = await fetch(`${apiBaseUrl}/api/proposals/mine?${query}`, {
+          method: "GET",
+          headers,
+          cache: "no-store",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            proposals = data;
+          }
+        }
+      } catch {}
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col transition-colors">
       <Navbar session={session} />
@@ -92,6 +117,7 @@ export default async function RepasoPlayPage(props: RepasoPlayPageProps) {
         ) : (
           <RepasoPlayClient
             initialSession={reviewSession}
+            initialProposals={proposals}
             accessToken={user.accessToken}
           />
         )}

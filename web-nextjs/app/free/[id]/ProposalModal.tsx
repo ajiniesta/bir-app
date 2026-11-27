@@ -3,11 +3,21 @@
 import { useState } from "react";
 import { FreeSessionItem, MyProposalResponse } from "../types";
 
+export type ProposalSourceType = "FREE_SESSION" | "REVIEW_SESSION";
+
+export interface ProposalItemLike {
+  position: number;
+  questionId: number;
+  options: { letter: string; text: string }[];
+  selectedLetter?: string | null;
+}
+
 interface ProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: FreeSessionItem;
+  item: ProposalItemLike | FreeSessionItem;
   sessionId: number;
+  source?: ProposalSourceType;
   accessToken?: string;
   onSuccess: (proposal: MyProposalResponse) => void;
 }
@@ -17,6 +27,7 @@ export default function ProposalModal({
   onClose,
   item,
   sessionId,
+  source = "FREE_SESSION",
   accessToken,
   onSuccess,
 }: ProposalModalProps) {
@@ -55,7 +66,7 @@ export default function ProposalModal({
           proposedLetter: proposedLetter || null,
           proposedText: proposedText.trim() || null,
           comment: comment.trim(),
-          source: "FREE_SESSION",
+          source,
           sourceId: sessionId,
           position: item.position,
           selectedLetter: item.selectedLetter || null,
@@ -174,5 +185,76 @@ export default function ProposalModal({
         </form>
       </div>
     </div>
+  );
+}
+
+interface QuestionProposalSectionProps {
+  item: ProposalItemLike;
+  sessionId: number;
+  source?: ProposalSourceType;
+  accessToken?: string;
+  currentProposal?: MyProposalResponse;
+  proposalSuccessMessage: string | null;
+  onProposalSuccess: (proposal: MyProposalResponse) => void;
+}
+
+export function QuestionProposalSection({
+  item,
+  sessionId,
+  source = "FREE_SESSION",
+  accessToken,
+  currentProposal,
+  proposalSuccessMessage,
+  onProposalSuccess,
+}: QuestionProposalSectionProps) {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <>
+      {proposalSuccessMessage && (
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
+          {proposalSuccessMessage}
+        </div>
+      )}
+
+      {currentProposal && (
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
+          Ya enviaste una propuesta:{" "}
+          <strong>
+            {currentProposal.status === "PENDING"
+              ? "pendiente de revisión"
+              : currentProposal.status === "ACCEPTED"
+              ? "aceptada"
+              : "rechazada"}
+          </strong>
+          {currentProposal.proposedLetter && (
+            <span> (Opción propuesta: {currentProposal.proposedLetter})</span>
+          )}
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
+          ¿Crees que la respuesta correcta es errónea o conflictiva?
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 text-xs font-medium text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors focus:outline-none"
+        >
+          Proponer cambio
+        </button>
+      </div>
+
+      <ProposalModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        item={item}
+        sessionId={sessionId}
+        source={source}
+        accessToken={accessToken}
+        onSuccess={onProposalSuccess}
+      />
+    </>
   );
 }
