@@ -10,8 +10,10 @@ import bir.app.api.entity.UserQuestionStatus;
 import bir.app.api.exception.ForbiddenException;
 import bir.app.api.repository.QuestionRepository;
 import bir.app.api.repository.UserQuestionStatusRepository;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.data.model.Page;
 import io.micronaut.data.model.Pageable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -40,13 +42,23 @@ public class UserQuestionStatusService {
     private final UserQuestionStatusRepository statusRepository;
     private final QuestionRepository questionRepository;
     private final AccessControlService accessControlService;
+    private final AppUserService appUserService;
 
     public UserQuestionStatusService(UserQuestionStatusRepository statusRepository,
                                      QuestionRepository questionRepository,
                                      AccessControlService accessControlService) {
+        this(statusRepository, questionRepository, accessControlService, null);
+    }
+
+    @Inject
+    public UserQuestionStatusService(UserQuestionStatusRepository statusRepository,
+                                     QuestionRepository questionRepository,
+                                     AccessControlService accessControlService,
+                                     @Nullable AppUserService appUserService) {
         this.statusRepository = statusRepository;
         this.questionRepository = questionRepository;
         this.accessControlService = accessControlService;
+        this.appUserService = appUserService;
     }
 
     @Transactional
@@ -112,6 +124,42 @@ public class UserQuestionStatusService {
         current.setConsecutiveCorrect(nextStreak);
         current.setUpdatedAt(LocalDateTime.now());
         return statusRepository.update(current);
+    }
+
+    /**
+     * Marca manualmente una pregunta como {@link QuestionLearningStatus#DOUBT} para el
+     * usuario autenticado, reiniciando su racha de aciertos consecutivos a 0 (incluso si
+     * acababa de acertarla).
+     */
+    @Transactional
+    public UserQuestionStatus markAsDoubt(String username, Long questionId) {
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new NoSuchElementException("Pregunta no encontrada: " + questionId));
+
+        if (!accessControlService.hasGlobalBankAccess(username)) {
+            Set<String> allowed = accessControlService.allowedBankCodes(username);
+            if (question.getExamType() == null || !allowed.contains(question.getExamType().getCode())) {
+                throw new ForbiddenException("No tienes acceso al banco de esta pregunta");
+            }
+        }
+
+        Optional<UserQuestionStatus> existingOpt =
+                statusRepository.findByUserUsernameAndQuestionId(username, questionId);
+        if (existingOpt.isPresent()) {
+            UserQuestionStatus current = existingOpt.get();
+            current.setStatus(QuestionLearningStatus.DOUBT);
+            current.setConsecutiveCorrect(0);
+            current.setUpdatedAt(LocalDateTime.now());
+            return statusRepository.update(current);
+        }
+
+        if (appUserService == null) {
+            throw new NoSuchElementException("Usuario no encontrado: " + username);
+        }
+        AppUser user = appUserService.requireByUsername(username);
+        UserQuestionStatus created = new UserQuestionStatus(
+                user, question, QuestionLearningStatus.DOUBT, 0);
+        return statusRepository.save(created);
     }
 
     @Transactional

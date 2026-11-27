@@ -46,6 +46,8 @@ class UserQuestionStatusServiceTest {
     QuestionRepository questionRepository;
     @Mock
     AccessControlService accessControlService;
+    @Mock
+    AppUserService appUserService;
 
     UserQuestionStatusService service;
 
@@ -54,7 +56,7 @@ class UserQuestionStatusServiceTest {
     @BeforeEach
     void setUp() {
         inMemoryStore.clear();
-        service = new UserQuestionStatusService(statusRepository, questionRepository, accessControlService);
+        service = new UserQuestionStatusService(statusRepository, questionRepository, accessControlService, appUserService);
 
         lenient().when(statusRepository.findByUserIdAndQuestionId(any(), any())).thenAnswer(inv -> {
             Long userId = inv.getArgument(0);
@@ -288,5 +290,24 @@ class UserQuestionStatusServiceTest {
         when(accessControlService.allowedBankCodes("demo")).thenReturn(Set.of("MIR"));
         assertThatThrownBy(() -> service.getDoubtQuestionDetail("demo", 10L))
                 .isInstanceOf(NoSuchElementException.class);
+    }
+
+    @Test
+    @DisplayName("markAsDoubt sobreescribe manualmente una pregunta acertada (KNOWN) poniéndola en DOUBT con racha 0")
+    void markAsDoubtOverridesKnownQuestionToDoubtWithZeroStreak() {
+        AppUser user = TestData.user(1L, "demo", UserRole.USER);
+        Question q = sampleQuestion(10L);
+
+        // El usuario acaba de acertar la pregunta -> está en KNOWN con racha 1
+        UserQuestionStatus initial = new UserQuestionStatus(user, q, QuestionLearningStatus.KNOWN, 1);
+        when(questionRepository.findById(10L)).thenReturn(Optional.of(q));
+        when(accessControlService.hasGlobalBankAccess("demo")).thenReturn(false);
+        when(accessControlService.allowedBankCodes("demo")).thenReturn(Set.of("MIR"));
+        when(statusRepository.findByUserUsernameAndQuestionId("demo", 10L)).thenReturn(Optional.of(initial));
+
+        UserQuestionStatus overridden = service.markAsDoubt("demo", 10L);
+
+        assertThat(overridden.getStatus()).isEqualTo(QuestionLearningStatus.DOUBT);
+        assertThat(overridden.getConsecutiveCorrect()).isZero();
     }
 }

@@ -305,4 +305,52 @@ describe('RepasoPlayPage (/repaso/[id])', () => {
       expect(screen.getByText(/pendiente de revisión/i)).toBeInTheDocument();
     });
   });
+
+  it('allows manually marking an answered question as "En duda" in review mode even after answering it correctly', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
+    });
+
+    (global.fetch as jest.Mock).mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = init?.method?.toUpperCase() ?? 'GET';
+
+      if (url.includes('/api/review-sessions/88/answers') && method === 'POST') {
+        return { ok: true, status: 200, json: async () => MOCK_REVIEW_AFTER_ANSWER_1 };
+      }
+      if (url.includes('/api/question-status/questions/201/doubt') && method === 'POST') {
+        return { ok: true, status: 200, json: async () => ({ message: 'Pregunta marcada en duda' }) };
+      }
+      if (url.includes('/api/review-sessions/88') && method === 'GET') {
+        return { ok: true, status: 200, json: async () => MOCK_REVIEW_SESSION_ACTIVE };
+      }
+      return { ok: true, status: 200, json: async () => [] };
+    });
+
+    const Component = await RepasoPlayPage({ params: Promise.resolve({ id: '88' }) });
+    render(Component);
+
+    await user.click(screen.getByRole('radio', { name: /km/i }));
+    await user.click(screen.getByRole('button', { name: /responder/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /poner en duda/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /poner en duda/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/question-status/questions/201/doubt'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer token-user',
+          }),
+        })
+      );
+      expect(screen.getByRole('button', { name: /marcada en duda/i })).toBeDisabled();
+    });
+  });
 });

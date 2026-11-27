@@ -1,5 +1,6 @@
 package bir.app.api.controller;
 
+import bir.app.api.dto.MessageResponse;
 import bir.app.api.dto.QuestionPageResponse;
 import bir.app.api.dto.QuestionResponse;
 import bir.app.api.dto.QuestionSummaryResponse;
@@ -78,5 +79,16 @@ class UserQuestionStatusControllerTest {
 
         assertThat(result).isEqualTo(expected);
         verify(userQuestionStatusService).getDoubtQuestionDetail("demo", 10L);
+    }
+
+    @Test
+    @DisplayName("markAsDoubt delega en UserQuestionStatusService con el usuario autenticado y el id de la pregunta")
+    void markAsDoubtDelegatesToService() {
+        Authentication authentication = auth("demo");
+
+        MessageResponse response = controller.markAsDoubt(authentication, 10L);
+
+        assertThat(response.message()).contains("en duda");
+        verify(userQuestionStatusService).markAsDoubt("demo", 10L);
     }
 }

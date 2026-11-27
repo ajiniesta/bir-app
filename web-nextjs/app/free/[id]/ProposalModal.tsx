@@ -208,9 +208,87 @@ export function QuestionProposalSection({
   onProposalSuccess,
 }: QuestionProposalSectionProps) {
   const [showModal, setShowModal] = useState(false);
+  const [markedDoubtQuestions, setMarkedDoubtQuestions] = useState<Record<number, boolean>>({});
+  const [markingDoubt, setMarkingDoubt] = useState(false);
+  const [doubtError, setDoubtError] = useState<string | null>(null);
+
+  const isMarkedInDoubt = Boolean(markedDoubtQuestions[item.questionId]);
+
+  async function handleMarkAsDoubt() {
+    if (isMarkedInDoubt || markingDoubt) return;
+    setDoubtError(null);
+    setMarkingDoubt(true);
+
+    try {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+      };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const res = await fetch(
+        `/api/question-status/questions/${item.questionId}/doubt`,
+        {
+          method: "POST",
+          headers,
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "No se pudo marcar la pregunta en duda");
+      }
+
+      setMarkedDoubtQuestions((prev) => ({
+        ...prev,
+        [item.questionId]: true,
+      }));
+    } catch (err: unknown) {
+      setDoubtError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo marcar la pregunta en duda"
+      );
+    } finally {
+      setMarkingDoubt(false);
+    }
+  }
 
   return (
     <>
+      {doubtError && (
+        <div
+          role="alert"
+          className="rounded-lg bg-red-50 dark:bg-red-950/40 p-3 border border-red-200 dark:border-red-900/60 text-xs text-red-800 dark:text-red-300"
+        >
+          {doubtError}
+        </div>
+      )}
+
+      {/* Manual Doubt Override Card */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
+          ¿Has acertado con dudas o quieres repasar esta pregunta más adelante?
+        </span>
+        <button
+          type="button"
+          disabled={isMarkedInDoubt || markingDoubt}
+          onClick={handleMarkAsDoubt}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+            isMarkedInDoubt
+              ? "border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 cursor-default"
+              : "border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+          }`}
+        >
+          {isMarkedInDoubt
+            ? "Marcada en duda"
+            : markingDoubt
+            ? "Marcando..."
+            : "Poner en duda"}
+        </button>
+      </div>
+
       {proposalSuccessMessage && (
         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
           {proposalSuccessMessage}

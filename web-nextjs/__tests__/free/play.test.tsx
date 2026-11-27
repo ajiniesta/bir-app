@@ -227,4 +227,54 @@ describe('FreePlayPage (/free/[id])', () => {
     expect(screen.getByText('Pregunta 2 de 2')).toBeInTheDocument();
     expect(screen.getByText('¿Qué tipo de inhibidor se une al sitio alostérico?')).toBeInTheDocument();
   });
+
+  it('allows manually marking an answered question as "En duda" even when answered correctly', async () => {
+    const user = userEvent.setup();
+    mockAuth.mockResolvedValue({
+      user: { name: 'student', role: 'USER', roles: ['ROLE_USER'], accessToken: 'token-user' },
+    });
+
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => MOCK_SESSION_ACTIVE,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [],
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => MOCK_ANSWERED_ITEM_1,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Pregunta marcada en duda' }),
+      });
+
+    const Component = await FreePlayPage({ params: Promise.resolve({ id: '88' }) });
+    render(Component);
+
+    await user.click(screen.getByRole('radio', { name: /km/i }));
+    await user.click(screen.getByRole('button', { name: /responder/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /poner en duda/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /poner en duda/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/question-status/questions/201/doubt'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer token-user',
+          }),
+        })
+      );
+      expect(screen.getByRole('button', { name: /marcada en duda/i })).toBeDisabled();
+    });
+  });
 });
