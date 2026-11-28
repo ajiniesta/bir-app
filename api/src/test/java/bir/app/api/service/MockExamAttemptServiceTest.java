@@ -21,6 +21,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,12 +35,14 @@ class MockExamAttemptServiceTest {
     MockExamService mockExamService;
     @Mock
     AppUserService appUserService;
+    @Mock
+    UserQuestionStatusService userQuestionStatusService;
 
     MockExamAttemptService service;
 
     @BeforeEach
     void setUp() {
-        service = new MockExamAttemptService(attemptRepository, mockExamService, appUserService);
+        service = new MockExamAttemptService(attemptRepository, mockExamService, appUserService, userQuestionStatusService);
     }
 
     @Test
@@ -98,5 +102,10 @@ class MockExamAttemptServiceTest {
         assertThat(invItem.correctLetter()).isNull();
         assertThat(invItem.correct()).isNull();
         assertThat(invItem.selectedLetter()).isEqualTo("A");
+
+        verify(userQuestionStatusService).recordAnswer(demo, valid1, true);
+        verify(userQuestionStatusService).recordAnswer(demo, valid2, false);
+        verify(userQuestionStatusService, never()).recordAnswer(demo, invalidated, true);
+        verify(userQuestionStatusService, never()).recordAnswer(demo, invalidated, false);
     }
 }

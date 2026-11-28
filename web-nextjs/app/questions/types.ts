@@ -5,6 +5,7 @@ export interface QuestionSummary {
   tag?: string | null;
   tags?: string[] | null;
   examTypeCode?: string | null;
+  learningStatus?: string | null;
 }
 
 export interface QuestionPageResponse {
@@ -34,6 +35,7 @@ export interface QuestionDetailResponse {
   answerOptions: AnswerOptionResponse[];
   createdAt?: string | null;
   updatedAt?: string | null;
+  learningStatus?: string | null;
 }
 
 export interface ExamType {

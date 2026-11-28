@@ -3,11 +3,21 @@
 import { useState } from "react";
 import { FreeSessionItem, MyProposalResponse } from "../types";
 
+export type ProposalSourceType = "FREE_SESSION" | "REVIEW_SESSION";
+
+export interface ProposalItemLike {
+  position: number;
+  questionId: number;
+  options: { letter: string; text: string }[];
+  selectedLetter?: string | null;
+}
+
 interface ProposalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  item: FreeSessionItem;
+  item: ProposalItemLike | FreeSessionItem;
   sessionId: number;
+  source?: ProposalSourceType;
   accessToken?: string;
   onSuccess: (proposal: MyProposalResponse) => void;
 }
@@ -17,6 +27,7 @@ export default function ProposalModal({
   onClose,
   item,
   sessionId,
+  source = "FREE_SESSION",
   accessToken,
   onSuccess,
 }: ProposalModalProps) {
@@ -55,7 +66,7 @@ export default function ProposalModal({
           proposedLetter: proposedLetter || null,
           proposedText: proposedText.trim() || null,
           comment: comment.trim(),
-          source: "FREE_SESSION",
+          source,
           sourceId: sessionId,
           position: item.position,
           selectedLetter: item.selectedLetter || null,
@@ -174,5 +185,154 @@ export default function ProposalModal({
         </form>
       </div>
     </div>
+  );
+}
+
+interface QuestionProposalSectionProps {
+  item: ProposalItemLike;
+  sessionId: number;
+  source?: ProposalSourceType;
+  accessToken?: string;
+  currentProposal?: MyProposalResponse;
+  proposalSuccessMessage: string | null;
+  onProposalSuccess: (proposal: MyProposalResponse) => void;
+}
+
+export function QuestionProposalSection({
+  item,
+  sessionId,
+  source = "FREE_SESSION",
+  accessToken,
+  currentProposal,
+  proposalSuccessMessage,
+  onProposalSuccess,
+}: QuestionProposalSectionProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [markedDoubtQuestions, setMarkedDoubtQuestions] = useState<Record<number, boolean>>({});
+  const [markingDoubt, setMarkingDoubt] = useState(false);
+  const [doubtError, setDoubtError] = useState<string | null>(null);
+
+  const isMarkedInDoubt = Boolean(markedDoubtQuestions[item.questionId]);
+
+  async function handleMarkAsDoubt() {
+    if (isMarkedInDoubt || markingDoubt) return;
+    setDoubtError(null);
+    setMarkingDoubt(true);
+
+    try {
+      const headers: Record<string, string> = {
+        Accept: "application/json",
+      };
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
+      const res = await fetch(
+        `/api/question-status/questions/${item.questionId}/doubt`,
+        {
+          method: "POST",
+          headers,
+        }
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "No se pudo marcar la pregunta en duda");
+      }
+
+      setMarkedDoubtQuestions((prev) => ({
+        ...prev,
+        [item.questionId]: true,
+      }));
+    } catch (err: unknown) {
+      setDoubtError(
+        err instanceof Error
+          ? err.message
+          : "No se pudo marcar la pregunta en duda"
+      );
+    } finally {
+      setMarkingDoubt(false);
+    }
+  }
+
+  return (
+    <>
+      {doubtError && (
+        <div
+          role="alert"
+          className="rounded-lg bg-red-50 dark:bg-red-950/40 p-3 border border-red-200 dark:border-red-900/60 text-xs text-red-800 dark:text-red-300"
+        >
+          {doubtError}
+        </div>
+      )}
+
+      {/* Manual Doubt Override Card */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
+          ¿Has acertado con dudas o quieres repasar esta pregunta más adelante?
+        </span>
+        <button
+          type="button"
+          disabled={isMarkedInDoubt || markingDoubt}
+          onClick={handleMarkAsDoubt}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors focus:outline-none ${
+            isMarkedInDoubt
+              ? "border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 cursor-default"
+              : "border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+          }`}
+        >
+          {isMarkedInDoubt
+            ? "Marcada en duda"
+            : markingDoubt
+            ? "Marcando..."
+            : "Poner en duda"}
+        </button>
+      </div>
+
+      {proposalSuccessMessage && (
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 p-3 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300">
+          {proposalSuccessMessage}
+        </div>
+      )}
+
+      {currentProposal && (
+        <div className="rounded-lg bg-blue-50 dark:bg-blue-950/40 p-3 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300">
+          Ya enviaste una propuesta:{" "}
+          <strong>
+            {currentProposal.status === "PENDING"
+              ? "pendiente de revisión"
+              : currentProposal.status === "ACCEPTED"
+              ? "aceptada"
+              : "rechazada"}
+          </strong>
+          {currentProposal.proposedLetter && (
+            <span> (Opción propuesta: {currentProposal.proposedLetter})</span>
+          )}
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 flex flex-wrap justify-between items-center gap-3">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
+          ¿Crees que la respuesta correcta es errónea o conflictiva?
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="rounded-lg border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-950/30 px-3 py-1.5 text-xs font-medium text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors focus:outline-none"
+        >
+          Proponer cambio
+        </button>
+      </div>
+
+      <ProposalModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        item={item}
+        sessionId={sessionId}
+        source={source}
+        accessToken={accessToken}
+        onSuccess={onProposalSuccess}
+      />
+    </>
   );
 }

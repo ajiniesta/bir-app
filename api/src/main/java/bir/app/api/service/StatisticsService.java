@@ -4,13 +4,17 @@ import bir.app.api.dto.QuestionStatsResponse;
 import bir.app.api.dto.StatsOverviewResponse;
 import bir.app.api.entity.AppUser;
 import bir.app.api.entity.MockExamAttemptItem;
+import bir.app.api.entity.ReviewSessionItem;
 import bir.app.api.entity.SessionItem;
 import bir.app.api.repository.FreeSessionRepository;
 import bir.app.api.repository.MockExamAttemptItemRepository;
 import bir.app.api.repository.MockExamAttemptRepository;
 import bir.app.api.repository.QuestionRepository;
+import bir.app.api.repository.ReviewSessionItemRepository;
 import bir.app.api.repository.SessionItemRepository;
 import bir.app.api.support.QuestionTextNormalizer;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -22,7 +26,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
- * Estadísticas de práctica combinando el modo libre y los simulacros entregados.
+ * Estadísticas de práctica combinando el modo libre, modo repaso y los simulacros entregados.
  *
  * <p>El desglose por categoría incluye todas las categorías del banco, aunque
  * todavía no se haya respondido nada en ellas: así el usuario ve qué le queda
@@ -41,6 +45,7 @@ public class StatisticsService {
     private final SessionItemRepository sessionItemRepository;
     private final MockExamAttemptRepository mockExamAttemptRepository;
     private final MockExamAttemptItemRepository mockExamAttemptItemRepository;
+    private final ReviewSessionItemRepository reviewSessionItemRepository;
     private final QuestionRepository questionRepository;
     private final AccessControlService accessControlService;
 
@@ -50,10 +55,23 @@ public class StatisticsService {
                              MockExamAttemptItemRepository mockExamAttemptItemRepository,
                              QuestionRepository questionRepository,
                              AccessControlService accessControlService) {
+        this(freeSessionRepository, sessionItemRepository, mockExamAttemptRepository,
+                mockExamAttemptItemRepository, null, questionRepository, accessControlService);
+    }
+
+    @Inject
+    public StatisticsService(FreeSessionRepository freeSessionRepository,
+                             SessionItemRepository sessionItemRepository,
+                             MockExamAttemptRepository mockExamAttemptRepository,
+                             MockExamAttemptItemRepository mockExamAttemptItemRepository,
+                             @Nullable ReviewSessionItemRepository reviewSessionItemRepository,
+                             QuestionRepository questionRepository,
+                             AccessControlService accessControlService) {
         this.freeSessionRepository = freeSessionRepository;
         this.sessionItemRepository = sessionItemRepository;
         this.mockExamAttemptRepository = mockExamAttemptRepository;
         this.mockExamAttemptItemRepository = mockExamAttemptItemRepository;
+        this.reviewSessionItemRepository = reviewSessionItemRepository;
         this.questionRepository = questionRepository;
         this.accessControlService = accessControlService;
     }
@@ -63,11 +81,14 @@ public class StatisticsService {
         List<SessionItem> freeAnswered = sessionItemRepository.findAnsweredByUsername(username);
         List<MockExamAttemptItem> mockAnswered = finishedOnly(
                 mockExamAttemptItemRepository.findAnsweredFinishedByUsername(username));
+        List<ReviewSessionItem> reviewAnswered = reviewSessionItemRepository == null
+                ? List.of()
+                : reviewSessionItemRepository.findAnsweredByUsername(username);
 
         long freeSessions = freeSessionRepository.countByUserUsername(username);
         long mockAttempts = mockExamAttemptRepository.countFinishedByUsername(username);
-        long answered = freeAnswered.size() + mockAnswered.size();
-        long correct = countCorrect(freeAnswered) + countCorrectMock(mockAnswered);
+        long answered = freeAnswered.size() + mockAnswered.size() + reviewAnswered.size();
+        long correct = countCorrect(freeAnswered) + countCorrectMock(mockAnswered) + countCorrectReview(reviewAnswered);
 
         StatsOverviewResponse.Summary mine = new StatsOverviewResponse.Summary(
                 freeSessions,
@@ -75,16 +96,19 @@ public class StatisticsService {
                 answered,
                 correct,
                 pct(correct, answered),
-                byCategory(freeAnswered, mockAnswered, myBankCategories(username)));
+                byCategory(freeAnswered, mockAnswered, reviewAnswered, myBankCategories(username)));
 
         StatsOverviewResponse.Global global = null;
         if (accessControlService.hasGlobalBankAccess(username)) {
             List<SessionItem> allFree = sessionItemRepository.findAllAnswered();
             List<MockExamAttemptItem> allMock = finishedOnly(
                     mockExamAttemptItemRepository.findAllAnsweredFinished());
-            long globalAnswered = allFree.size() + allMock.size();
-            long globalCorrect = countCorrect(allFree) + countCorrectMock(allMock);
-            List<StatsOverviewResponse.UserStats> byUser = byUser(allFree, allMock);
+            List<ReviewSessionItem> allReview = reviewSessionItemRepository == null
+                    ? List.of()
+                    : reviewSessionItemRepository.findAllAnswered();
+            long globalAnswered = allFree.size() + allMock.size() + allReview.size();
+            long globalCorrect = countCorrect(allFree) + countCorrectMock(allMock) + countCorrectReview(allReview);
+            List<StatsOverviewResponse.UserStats> byUser = byUser(allFree, allMock, allReview);
 
             global = new StatsOverviewResponse.Global(
                     byUser.size(),
@@ -93,7 +117,7 @@ public class StatisticsService {
                     globalAnswered,
                     globalCorrect,
                     pct(globalCorrect, globalAnswered),
-                    byCategory(allFree, allMock, questionRepository.findDistinctCategories()),
+                    byCategory(allFree, allMock, allReview, questionRepository.findDistinctCategories()),
                     byUser);
         }
 
@@ -101,7 +125,7 @@ public class StatisticsService {
     }
 
     /**
-     * Estadísticas de una pregunta concreta (modo libre + simulacros entregados):
+     * Estadísticas de una pregunta concreta (modo libre + modo repaso + simulacros entregados):
      * veces respondida y porcentaje de acierto en toda la plataforma y por el
      * usuario autenticado.
      */
@@ -114,9 +138,12 @@ public class StatisticsService {
         List<SessionItem> freeAnswered = sessionItemRepository.findAnsweredByQuestionId(questionId);
         List<MockExamAttemptItem> mockAnswered = finishedOnly(
                 mockExamAttemptItemRepository.findAnsweredFinishedByQuestionId(questionId));
+        List<ReviewSessionItem> reviewAnswered = reviewSessionItemRepository == null
+                ? List.of()
+                : reviewSessionItemRepository.findAnsweredByQuestionId(questionId);
 
-        long platformAnswered = freeAnswered.size() + mockAnswered.size();
-        long platformCorrect = countCorrect(freeAnswered) + countCorrectMock(mockAnswered);
+        long platformAnswered = freeAnswered.size() + mockAnswered.size() + reviewAnswered.size();
+        long platformCorrect = countCorrect(freeAnswered) + countCorrectMock(mockAnswered) + countCorrectReview(reviewAnswered);
         long platformIncorrect = platformAnswered - platformCorrect;
         QuestionStatsResponse.ScopeStats platform = new QuestionStatsResponse.ScopeStats(
                 platformAnswered,
@@ -137,9 +164,15 @@ public class StatisticsService {
                         && username != null
                         && username.equals(i.getAttempt().getUser().getUsername()))
                 .toList();
+        List<ReviewSessionItem> userReview = reviewAnswered.stream()
+                .filter(i -> i.getSession() != null
+                        && i.getSession().getUser() != null
+                        && username != null
+                        && username.equals(i.getSession().getUser().getUsername()))
+                .toList();
 
-        long userAnswered = userFree.size() + userMock.size();
-        long userCorrect = countCorrect(userFree) + countCorrectMock(userMock);
+        long userAnswered = userFree.size() + userMock.size() + userReview.size();
+        long userCorrect = countCorrect(userFree) + countCorrectMock(userMock) + countCorrectReview(userReview);
         long userIncorrect = userAnswered - userCorrect;
         QuestionStatsResponse.ScopeStats user = new QuestionStatsResponse.ScopeStats(
                 userAnswered,
@@ -167,6 +200,7 @@ public class StatisticsService {
     private static List<StatsOverviewResponse.CategoryStats> byCategory(
             List<SessionItem> freeAnswered,
             List<MockExamAttemptItem> mockAnswered,
+            List<ReviewSessionItem> reviewAnswered,
             List<String> baseCategories) {
 
         Map<String, CategoryAcc> acc = new LinkedHashMap<>();
@@ -179,6 +213,10 @@ public class StatisticsService {
         }
         for (MockExamAttemptItem item : mockAnswered) {
             add(acc, item.getCategory(), Boolean.TRUE.equals(item.getIsCorrect()));
+        }
+        for (ReviewSessionItem item : reviewAnswered) {
+            String category = item.getQuestion() == null ? null : item.getQuestion().getCategory();
+            add(acc, category, Boolean.TRUE.equals(item.getIsCorrect()));
         }
 
         return acc.entrySet().stream()
@@ -212,7 +250,8 @@ public class StatisticsService {
 
     private static List<StatsOverviewResponse.UserStats> byUser(
             List<SessionItem> freeAnswered,
-            List<MockExamAttemptItem> mockAnswered) {
+            List<MockExamAttemptItem> mockAnswered,
+            List<ReviewSessionItem> reviewAnswered) {
 
         Map<String, UserAcc> acc = new LinkedHashMap<>();
         for (SessionItem item : freeAnswered) {
@@ -220,6 +259,9 @@ public class StatisticsService {
         }
         for (MockExamAttemptItem item : mockAnswered) {
             addUser(acc, item.getAttempt().getUser(), Boolean.TRUE.equals(item.getIsCorrect()));
+        }
+        for (ReviewSessionItem item : reviewAnswered) {
+            addUser(acc, item.getSession().getUser(), Boolean.TRUE.equals(item.getIsCorrect()));
         }
 
         return acc.values().stream()
@@ -257,6 +299,10 @@ public class StatisticsService {
     }
 
     private static long countCorrectMock(List<MockExamAttemptItem> items) {
+        return items.stream().filter(item -> Boolean.TRUE.equals(item.getIsCorrect())).count();
+    }
+
+    private static long countCorrectReview(List<ReviewSessionItem> items) {
         return items.stream().filter(item -> Boolean.TRUE.equals(item.getIsCorrect())).count();
     }
 

@@ -6,6 +6,8 @@ import bir.app.api.dto.MockExamAttemptSummaryResponse;
 import bir.app.api.dto.MockExamStatsResponse;
 import bir.app.api.entity.*;
 import bir.app.api.repository.MockExamAttemptRepository;
+import io.micronaut.core.annotation.Nullable;
+import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -23,13 +25,23 @@ public class MockExamAttemptService {
     private final MockExamAttemptRepository attemptRepository;
     private final MockExamService mockExamService;
     private final AppUserService appUserService;
+    private final UserQuestionStatusService userQuestionStatusService;
 
     public MockExamAttemptService(MockExamAttemptRepository attemptRepository,
                                   MockExamService mockExamService,
                                   AppUserService appUserService) {
+        this(attemptRepository, mockExamService, appUserService, null);
+    }
+
+    @Inject
+    public MockExamAttemptService(MockExamAttemptRepository attemptRepository,
+                                  MockExamService mockExamService,
+                                  AppUserService appUserService,
+                                  @Nullable UserQuestionStatusService userQuestionStatusService) {
         this.attemptRepository = attemptRepository;
         this.mockExamService = mockExamService;
         this.appUserService = appUserService;
+        this.userQuestionStatusService = userQuestionStatusService;
     }
 
     // --- Ciclo de vida del intento -------------------------------------------
@@ -116,6 +128,16 @@ public class MockExamAttemptService {
             recalculateCounters(attempt);
             attempt.setFinishedAt(LocalDateTime.now());
             attemptRepository.save(attempt);
+            if (userQuestionStatusService != null && attempt.getUser() != null) {
+                for (MockExamAttemptItem item : attempt.getItems()) {
+                    if (item.isAnswered() && item.getQuestion() != null && item.getIsCorrect() != null) {
+                        userQuestionStatusService.recordAnswer(
+                                attempt.getUser(),
+                                item.getQuestion(),
+                                Boolean.TRUE.equals(item.getIsCorrect()));
+                    }
+                }
+            }
         }
         return toResponse(attempt);
     }
