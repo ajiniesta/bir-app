@@ -18,6 +18,7 @@ jest.mock('@/auth', () => ({
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), refresh: jest.fn() }),
   usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
   redirect: jest.fn(),
 }));
 
@@ -172,5 +173,17 @@ describe('Design System Consistency & Dark Theme Support', () => {
     const body = children.find((c: any) => c?.type === 'body');
     expect(body).toBeDefined();
     expect(body?.props.suppressHydrationWarning).toBe(true);
+
+    // Verify GlobalTopProgress is mounted inside the global provider tree
+    const authProvider = body?.props.children;
+    const themeProvider = authProvider?.props.children;
+    const themeChildren = Array.isArray(themeProvider?.props.children)
+      ? themeProvider.props.children
+      : [themeProvider?.props.children];
+    const hasGlobalTopProgress = themeChildren.some(
+      (child: { type?: { name?: string } } | null | undefined) =>
+        child?.type?.name === 'GlobalTopProgress'
+    );
+    expect(hasGlobalTopProgress).toBe(true);
   });
 });
